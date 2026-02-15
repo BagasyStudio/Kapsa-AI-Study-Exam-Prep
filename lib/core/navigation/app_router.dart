@@ -283,7 +283,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => _slideFromRight(
           const LegalScreen(
             title: 'Terms of Service',
-            url: 'https://kapsa.app/terms',
+            url: 'https://sites.google.com/view/kapsaaistudyexamprep/kapsa-app',
           ),
         ),
       ),
@@ -294,7 +294,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => _slideFromRight(
           const LegalScreen(
             title: 'Privacy Policy',
-            url: 'https://kapsa.app/privacy',
+            url: 'https://sites.google.com/view/kapsaaistudyexamprep/privacy-policy',
           ),
         ),
       ),
