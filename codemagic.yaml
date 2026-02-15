@@ -50,7 +50,7 @@ workflows:
 
       - name: Install CocoaPods dependencies
         script: |
-          cd ios && pod install
+          find . -name "Podfile" -execdir pod install \;
 
       - name: Flutter analyze
         script: |
