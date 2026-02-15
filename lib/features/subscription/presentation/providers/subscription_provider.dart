@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/navigation/routes.dart';
+import '../../../../core/providers/revenue_cat_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/subscription_repository.dart';
 
@@ -12,10 +13,20 @@ final subscriptionRepositoryProvider = Provider<SubscriptionRepository>((ref) {
 });
 
 /// Whether the current user is a Pro subscriber.
+///
+/// Uses RevenueCat as source of truth. Falls back to Supabase
+/// if RevenueCat is unavailable (e.g. no network).
 final isProProvider = FutureProvider.autoDispose<bool>((ref) async {
-  final user = ref.watch(currentUserProvider);
-  if (user == null) return false;
-  return ref.read(subscriptionRepositoryProvider).getIsPro(user.id);
+  // Try RevenueCat first (source of truth)
+  try {
+    final rcPro = await ref.watch(revenueCatProProvider.future);
+    return rcPro;
+  } catch (_) {
+    // Fallback to Supabase
+    final user = ref.watch(currentUserProvider);
+    if (user == null) return false;
+    return ref.read(subscriptionRepositoryProvider).getIsPro(user.id);
+  }
 });
 
 /// Daily usage map for the current user.

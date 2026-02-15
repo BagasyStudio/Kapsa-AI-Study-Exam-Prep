@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../../../core/navigation/routes.dart';
+import '../../../../core/providers/revenue_cat_provider.dart';
+import '../../../../core/services/revenue_cat_service.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../widgets/feature_row.dart';
@@ -11,14 +15,15 @@ import '../../../../core/widgets/tap_scale.dart';
 ///
 /// Premium dark immersive background with animated gradient orbs,
 /// feature list, pricing cards, and pulsing CTA.
-class PaywallScreen extends StatefulWidget {
+/// Integrates with RevenueCat for real in-app purchases.
+class PaywallScreen extends ConsumerStatefulWidget {
   const PaywallScreen({super.key});
 
   @override
-  State<PaywallScreen> createState() => _PaywallScreenState();
+  ConsumerState<PaywallScreen> createState() => _PaywallScreenState();
 }
 
-class _PaywallScreenState extends State<PaywallScreen>
+class _PaywallScreenState extends ConsumerState<PaywallScreen>
     with TickerProviderStateMixin {
   bool _isYearlySelected = true;
   late AnimationController _pulseController;
@@ -50,8 +55,100 @@ class _PaywallScreenState extends State<PaywallScreen>
     super.dispose();
   }
 
+  /// Get the correct package from RevenueCat offerings.
+  Package? _getSelectedPackage(Offerings? offerings) {
+    final current = offerings?.current;
+    if (current == null) return null;
+
+    if (_isYearlySelected) {
+      return current.annual ?? current.getPackage(RevenueCatService.yearlyProductId);
+    } else {
+      return current.monthly ?? current.getPackage(RevenueCatService.monthlyProductId);
+    }
+  }
+
+  /// Handle the purchase CTA tap.
+  Future<void> _onPurchaseTap() async {
+    final offerings = await ref.read(offeringsProvider.future);
+    final package = _getSelectedPackage(offerings);
+
+    if (package == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Products not available. Please try again later.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
+    final success = await ref.read(purchaseNotifierProvider.notifier).purchase(package);
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Welcome to Kapsa Pro!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) Navigator.of(context).pop();
+      });
+    }
+  }
+
+  /// Handle restore purchases tap.
+  Future<void> _onRestoreTap() async {
+    final success = await ref.read(purchaseNotifierProvider.notifier).restore();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? 'Purchases restored! Welcome back to Pro.'
+                : 'No previous purchases found.',
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      if (success) {
+        Future.delayed(const Duration(milliseconds: 600), () {
+          if (mounted) Navigator.of(context).pop();
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final purchaseState = ref.watch(purchaseNotifierProvider);
+    final offeringsAsync = ref.watch(offeringsProvider);
+
+    // Extract dynamic prices from offerings when available
+    String yearlyPrice = '\$59.99';
+    String yearlyMonthly = '\$5.00/mo';
+    String monthlyPrice = '\$12.99';
+
+    offeringsAsync.whenData((offerings) {
+      final current = offerings?.current;
+      if (current != null) {
+        final annual = current.annual;
+        final monthly = current.monthly;
+
+        if (annual != null) {
+          yearlyPrice = annual.storeProduct.priceString;
+          final monthlyEquiv = annual.storeProduct.price / 12;
+          yearlyMonthly = '\$${monthlyEquiv.toStringAsFixed(2)}/mo';
+        }
+        if (monthly != null) {
+          monthlyPrice = monthly.storeProduct.priceString;
+        }
+      }
+    });
+
     return Scaffold(
       backgroundColor: const Color(0xFF0B0D1E),
       body: Stack(
@@ -263,10 +360,10 @@ class _PaywallScreenState extends State<PaywallScreen>
                       Expanded(
                         child: PricingCard(
                           planName: 'Yearly',
-                          price: '\$99.99',
+                          price: yearlyPrice,
                           period: '/yr',
-                          subtitle: '\$8.33/mo',
-                          badgeText: 'BEST VALUE — SAVE 50%',
+                          subtitle: yearlyMonthly,
+                          badgeText: 'BEST VALUE — SAVE 62%',
                           isSelected: _isYearlySelected,
                           onTap: () =>
                               setState(() => _isYearlySelected = true),
@@ -278,7 +375,7 @@ class _PaywallScreenState extends State<PaywallScreen>
                           padding: const EdgeInsets.only(top: 8),
                           child: PricingCard(
                             planName: 'Monthly',
-                            price: '\$16.00',
+                            price: monthlyPrice,
                             period: '/mo',
                             isSelected: !_isYearlySelected,
                             onTap: () =>
@@ -318,19 +415,7 @@ class _PaywallScreenState extends State<PaywallScreen>
                             width: double.infinity,
                             child: TapScale(
                               scaleDown: 0.96,
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Free trial activated!'),
-                                    duration: Duration(milliseconds: 800),
-                                  ),
-                                );
-                                Future.delayed(const Duration(milliseconds: 600), () {
-                                  if (context.mounted) {
-                                    Navigator.of(context).pop();
-                                  }
-                                });
-                              },
+                              onTap: purchaseState.isLoading ? null : _onPurchaseTap,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(vertical: 18),
                                 decoration: BoxDecoration(
@@ -358,20 +443,33 @@ class _PaywallScreenState extends State<PaywallScreen>
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text(
-                                      'Start 7-Day Free Trial',
-                                      style: AppTypography.button.copyWith(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.3,
+                                    if (purchaseState.isLoading)
+                                      const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    else ...[
+                                      Text(
+                                        _isYearlySelected
+                                            ? 'Start 7-Day Free Trial'
+                                            : 'Get Kapsa Pro',
+                                        style: AppTypography.button.copyWith(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.3,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Icon(
-                                      Icons.arrow_forward_rounded,
-                                      color: Colors.white.withValues(alpha: 0.8),
-                                      size: 20,
-                                    ),
+                                      const SizedBox(width: 8),
+                                      Icon(
+                                        Icons.arrow_forward_rounded,
+                                        color: Colors.white.withValues(alpha: 0.8),
+                                        size: 20,
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -382,7 +480,26 @@ class _PaywallScreenState extends State<PaywallScreen>
                     },
                   ),
 
-                  const SizedBox(height: AppSpacing.xl),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Restore purchases link
+                  Center(
+                    child: TapScale(
+                      onTap: purchaseState.isLoading ? null : _onRestoreTap,
+                      child: Text(
+                        'Restore Purchases',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                          decoration: TextDecoration.underline,
+                          decorationColor: Colors.white.withValues(alpha: 0.3),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: AppSpacing.lg),
 
                   // Footer
                   Center(
@@ -427,7 +544,7 @@ class _PaywallScreenState extends State<PaywallScreen>
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 8),
                               child: Text(
-                                '·',
+                                '\u00b7',
                                 style: AppTypography.caption.copyWith(
                                   color: Colors.white.withValues(alpha: 0.25),
                                   fontSize: 10,

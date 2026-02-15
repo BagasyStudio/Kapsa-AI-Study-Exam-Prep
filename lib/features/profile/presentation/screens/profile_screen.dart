@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/navigation/routes.dart';
+import '../../../../core/providers/revenue_cat_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -11,6 +12,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/staggered_list.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../subscription/presentation/providers/subscription_provider.dart';
 import '../providers/profile_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -288,76 +290,8 @@ class ProfileScreen extends ConsumerWidget {
 
                             const SizedBox(height: AppSpacing.xl),
 
-                            // Upgrade to Pro
-                            TapScale(
-                              onTap: () => context.push(Routes.paywall),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                                  child: Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(AppSpacing.lg),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          AppColors.primary.withValues(alpha: 0.15),
-                                          const Color(0xFF6366F1).withValues(alpha: 0.1),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: AppColors.primary.withValues(alpha: 0.2),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 44,
-                                          height: 44,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            gradient: AppGradients.primaryToIndigo,
-                                          ),
-                                          child: const Icon(
-                                            Icons.auto_awesome,
-                                            color: Colors.white,
-                                            size: 22,
-                                          ),
-                                        ),
-                                        const SizedBox(width: AppSpacing.md),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'Upgrade to Pro',
-                                                style: AppTypography.labelLarge.copyWith(
-                                                  color: const Color(0xFF1E293B),
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                'Unlock AI Oracle & Smart Study Plans',
-                                                style: AppTypography.caption.copyWith(
-                                                  color: const Color(0xFF64748B),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Icon(
-                                          Icons.chevron_right,
-                                          color: AppColors.primary,
-                                          size: 22,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
+                            // Subscription section — conditional
+                            _SubscriptionSection(),
 
                             const SizedBox(height: AppSpacing.xxl),
 
@@ -421,6 +355,207 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Subscription section — shows Pro badge if subscribed, or Upgrade + Restore if free.
+class _SubscriptionSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isProAsync = ref.watch(isProProvider);
+
+    return isProAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => _buildUpgradeCard(context),
+      data: (isPro) {
+        if (isPro) {
+          return _buildProBadge(context);
+        }
+        return Column(
+          children: [
+            _buildUpgradeCard(context),
+            const SizedBox(height: AppSpacing.md),
+            _buildRestoreButton(context, ref),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildProBadge(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFF10B981).withValues(alpha: 0.15),
+                const Color(0xFF059669).withValues(alpha: 0.1),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFF10B981).withValues(alpha: 0.25),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF10B981), Color(0xFF059669)],
+                  ),
+                ),
+                child: const Icon(
+                  Icons.verified,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Kapsa Pro Active',
+                      style: AppTypography.labelLarge.copyWith(
+                        color: const Color(0xFF1E293B),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'All features unlocked',
+                      style: AppTypography.caption.copyWith(
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.auto_awesome,
+                color: const Color(0xFFFBBF24),
+                size: 22,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUpgradeCard(BuildContext context) {
+    return TapScale(
+      onTap: () => context.push(Routes.paywall),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primary.withValues(alpha: 0.15),
+                  const Color(0xFF6366F1).withValues(alpha: 0.1),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: AppGradients.primaryToIndigo,
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Upgrade to Pro',
+                        style: AppTypography.labelLarge.copyWith(
+                          color: const Color(0xFF1E293B),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Unlock AI Oracle & Smart Study Plans',
+                        style: AppTypography.caption.copyWith(
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRestoreButton(BuildContext context, WidgetRef ref) {
+    return Center(
+      child: TapScale(
+        onTap: () async {
+          final success = await ref
+              .read(purchaseNotifierProvider.notifier)
+              .restore();
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  success
+                      ? 'Purchases restored! Welcome back to Pro.'
+                      : 'No previous purchases found.',
+                ),
+              ),
+            );
+          }
+        },
+        child: Text(
+          'Restore Purchases',
+          style: AppTypography.bodySmall.copyWith(
+            color: const Color(0xFF64748B),
+            fontWeight: FontWeight.w500,
+            fontSize: 13,
+            decoration: TextDecoration.underline,
+            decorationColor: const Color(0xFF94A3B8).withValues(alpha: 0.5),
+          ),
+        ),
       ),
     );
   }

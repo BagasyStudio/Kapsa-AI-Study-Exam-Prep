@@ -1,10 +1,12 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/revenue_cat_service.dart';
 
 /// Repository handling all authentication operations via Supabase Auth.
 class AuthRepository {
   final SupabaseClient _client;
+  final RevenueCatService _revenueCat;
 
-  AuthRepository(this._client);
+  AuthRepository(this._client) : _revenueCat = RevenueCatService(_client);
 
   /// Stream of auth state changes (sign in, sign out, token refresh).
   Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
@@ -19,31 +21,47 @@ class AuthRepository {
   ///
   /// Optionally pass [fullName] which gets stored in user_metadata
   /// and picked up by the profiles trigger.
+  /// Also logs in to RevenueCat for subscription tracking.
   Future<AuthResponse> signUp({
     required String email,
     required String password,
     String? fullName,
   }) async {
-    return await _client.auth.signUp(
+    final response = await _client.auth.signUp(
       email: email,
       password: password,
       data: fullName != null ? {'full_name': fullName} : null,
     );
+    // Sync RevenueCat with the new user
+    if (response.user != null) {
+      await _revenueCat.login(response.user!.id);
+    }
+    return response;
   }
 
   /// Sign in with email + password.
+  ///
+  /// Also logs in to RevenueCat for subscription tracking.
   Future<AuthResponse> signIn({
     required String email,
     required String password,
   }) async {
-    return await _client.auth.signInWithPassword(
+    final response = await _client.auth.signInWithPassword(
       email: email,
       password: password,
     );
+    // Sync RevenueCat with the authenticated user
+    if (response.user != null) {
+      await _revenueCat.login(response.user!.id);
+    }
+    return response;
   }
 
   /// Sign out the current user.
+  ///
+  /// Also logs out from RevenueCat.
   Future<void> signOut() async {
+    await _revenueCat.logout();
     await _client.auth.signOut();
   }
 
