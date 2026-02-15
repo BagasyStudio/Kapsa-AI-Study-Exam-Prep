@@ -25,12 +25,12 @@ abstract final class AppLimits {
   // ── Free tier daily limits ──
 
   static const Map<String, int> freeDailyLimits = {
-    'chat': 2,
+    'chat': 1,
     'flashcards': 1,
     'quiz': 1,
-    'ocr': 2,
-    'whisper': 2,
-    'oracle': 3,
+    'ocr': 1,
+    'whisper': 1,
+    'oracle': 1,
   };
 
   // ── Pro tier daily limits ──
