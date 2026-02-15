@@ -16,8 +16,6 @@ workflows:
       cocoapods: default
       groups:
         - kapsa_env
-      vars:
-        SUPABASE_URL: "https://uudooipqcmtmyscessjq.supabase.co"
 
     scripts:
       - name: Generate certificate private key
@@ -61,6 +59,9 @@ workflows:
           flutter build ipa --release \
             --build-name=1.0.0 \
             --build-number=$(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID") + 1)) \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
+            --dart-define=REVENUECAT_API_KEY="$REVENUECAT_API_KEY" \
             --export-options-plist=/Users/builder/export_options.plist
 
     artifacts:

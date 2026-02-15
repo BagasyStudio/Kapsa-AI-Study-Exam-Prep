@@ -17,8 +17,11 @@ final materialRepositoryProvider = Provider<MaterialRepository>((ref) {
 });
 
 /// Fetches all courses for the current user.
+///
+/// NOT autoDispose — cached while user navigates between screens
+/// to avoid redundant refetches. Use ref.invalidate() to refresh.
 final coursesProvider =
-    FutureProvider.autoDispose<List<CourseModel>>((ref) async {
+    FutureProvider<List<CourseModel>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   return ref.watch(courseRepositoryProvider).getCourses(user.id);
@@ -26,19 +29,21 @@ final coursesProvider =
 
 /// Fetches a single course by ID.
 final courseProvider =
-    FutureProvider.autoDispose.family<CourseModel?, String>((ref, courseId) async {
+    FutureProvider.family<CourseModel?, String>((ref, courseId) async {
   return ref.watch(courseRepositoryProvider).getCourse(courseId);
 });
 
 /// Fetches materials for a course.
-final courseMaterialsProvider = FutureProvider.autoDispose
+final courseMaterialsProvider = FutureProvider
     .family<List<MaterialModel>, String>((ref, courseId) async {
   return ref.watch(materialRepositoryProvider).getMaterials(courseId);
 });
 
 /// Fetches recent materials for the current user (for Home screen).
+///
+/// NOT autoDispose — cached so Home screen doesn't refetch on every tab switch.
 final recentMaterialsProvider =
-    FutureProvider.autoDispose<List<MaterialModel>>((ref) async {
+    FutureProvider<List<MaterialModel>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   return ref.watch(materialRepositoryProvider).getRecentMaterials(user.id, limit: 4);

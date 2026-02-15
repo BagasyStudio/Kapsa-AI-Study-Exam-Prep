@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:math';
+import 'package:crypto/crypto.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/revenue_cat_service.dart';
 
@@ -63,6 +67,68 @@ class AuthRepository {
   Future<void> signOut() async {
     await _revenueCat.logout();
     await _client.auth.signOut();
+  }
+
+  /// Sign in with Apple using native flow + Supabase OAuth.
+  ///
+  /// Uses the raw nonce approach: generates a nonce, passes it to Apple,
+  /// then exchanges the Apple ID token with Supabase.
+  /// Also syncs RevenueCat after successful sign-in.
+  Future<AuthResponse> signInWithApple() async {
+    // Generate a random nonce for security
+    final rawNonce = _generateNonce();
+    final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
+
+    // Request Apple credentials
+    final credential = await SignInWithApple.getAppleIDCredential(
+      scopes: [
+        AppleIDAuthorizationScopes.email,
+        AppleIDAuthorizationScopes.fullName,
+      ],
+      nonce: hashedNonce,
+    );
+
+    final idToken = credential.identityToken;
+    if (idToken == null) {
+      throw Exception('Apple Sign-In failed: no identity token received');
+    }
+
+    // Exchange Apple token with Supabase
+    final response = await _client.auth.signInWithIdToken(
+      provider: OAuthProvider.apple,
+      idToken: idToken,
+      nonce: rawNonce,
+    );
+
+    // Sync RevenueCat
+    if (response.user != null) {
+      await _revenueCat.login(response.user!.id);
+
+      // If Apple provided the name (first sign-in only), update profile
+      final givenName = credential.givenName;
+      final familyName = credential.familyName;
+      if (givenName != null || familyName != null) {
+        final fullName = [givenName, familyName]
+            .where((n) => n != null && n.isNotEmpty)
+            .join(' ');
+        if (fullName.isNotEmpty) {
+          await _client.auth.updateUser(
+            UserAttributes(data: {'full_name': fullName}),
+          );
+        }
+      }
+    }
+
+    return response;
+  }
+
+  /// Generate a cryptographically secure random nonce.
+  String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(length, (_) => charset[random.nextInt(charset.length)])
+        .join();
   }
 
   /// Send a password reset email.

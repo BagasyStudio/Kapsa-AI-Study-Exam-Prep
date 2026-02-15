@@ -14,7 +14,8 @@ class FlashcardRepository {
         .from('flashcard_decks')
         .select()
         .eq('course_id', courseId)
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .limit(30);
     return (data as List).map((e) => DeckModel.fromJson(e)).toList();
   }
 
@@ -24,7 +25,8 @@ class FlashcardRepository {
         .from('flashcards')
         .select()
         .eq('deck_id', deckId)
-        .order('created_at', ascending: true);
+        .order('created_at', ascending: true)
+        .limit(100);
     return (data as List).map((e) => FlashcardModel.fromJson(e)).toList();
   }
 

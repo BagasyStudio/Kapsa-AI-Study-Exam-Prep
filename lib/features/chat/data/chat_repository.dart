@@ -40,8 +40,14 @@ class ChatRepository {
         .from('chat_messages')
         .select()
         .eq('session_id', sessionId)
-        .order('created_at', ascending: true);
-    return (data as List).map((e) => ChatMessageModel.fromJson(e)).toList();
+        .order('created_at', ascending: false)
+        .limit(50);
+    // Reverse to get chronological order (oldest first) after limiting
+    return (data as List)
+        .map((e) => ChatMessageModel.fromJson(e))
+        .toList()
+        .reversed
+        .toList();
   }
 
   /// Send a message and get AI response via Edge Function.

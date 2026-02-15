@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/capture/presentation/screens/capture_sheet.dart';
+import '../services/sound_service.dart';
 import 'sanctuary_bottom_nav.dart';
 
 /// Main scaffold that wraps the tab navigation.
@@ -20,16 +21,22 @@ class KapsaShell extends StatelessWidget {
       body: navigationShell,
       bottomNavigationBar: KapsaBottomNav(
         currentIndex: navigationShell.currentIndex,
-        onTap: (index) => navigationShell.goBranch(
-          index,
-          initialLocation: index == navigationShell.currentIndex,
-        ),
+        onTap: (index) {
+          if (index != navigationShell.currentIndex) {
+            SoundService.playTabSwitch();
+          }
+          navigationShell.goBranch(
+            index,
+            initialLocation: index == navigationShell.currentIndex,
+          );
+        },
         onCaptureTap: () => _showCaptureSheet(context),
       ),
     );
   }
 
   void _showCaptureSheet(BuildContext context) async {
+    SoundService.playCaptureStart();
     final result = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,

@@ -64,30 +64,36 @@ class SessionProgressBar extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              // Progress bar
-              Container(
-                height: 4,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: AppRadius.borderRadiusPill,
-                ),
-                child: FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: progress,
-                  child: Container(
+              // Progress bar (animated fill)
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  return Container(
+                    height: 4,
+                    width: double.infinity,
                     decoration: BoxDecoration(
-                      color: AppColors.primary,
+                      color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: AppRadius.borderRadiusPill,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.8),
-                          blurRadius: 10,
-                        ),
-                      ],
                     ),
-                  ),
-                ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.easeOutCubic,
+                        width: constraints.maxWidth * progress,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: AppRadius.borderRadiusPill,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.8),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),

@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/providers/revenue_cat_provider.dart';
+import '../../../../core/services/notification_service.dart';
+import '../../../../core/services/sound_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -12,6 +14,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/staggered_list.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../courses/presentation/providers/course_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
 import '../providers/profile_provider.dart';
 
@@ -240,15 +243,8 @@ class ProfileScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: AppSpacing.md),
 
-                            _SettingsTile(
-                              icon: Icons.notifications_outlined,
-                              label: 'Notifications',
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Notifications settings coming soon')),
-                                );
-                              },
-                            ),
+                            _NotificationToggleTile(),
+                            _SoundToggleTile(),
                             _SettingsTile(
                               icon: Icons.palette_outlined,
                               label: 'Appearance',
@@ -621,6 +617,218 @@ class _StatCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Notification toggle tile with permission request and smart scheduling.
+class _NotificationToggleTile extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_NotificationToggleTile> createState() =>
+      _NotificationToggleTileState();
+}
+
+class _NotificationToggleTileState
+    extends ConsumerState<_NotificationToggleTile> {
+  bool _enabled = false;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadState();
+  }
+
+  Future<void> _loadState() async {
+    final enabled = await NotificationService.isEnabled();
+    if (mounted) setState(() { _enabled = enabled; _loading = false; });
+  }
+
+  Future<void> _toggle(bool value) async {
+    if (value) {
+      // Request permission first
+      final granted = await NotificationService.requestPermission();
+      if (!granted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please enable notifications in Settings'),
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    await NotificationService.setEnabled(value);
+    setState(() => _enabled = value);
+
+    if (value) {
+      // Schedule smart reminders with current user data
+      await _scheduleReminders();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Study reminders enabled! 🔔'),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _scheduleReminders() async {
+    final profile = ref.read(profileProvider).valueOrNull;
+    final courses = ref.read(coursesProvider).valueOrNull ?? [];
+
+    final exams = courses
+        .where((c) => c.examDate != null && c.examDate!.isAfter(DateTime.now()))
+        .map((c) => ExamReminder(courseName: c.title, date: c.examDate!))
+        .toList();
+
+    await NotificationService.scheduleSmartReminders(
+      streakDays: profile?.streakDays ?? 0,
+      upcomingExams: exams,
+      userName: profile?.firstName ?? 'Student',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TapScale(
+      onTap: () => _toggle(!_enabled),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.5),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Icon(
+                _enabled
+                    ? Icons.notifications_active
+                    : Icons.notifications_outlined,
+                size: 18,
+                color: _enabled
+                    ? AppColors.primary
+                    : const Color(0xFF475569),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Study Reminders',
+                    style: AppTypography.labelLarge.copyWith(
+                      color: const Color(0xFF1E293B),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    _enabled ? 'On — daily at 8:00 PM' : 'Off',
+                    style: AppTypography.caption.copyWith(
+                      color: const Color(0xFF94A3B8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_loading)
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              Switch.adaptive(
+                value: _enabled,
+                onChanged: _toggle,
+                activeColor: AppColors.primary,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Sound effects toggle tile.
+class _SoundToggleTile extends StatefulWidget {
+  @override
+  State<_SoundToggleTile> createState() => _SoundToggleTileState();
+}
+
+class _SoundToggleTileState extends State<_SoundToggleTile> {
+  bool _enabled = SoundService.isEnabled;
+
+  Future<void> _toggle(bool value) async {
+    await SoundService.setEnabled(value);
+    setState(() => _enabled = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TapScale(
+      onTap: () => _toggle(!_enabled),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.5),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Icon(
+                _enabled ? Icons.volume_up : Icons.volume_off_outlined,
+                size: 18,
+                color: _enabled
+                    ? AppColors.primary
+                    : const Color(0xFF475569),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sound Effects',
+                    style: AppTypography.labelLarge.copyWith(
+                      color: const Color(0xFF1E293B),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    _enabled ? 'On' : 'Off',
+                    style: AppTypography.caption.copyWith(
+                      color: const Color(0xFF94A3B8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Switch.adaptive(
+              value: _enabled,
+              onChanged: _toggle,
+              activeColor: AppColors.primary,
+            ),
+          ],
         ),
       ),
     );

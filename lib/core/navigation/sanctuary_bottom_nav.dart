@@ -4,6 +4,7 @@ import '../theme/app_animations.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/tap_scale.dart';
+import '../widgets/pulse_glow.dart';
 
 /// Custom floating bottom navigation matching the mockup design.
 ///
@@ -73,8 +74,13 @@ class KapsaBottomNav extends StatelessWidget {
                     onTap: () => onTap(1),
                   ),
 
-                  // Center: Capture pill
-                  _CapturePill(onTap: onCaptureTap),
+                  // Center: Capture pill with pulse glow
+                  PulseGlow(
+                    glowColor: AppColors.primary,
+                    maxBlurRadius: 20,
+                    duration: const Duration(milliseconds: 2500),
+                    child: _CapturePill(onTap: onCaptureTap),
+                  ),
 
                   // Calendar icon
                   _NavIcon(

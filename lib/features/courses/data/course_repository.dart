@@ -13,7 +13,8 @@ class CourseRepository {
         .from('courses')
         .select()
         .eq('user_id', userId)
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .limit(50);
     return (data as List).map((e) => CourseModel.fromJson(e)).toList();
   }
 

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/sound_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/confetti_overlay.dart';
 import '../widgets/session_progress_bar.dart';
 import '../widgets/flashcard_widget.dart';
 import '../widgets/card_stack.dart';
@@ -26,10 +28,12 @@ class _FlashcardSessionScreenState
     extends ConsumerState<FlashcardSessionScreen> {
   int _currentIndex = 0;
   bool _isRevealed = false;
+  bool _hasCompletedOnce = false;
   double _swipeProgress = 0; // -1 (left) to 1 (right)
 
   void _onTapCard() {
     setState(() => _isRevealed = !_isRevealed);
+    if (_isRevealed) SoundService.playFlashcardFlip();
   }
 
   void _onSwiped(SwipeDirection direction, List<FlashcardModel> cards) {
@@ -39,16 +43,31 @@ class _FlashcardSessionScreenState
     final newMastery =
         direction == SwipeDirection.right ? 'mastered' : 'learning';
 
+    // Play appropriate sound
+    if (direction == SwipeDirection.right) {
+      SoundService.playCorrectAnswer();
+    } else {
+      SoundService.playWrongAnswer();
+    }
+
     // Update mastery in background
     ref
         .read(flashcardRepositoryProvider)
         .updateMastery(card.id, newMastery);
 
+    final nextIndex = _currentIndex + 1;
+
     setState(() {
-      _currentIndex++;
+      _currentIndex = nextIndex;
       _isRevealed = false;
       _swipeProgress = 0;
     });
+
+    // Trigger confetti when deck is completed for the first time
+    if (nextIndex == cards.length && !_hasCompletedOnce) {
+      _hasCompletedOnce = true;
+      ConfettiOverlay.show(context);
+    }
   }
 
   void _onSwipeProgress(double progress) {

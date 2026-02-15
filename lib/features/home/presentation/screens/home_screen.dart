@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/sound_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/aurora_background.dart';
@@ -22,31 +23,40 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _streakUpdated = false;
 
+  static const _streakMilestones = {3, 7, 14, 30, 60, 100, 365};
+
   void _updateStreakOnce() {
     if (_streakUpdated) return;
     _streakUpdated = true;
     final user = ref.read(currentUserProvider);
     if (user != null) {
-      ref.read(profileRepositoryProvider).updateStreak(user.id);
+      ref.read(profileRepositoryProvider).updateStreak(user.id).then((_) {
+        // Check if current streak is a milestone after update
+        final days = ref.read(profileProvider).whenOrNull(
+              data: (p) => p?.streakDays,
+            ) ??
+            0;
+        if (_streakMilestones.contains(days)) {
+          SoundService.playStreakMilestone();
+        }
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final profileAsync = ref.watch(profileProvider);
+    // Selective watches: only rebuild when the specific field changes
+    final userName = ref.watch(profileProvider.select(
+          (async) => async.whenOrNull(data: (p) => p?.firstName),
+        )) ??
+        'Student';
+    final streakDays = ref.watch(profileProvider.select(
+          (async) => async.whenOrNull(data: (p) => p?.streakDays),
+        )) ??
+        0;
 
     // Update streak once when home loads
-    profileAsync.whenData((_) => _updateStreakOnce());
-
-    // Extract profile data with fallbacks
-    final userName = profileAsync.whenOrNull(
-          data: (profile) => profile?.firstName,
-        ) ??
-        'Student';
-    final streakDays = profileAsync.whenOrNull(
-          data: (profile) => profile?.streakDays,
-        ) ??
-        0;
+    ref.watch(profileProvider).whenData((_) => _updateStreakOnce());
 
     return AuroraBackground(
       child: Stack(

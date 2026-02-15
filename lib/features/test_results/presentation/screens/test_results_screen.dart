@@ -6,6 +6,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../../core/widgets/confetti_overlay.dart';
+import '../../../../core/widgets/floating_orbs.dart';
 import '../widgets/score_ring.dart';
 import '../widgets/correction_card.dart';
 import '../widgets/collapsed_correction_card.dart';
@@ -26,6 +28,16 @@ class TestResultsScreen extends ConsumerStatefulWidget {
 
 class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
   int? _expandedIndex; // null = all collapsed
+  bool _confettiShown = false;
+
+  void _maybeTriggerConfetti(double score) {
+    if (!_confettiShown && score >= 60) {
+      _confettiShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) ConfettiOverlay.show(context);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,42 +47,9 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
       backgroundColor: AppColors.backgroundLight,
       body: Stack(
         children: [
-          // Ambient orbs
-          Positioned(
-            top: -40,
-            left: -60,
-            child: Container(
-              width: 260,
-              height: 260,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: 0.15),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 80,
-            right: -100,
-            child: Container(
-              width: 380,
-              height: 380,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFC084FC).withValues(alpha: 0.12),
-              ),
-            ),
-          ),
-          Positioned(
-            top: MediaQuery.of(context).size.height * 0.35,
-            left: MediaQuery.of(context).size.width * 0.15,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF93C5FD).withValues(alpha: 0.15),
-              ),
-            ),
+          // Animated ambient orbs
+          const Positioned.fill(
+            child: FloatingOrbs(),
           ),
 
           // Main content
@@ -140,6 +119,9 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
     final totalCount = test.totalCount;
     final mistakeCount = test.mistakeCount;
     final score = test.score ?? 0.0;
+
+    // Trigger confetti for scores >= 60%
+    _maybeTriggerConfetti(score);
 
     return Column(
       children: [

@@ -14,7 +14,8 @@ class MaterialRepository {
         .from('course_materials')
         .select()
         .eq('course_id', courseId)
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .limit(50);
     return (data as List).map((e) => MaterialModel.fromJson(e)).toList();
   }
 

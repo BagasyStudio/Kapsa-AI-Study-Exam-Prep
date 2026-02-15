@@ -26,6 +26,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isAppleLoading = false;
   bool _obscurePassword = true;
 
   @override
@@ -79,6 +80,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_parseError(e.toString()))),
       );
+    }
+  }
+
+  Future<void> _handleAppleSignIn() async {
+    setState(() => _isAppleLoading = true);
+
+    try {
+      await ref.read(authRepositoryProvider).signInWithApple();
+      // Auth state change will trigger router redirect to /home
+    } catch (e) {
+      if (!mounted) return;
+      // Don't show error if user cancelled
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('cancel') || msg.contains('1001')) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_parseError(e.toString())),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isAppleLoading = false);
     }
   }
 
@@ -273,42 +297,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                     const SizedBox(height: AppSpacing.xl),
 
-                    // Apple Sign In placeholder
-                    TapScale(
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Apple Sign-In will be available when the app is published to the App Store',
-                            ),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(100),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.4),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.apple, size: 22),
-                            const SizedBox(width: 10),
-                            Text(
-                              'Continue with Apple',
-                              style: AppTypography.labelLarge.copyWith(
-                                color: AppColors.textPrimary,
+                    // Apple Sign In
+                    _isAppleLoading
+                        ? const SizedBox(
+                            height: 56,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.primary,
+                                strokeWidth: 2.5,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
+                          )
+                        : TapScale(
+                            onTap: _handleAppleSignIn,
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                borderRadius: BorderRadius.circular(100),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.apple, size: 22, color: Colors.white),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    'Continue with Apple',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
 
                     const SizedBox(height: AppSpacing.xxxl),
 

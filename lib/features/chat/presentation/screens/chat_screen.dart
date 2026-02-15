@@ -10,6 +10,9 @@ import '../widgets/citation_chip.dart';
 import '../widgets/suggestion_chips_row.dart';
 import '../widgets/chat_input_bar.dart';
 import '../../../../core/widgets/staggered_list.dart';
+import '../../../../core/widgets/typing_indicator.dart';
+import '../../../../core/widgets/message_bubble_entrance.dart';
+import '../../../../core/widgets/floating_orbs.dart';
 import '../providers/chat_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
 
@@ -85,42 +88,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       backgroundColor: AppColors.backgroundLight,
       body: Stack(
         children: [
-          // Ambient decorative blobs
-          Positioned(
-            top: -80,
-            left: -80,
-            child: Container(
-              width: 380,
-              height: 380,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: 0.12),
-              ),
-            ),
-          ),
-          Positioned(
-            top: MediaQuery.of(context).size.height * 0.4,
-            right: -60,
-            child: Container(
-              width: 320,
-              height: 320,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFD8B4FE).withValues(alpha: 0.15),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -40,
-            left: MediaQuery.of(context).size.width * 0.3,
-            child: Container(
-              width: 260,
-              height: 260,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFBFDBFE).withValues(alpha: 0.2),
-              ),
-            ),
+          // Animated ambient orbs
+          const Positioned.fill(
+            child: FloatingOrbs(),
           ),
 
           // Main content
@@ -202,8 +172,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                 }
 
                                 final msg = messages[index - 1];
-                                return EntranceAnimation(
-                                  index: index,
+                                return MessageBubbleEntrance(
+                                  fromLeft: !msg.isUser,
                                   child: Padding(
                                     padding: const EdgeInsets.only(
                                       bottom: AppSpacing.xxl,
@@ -316,11 +286,32 @@ class _EmptyChatState extends StatelessWidget {
 class _TypingIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
-      child: AiMessageBubble(
-        text: 'Thinking...',
-        timestamp: null,
+    return MessageBubbleEntrance(
+      fromLeft: true,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.md,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.75),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+                bottomLeft: Radius.circular(6),
+                bottomRight: Radius.circular(20),
+              ),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.9),
+              ),
+            ),
+            child: const TypingIndicator(),
+          ),
+        ),
       ),
     );
   }

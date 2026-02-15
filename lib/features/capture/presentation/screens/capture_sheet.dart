@@ -11,6 +11,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/glass_button.dart';
 import '../../../../core/providers/supabase_provider.dart';
+import '../../../../core/services/sound_service.dart';
 import '../../../courses/presentation/providers/course_provider.dart';
 import '../../../courses/data/models/course_model.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -28,6 +29,7 @@ class CaptureSheet extends ConsumerStatefulWidget {
 
 class _CaptureSheetState extends ConsumerState<CaptureSheet> {
   bool _isProcessing = false;
+  String _processingStatus = 'Processing...';
 
   Future<void> _scanPages(List<CourseModel> courses) async {
     // Check feature access for OCR
@@ -42,12 +44,18 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
     if (courseId == null) return;
 
     final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.camera);
+    // Compress at capture time: max 1920px, 75% quality
+    final image = await picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1920,
+      maxHeight: 1920,
+      imageQuality: 75,
+    );
     if (image == null) return;
 
-    // Validate file size
-    final imageBytes = await image.readAsBytes();
-    if (imageBytes.length > AppLimits.maxFileSizeBytes) {
+    // Check file size BEFORE reading bytes into memory
+    final fileLength = await image.length();
+    if (fileLength > AppLimits.maxFileSizeBytes) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -60,9 +68,14 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
       return;
     }
 
-    setState(() => _isProcessing = true);
+    setState(() {
+      _isProcessing = true;
+      _processingStatus = 'Uploading image...';
+    });
 
     try {
+      final imageBytes = await image.readAsBytes();
+
       // Upload to Supabase Storage
       final client = ref.read(supabaseClientProvider);
       final user = ref.read(currentUserProvider);
@@ -75,6 +88,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
           .uploadBinary(fileName, imageBytes);
       final fileUrl =
           client.storage.from('course-materials').getPublicUrl(fileName);
+
+      if (mounted) {
+        setState(() => _processingStatus = 'AI is extracting text...');
+      }
 
       // Process with OCR Edge Function
       final material = await ref
@@ -90,6 +107,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
       await recordFeatureUsage(ref: ref, feature: 'ocr');
 
       if (mounted) {
+        SoundService.playProcessingComplete();
         Navigator.of(context)
             .pop('Scanned and processed: ${material.title}');
       }
@@ -158,7 +176,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
       return;
     }
 
-    setState(() => _isProcessing = true);
+    setState(() {
+      _isProcessing = true;
+      _processingStatus = 'Uploading PDF...';
+    });
 
     try {
       final client = ref.read(supabaseClientProvider);
@@ -172,6 +193,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
           .uploadBinary(fileName, file.bytes!);
       final fileUrl =
           client.storage.from('course-materials').getPublicUrl(fileName);
+
+      if (mounted) {
+        setState(() => _processingStatus = 'AI is extracting text...');
+      }
 
       // Process with OCR Edge Function
       final material = await ref
@@ -187,6 +212,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
       await recordFeatureUsage(ref: ref, feature: 'ocr');
 
       if (mounted) {
+        SoundService.playProcessingComplete();
         Navigator.of(context)
             .pop('Uploaded and processed: ${material.title}');
       }
@@ -224,6 +250,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
           );
 
       if (mounted) {
+        SoundService.playProcessingComplete();
         Navigator.of(context)
             .pop('Saved: ${material.title}');
       }
@@ -352,13 +379,21 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
                                 const CircularProgressIndicator(),
                                 const SizedBox(height: AppSpacing.lg),
                                 Text(
-                                  'Processing...',
+                                  _processingStatus,
                                   style: AppTypography.h3,
+                                  textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: AppSpacing.sm),
-                                Text(
-                                  'AI is extracting text from your material',
-                                  style: AppTypography.bodySmall,
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 300),
+                                  child: Text(
+                                    _processingStatus.contains('Upload')
+                                        ? 'Sending your file to the cloud...'
+                                        : 'AI is analyzing your material',
+                                    key: ValueKey(_processingStatus),
+                                    style: AppTypography.bodySmall,
+                                    textAlign: TextAlign.center,
+                                  ),
                                 ),
                               ],
                             ),

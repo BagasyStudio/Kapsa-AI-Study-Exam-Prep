@@ -524,10 +524,16 @@ class _MaterialsTab extends StatelessWidget {
                 ),
               );
             }
-            return Column(
-              children: [
-                for (final material in materials) ...[
-                  MaterialListItem(
+            // Use ListView.builder for efficient rendering of long lists
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: materials.length,
+              itemBuilder: (context, index) {
+                final material = materials[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  child: MaterialListItem(
                     title: material.title,
                     timeLabel: material.sizeLabel,
                     typeLabel: material.typeLabel,
@@ -542,9 +548,8 @@ class _MaterialsTab extends StatelessWidget {
                       ref.invalidate(courseMaterialsProvider(courseId));
                     },
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                ],
-              ],
+                );
+              },
             );
           },
         ),

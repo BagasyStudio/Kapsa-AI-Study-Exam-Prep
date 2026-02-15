@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../config/env.dart';
 
 /// Centralized service for RevenueCat in-app purchase management.
 ///
@@ -15,9 +16,8 @@ class RevenueCatService {
   static const String monthlyProductId = 'kapsa_pro_monthly';
   static const String yearlyProductId = 'kapsa_pro_yearly';
 
-  /// RevenueCat API Key — set via environment or hardcode for now.
-  /// This is a PUBLIC key (safe to include in client code).
-  static const String _apiKey = 'appl_awHRXyxfHYNdWuuvSCJlBSAAFgF';
+  /// RevenueCat API Key — injected via dart-define at build time.
+  static const String _apiKey = Env.revenueCatApiKey;
 
   final SupabaseClient _supabase;
 
