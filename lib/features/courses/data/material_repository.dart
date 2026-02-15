@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/constants/app_limits.dart';
 import 'models/material_model.dart';
 
 /// Repository for course materials (PDFs, audio, notes, etc.).
@@ -71,6 +72,7 @@ class MaterialRepository {
         'type': type,
         'fileUrl': fileUrl,
         'title': title,
+        'maxPages': AppLimits.maxPdfPages,
       },
     );
     return MaterialModel.fromJson(response.data as Map<String, dynamic>);

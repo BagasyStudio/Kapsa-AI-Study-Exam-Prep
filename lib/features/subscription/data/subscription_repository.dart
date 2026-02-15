@@ -1,23 +1,20 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/constants/app_limits.dart';
 
 /// Repository for managing subscription status and usage tracking.
 ///
 /// Implements the freemium gate system by tracking daily usage
-/// per feature and checking against free tier limits.
+/// per feature and checking against free/pro tier limits.
 class SubscriptionRepository {
   final SupabaseClient _client;
 
   SubscriptionRepository(this._client);
 
   /// Free tier daily limits per feature.
-  static const Map<String, int> freeLimits = {
-    'chat': 2,
-    'flashcards': 1,
-    'quiz': 1,
-    'ocr': 2,
-    'whisper': 2,
-    'oracle': 3,
-  };
+  static const Map<String, int> freeLimits = AppLimits.freeDailyLimits;
+
+  /// Pro tier daily limits per feature.
+  static const Map<String, int> proLimits = AppLimits.proDailyLimits;
 
   /// Check if user is a Pro subscriber.
   Future<bool> getIsPro(String userId) async {
@@ -35,13 +32,11 @@ class SubscriptionRepository {
 
   /// Check if the user can use a given feature today.
   ///
-  /// Returns true if:
-  /// - User is Pro (unlimited), or
-  /// - User hasn't exceeded the free daily limit.
+  /// Returns true if the user hasn't exceeded their daily limit.
+  /// Both free and Pro users have limits (Pro limits are much higher).
   Future<bool> checkCanUseFeature(String userId, String feature) async {
-    // Check if Pro first
     final isPro = await getIsPro(userId);
-    if (isPro) return true;
+    final limits = isPro ? proLimits : freeLimits;
 
     // Count today's usage
     final today = DateTime.now().toIso8601String().substring(0, 10);
@@ -53,12 +48,12 @@ class SubscriptionRepository {
         .eq('used_at', today);
 
     final used = (data as List).length;
-    final limit = freeLimits[feature] ?? 2;
+    final limit = limits[feature] ?? 2;
 
     return used < limit;
   }
 
-  /// Record a usage of a feature.
+  /// Record a usage of a feature (for both free and Pro users).
   Future<void> recordUsage(String userId, String feature) async {
     await _client.from('usage_tracking').insert({
       'user_id': userId,
@@ -88,7 +83,7 @@ class SubscriptionRepository {
   /// Get remaining uses for a specific feature today.
   Future<int> getRemainingUses(String userId, String feature) async {
     final isPro = await getIsPro(userId);
-    if (isPro) return 999; // unlimited
+    final limits = isPro ? proLimits : freeLimits;
 
     final today = DateTime.now().toIso8601String().substring(0, 10);
     final data = await _client
@@ -99,7 +94,7 @@ class SubscriptionRepository {
         .eq('used_at', today);
 
     final used = (data as List).length;
-    final limit = freeLimits[feature] ?? 2;
+    final limit = limits[feature] ?? 2;
     return (limit - used).clamp(0, limit);
   }
 }

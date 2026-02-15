@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../../../core/constants/app_limits.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -99,6 +101,12 @@ class ChatInputBar extends StatelessWidget {
                         child: TextField(
                           controller: controller,
                           onChanged: onChanged,
+                          maxLength: AppLimits.maxChatMessageLength,
+                          inputFormatters: [
+                            LengthLimitingTextInputFormatter(
+                              AppLimits.maxChatMessageLength,
+                            ),
+                          ],
                           style: AppTypography.bodyMedium.copyWith(
                             color: const Color(0xFF1F2937), // gray-800
                           ),
@@ -108,6 +116,7 @@ class ChatInputBar extends StatelessWidget {
                               color: const Color(0xFF6B7280), // gray-500
                             ),
                             border: InputBorder.none,
+                            counterText: '', // hide character counter
                             contentPadding: const EdgeInsets.symmetric(
                               vertical: AppSpacing.sm,
                             ),

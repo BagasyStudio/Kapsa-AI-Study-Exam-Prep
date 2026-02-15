@@ -1,8 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import '../../../../core/constants/app_limits.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -43,6 +45,21 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
     final image = await picker.pickImage(source: ImageSource.camera);
     if (image == null) return;
 
+    // Validate file size
+    final imageBytes = await image.readAsBytes();
+    if (imageBytes.length > AppLimits.maxFileSizeBytes) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'File too large. Maximum size is ${AppLimits.maxFileSizeMB} MB.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _isProcessing = true);
 
     try {
@@ -55,7 +72,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
           '${user.id}/${DateTime.now().millisecondsSinceEpoch}.jpg';
       await client.storage
           .from('course-materials')
-          .uploadBinary(fileName, await image.readAsBytes());
+          .uploadBinary(fileName, imageBytes);
       final fileUrl =
           client.storage.from('course-materials').getPublicUrl(fileName);
 
@@ -126,6 +143,20 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
 
     final file = result.files.first;
     if (file.bytes == null) return;
+
+    // Validate file size (25 MB max)
+    if (file.bytes!.length > AppLimits.maxFileSizeBytes) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'PDF too large. Maximum size is ${AppLimits.maxFileSizeMB} MB.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
 
     setState(() => _isProcessing = true);
 
@@ -251,6 +282,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
         content: TextField(
           controller: controller,
           maxLines: 8,
+          maxLength: AppLimits.maxPasteLength,
+          inputFormatters: [
+            LengthLimitingTextInputFormatter(AppLimits.maxPasteLength),
+          ],
           decoration: const InputDecoration(
             hintText: 'Paste or type your notes here...',
             border: OutlineInputBorder(),

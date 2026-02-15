@@ -62,15 +62,15 @@ Future<bool> checkFeatureAccess({
 }
 
 /// Record feature usage after a successful action.
+///
+/// Tracks usage for both free and Pro users to enforce
+/// daily limits and prevent API abuse.
 Future<void> recordFeatureUsage({
   required WidgetRef ref,
   required String feature,
 }) async {
   final user = ref.read(currentUserProvider);
   if (user == null) return;
-
-  final isPro = await ref.read(subscriptionRepositoryProvider).getIsPro(user.id);
-  if (isPro) return; // Don't track Pro users
 
   await ref.read(subscriptionRepositoryProvider).recordUsage(user.id, feature);
   ref.invalidate(dailyUsageProvider);
