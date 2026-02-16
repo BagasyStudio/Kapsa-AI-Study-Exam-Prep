@@ -75,31 +75,49 @@ class ProfileScreen extends ConsumerWidget {
     final currentUser = ref.watch(currentUserProvider);
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.backgroundLight,
       body: Stack(
         children: [
-          // Ambient orbs
-          Positioned(
-            top: -60,
-            right: -60,
-            child: Container(
-              width: 240,
-              height: 240,
+          // Ethereal mesh gradients (matches calendar style)
+          Positioned.fill(
+            child: DecoratedBox(
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: 0.15),
+                gradient: RadialGradient(
+                  center: const Alignment(-1.0, -1.0),
+                  radius: 1.2,
+                  colors: [
+                    const Color(0xFFE4E0ED).withValues(alpha: 0.8),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
           ),
-          Positioned(
-            bottom: 120,
-            left: -80,
-            child: Container(
-              width: 280,
-              height: 280,
+          Positioned.fill(
+            child: DecoratedBox(
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFC084FC).withValues(alpha: 0.1),
+                gradient: RadialGradient(
+                  center: const Alignment(0.0, -1.0),
+                  radius: 1.0,
+                  colors: [
+                    const Color(0xFFCED6EA).withValues(alpha: 0.6),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(1.0, -1.0),
+                  radius: 1.0,
+                  colors: [
+                    const Color(0xFFEDD6DD).withValues(alpha: 0.5),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
           ),
