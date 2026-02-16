@@ -101,7 +101,6 @@ final pendingPaywallProvider = StateProvider<bool>((ref) => false);
 final goRouterProvider = Provider<GoRouter>((ref) {
   final authNotifier = _AuthStateNotifier();
   final hasSeenOnboarding = ref.watch(hasSeenOnboardingProvider);
-  final pendingPaywall = ref.watch(pendingPaywallProvider);
 
   ref.onDispose(() => authNotifier.dispose());
 
@@ -134,7 +133,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
       // Logged in on auth route → check if paywall is pending
       if (isLoggedIn && isAuthRoute) {
-        if (pendingPaywall) {
+        if (ref.read(pendingPaywallProvider)) {
           // Clear the flag and redirect to paywall
           ref.read(pendingPaywallProvider.notifier).state = false;
           return Routes.paywall;
