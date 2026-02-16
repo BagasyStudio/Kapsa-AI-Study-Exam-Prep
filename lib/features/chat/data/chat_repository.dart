@@ -1,5 +1,4 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/services/session_manager.dart';
 import 'models/chat_message_model.dart';
 
 /// Repository for AI chat operations.
@@ -64,9 +63,6 @@ class ChatRepository {
       'role': 'user',
       'content': message,
     });
-
-    // Refresh token before Edge Function call
-    try { await SessionManager.refreshIfNeeded(_client); } catch (_) {}
 
     // Call Edge Function for AI response
     final response = await _client.functions.invoke(

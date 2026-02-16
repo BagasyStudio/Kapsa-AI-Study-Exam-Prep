@@ -1,5 +1,4 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/services/session_manager.dart';
 import 'models/assistant_insight_model.dart';
 import '../../chat/data/models/chat_message_model.dart';
 
@@ -14,7 +13,6 @@ class AssistantRepository {
 
   /// Get a personalized insight for the home screen.
   Future<AssistantInsightModel> getInsight() async {
-    try { await SessionManager.refreshIfNeeded(_client); } catch (_) {}
     final response = await _client.functions.invoke(
       'ai-assistant',
       body: {'mode': 'insights'},
@@ -74,9 +72,6 @@ class AssistantRepository {
       'content': message,
     });
 
-    // Refresh token before Edge Function call
-    try { await SessionManager.refreshIfNeeded(_client); } catch (_) {}
-
     // Call Edge Function for AI response
     final response = await _client.functions.invoke(
       'ai-assistant',
@@ -109,7 +104,6 @@ class AssistantRepository {
 
   /// Generate AI-powered calendar suggestions.
   Future<int> generateCalendarSuggestions() async {
-    try { await SessionManager.refreshIfNeeded(_client); } catch (_) {}
     final response = await _client.functions.invoke(
       'ai-assistant',
       body: {'mode': 'calendar_suggestions'},

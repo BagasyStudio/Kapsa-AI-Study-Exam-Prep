@@ -1,5 +1,4 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/services/session_manager.dart';
 import 'models/test_model.dart';
 import 'models/test_question_model.dart';
 
@@ -22,7 +21,6 @@ class TestRepository {
     required String courseId,
     int count = 5,
   }) async {
-    try { await SessionManager.refreshIfNeeded(_client); } catch (_) {}
     final response = await _client.functions.invoke(
       'ai-generate-quiz',
       body: {
@@ -48,7 +46,6 @@ class TestRepository {
     required String testId,
     required List<Map<String, String>> answers,
   }) async {
-    try { await SessionManager.refreshIfNeeded(_client); } catch (_) {}
     final response = await _client.functions.invoke(
       'ai-generate-quiz',
       body: {
