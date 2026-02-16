@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/sound_service.dart';
+import '../../../profile/data/models/profile_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/aurora_background.dart';
@@ -24,6 +25,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _streakUpdated = false;
 
   static const _streakMilestones = {3, 7, 14, 30, 60, 100, 365};
+
+  @override
+  void initState() {
+    super.initState();
+    // Use ref.listen (not ref.watch) to trigger the streak update as a
+    // side-effect — running this inside build() caused rebuild loops.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.listen<AsyncValue<ProfileModel?>>(profileProvider, (prev, next) {
+        next.whenData((_) => _updateStreakOnce());
+      });
+    });
+  }
 
   void _updateStreakOnce() {
     if (_streakUpdated) return;
@@ -54,9 +67,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           (async) => async.whenOrNull(data: (p) => p?.streakDays),
         )) ??
         0;
-
-    // Update streak once when home loads
-    ref.watch(profileProvider).whenData((_) => _updateStreakOnce());
 
     return AuroraBackground(
       child: Stack(

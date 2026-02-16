@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/session_manager.dart';
 import 'models/deck_model.dart';
 import 'models/flashcard_model.dart';
 
@@ -37,7 +38,7 @@ class FlashcardRepository {
     String? materialId,
     String? topic,
   }) async {
-    try { await _client.auth.refreshSession(); } catch (_) {}
+    try { await SessionManager.refreshIfNeeded(_client); } catch (_) {}
     final response = await _client.functions.invoke(
       'ai-generate-flashcards',
       body: {

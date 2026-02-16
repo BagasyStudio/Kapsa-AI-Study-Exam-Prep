@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/app_limits.dart';
+import '../../../core/services/session_manager.dart';
 import 'models/material_model.dart';
 
 /// Repository for course materials (PDFs, audio, notes, etc.).
@@ -67,7 +68,7 @@ class MaterialRepository {
     required String title,
   }) async {
     // Refresh token before Edge Function call to prevent JWT expiration errors
-    try { await _client.auth.refreshSession(); } catch (_) {}
+    try { await SessionManager.refreshIfNeeded(_client); } catch (_) {}
 
     final response = await _client.functions.invoke(
       'process-capture',

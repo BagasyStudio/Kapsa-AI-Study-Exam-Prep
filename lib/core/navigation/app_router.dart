@@ -66,8 +66,16 @@ class _AuthStateNotifier extends ChangeNotifier {
   late final StreamSubscription<AuthState> _subscription;
 
   _AuthStateNotifier() {
-    _subscription = Supabase.instance.client.auth.onAuthStateChange.listen((_) {
-      notifyListeners();
+    _subscription =
+        Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      // Only react to meaningful auth changes (sign-in, sign-out).
+      // Ignore tokenRefreshed / userUpdated — these fire on every
+      // refreshSession() call and would cause false redirects to /login
+      // when concurrent refreshes temporarily nullify the session.
+      if (data.event == AuthChangeEvent.signedIn ||
+          data.event == AuthChangeEvent.signedOut) {
+        notifyListeners();
+      }
     });
   }
 
