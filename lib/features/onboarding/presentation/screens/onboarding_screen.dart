@@ -147,30 +147,36 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           SafeArea(
             child: Column(
               children: [
-                // Top bar: progress + skip
-                if (!isPaywallPage)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, 0,
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(100),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 400),
-                        curve: AppAnimations.curveStandard,
-                        height: 4,
-                        child: LinearProgressIndicator(
-                          value: (_currentPage + 1) / _totalPages,
-                          backgroundColor:
-                              AppColors.primary.withValues(alpha: 0.12),
-                          valueColor:
-                              const AlwaysStoppedAnimation<Color>(
-                            AppColors.primary,
+                // Top bar: progress (always in tree to prevent layout thrashing)
+                IgnorePointer(
+                  ignoring: isPaywallPage,
+                  child: AnimatedOpacity(
+                    opacity: isPaywallPage ? 0.0 : 1.0,
+                    duration: const Duration(milliseconds: 300),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, 0,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(100),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 400),
+                          curve: AppAnimations.curveStandard,
+                          height: 4,
+                          child: LinearProgressIndicator(
+                            value: (_currentPage + 1) / _totalPages,
+                            backgroundColor:
+                                AppColors.primary.withValues(alpha: 0.12),
+                            valueColor:
+                                const AlwaysStoppedAnimation<Color>(
+                              AppColors.primary,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
+                ),
 
                 // Pages
                 Expanded(
@@ -242,19 +248,29 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
                 ),
 
-                // Page indicators + CTA (hidden on paywall page which has its own)
-                if (!isPaywallPage) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                    child: _buildPageIndicators(),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.xxl,
+                // Page indicators + CTA (always in tree to prevent layout thrashing)
+                IgnorePointer(
+                  ignoring: isPaywallPage,
+                  child: AnimatedOpacity(
+                    opacity: isPaywallPage ? 0.0 : 1.0,
+                    duration: const Duration(milliseconds: 300),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                          child: _buildPageIndicators(),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.xxl,
+                          ),
+                          child: _buildCTAButton(),
+                        ),
+                      ],
                     ),
-                    child: _buildCTAButton(),
                   ),
-                ],
+                ),
               ],
             ),
           ),
