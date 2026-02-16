@@ -123,6 +123,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             const Positioned.fill(
               child: FloatingOrbs(orbCount: 3),
             ),
+          // Dark gradient background for paywall page
+          if (isPaywallPage)
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF0B0D1E),
+                      Color(0xFF111338),
+                      Color(0xFF0F1029),
+                      Color(0xFF0B0D1E),
+                    ],
+                    stops: [0.0, 0.3, 0.7, 1.0],
+                  ),
+                ),
+              ),
+            ),
 
           // Content
           SafeArea(
