@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
+import 'package:audioplayers/audioplayers.dart';
 import '../../../../core/constants/app_limits.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -761,18 +762,27 @@ class _AudioRecorderDialog extends StatefulWidget {
 
 class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
   final _recorder = AudioRecorder();
+  final _player = AudioPlayer();
+
+  // States: idle → recording → preview
   bool _isRecording = false;
   bool _hasPermission = false;
+  bool _isPreview = false; // after recording, show playback
+  bool _isPlaying = false;
   int _seconds = 0;
+  int _recordedDuration = 0; // total recorded seconds
   Timer? _timer;
   String? _filePath;
 
-  static const _maxDurationSeconds = 300; // 5 minutes max
+  static const _maxDurationSeconds = 1800; // 30 minutes max
 
   @override
   void initState() {
     super.initState();
     _checkPermission();
+    _player.onPlayerComplete.listen((_) {
+      if (mounted) setState(() => _isPlaying = false);
+    });
   }
 
   Future<void> _checkPermission() async {
@@ -798,11 +808,13 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
       _filePath =
           '${dir.path}/kapsa_recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
+      // Compressed config optimized for voice:
+      // 48 kbps AAC mono @ 16 kHz ≈ ~360 KB/min (vs ~960 KB/min before)
       await _recorder.start(
         const RecordConfig(
           encoder: AudioEncoder.aacLc,
-          bitRate: 128000,
-          sampleRate: 44100,
+          bitRate: 48000,
+          sampleRate: 16000,
           numChannels: 1,
         ),
         path: _filePath!,
@@ -810,6 +822,7 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
 
       setState(() {
         _isRecording = true;
+        _isPreview = false;
         _seconds = 0;
       });
 
@@ -838,7 +851,19 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
     try {
       final path = await _recorder.stop();
       if (mounted && path != null) {
-        Navigator.of(context).pop(path);
+        _filePath = path;
+        // Get file size for display
+        final file = File(path);
+        final sizeBytes = await file.length();
+        final sizeMB = (sizeBytes / (1024 * 1024)).toStringAsFixed(1);
+        setState(() {
+          _isRecording = false;
+          _isPreview = true;
+          _recordedDuration = _seconds;
+        });
+        if (kDebugMode) {
+          debugPrint('[AudioRecorder] File: $sizeMB MB, $_seconds seconds');
+        }
       }
     } catch (e) {
       if (kDebugMode) debugPrint('[AudioRecorder] Stop failed: $e');
@@ -848,18 +873,58 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
     }
   }
 
+  Future<void> _togglePlayback() async {
+    if (_filePath == null) return;
+    try {
+      if (_isPlaying) {
+        await _player.pause();
+        setState(() => _isPlaying = false);
+      } else {
+        await _player.play(DeviceFileSource(_filePath!));
+        setState(() => _isPlaying = true);
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('[AudioPlayer] Playback error: $e');
+    }
+  }
+
+  Future<void> _reRecord() async {
+    // Stop playback if playing
+    await _player.stop();
+    setState(() {
+      _isPlaying = false;
+      _isPreview = false;
+      _seconds = 0;
+    });
+    // Delete old temp file
+    if (_filePath != null) {
+      try {
+        await File(_filePath!).delete();
+      } catch (_) {}
+    }
+    // Don't auto-start; let user tap Record
+  }
+
+  void _submitRecording() {
+    _player.stop();
+    if (_filePath != null && mounted) {
+      Navigator.of(context).pop(_filePath);
+    }
+  }
+
   Future<void> _cancelRecording() async {
     _timer?.cancel();
+    await _player.stop();
     if (_isRecording) {
       try {
         await _recorder.stop();
       } catch (_) {}
-      // Delete temp file
-      if (_filePath != null) {
-        try {
-          await File(_filePath!).delete();
-        } catch (_) {}
-      }
+    }
+    // Delete temp file
+    if (_filePath != null) {
+      try {
+        await File(_filePath!).delete();
+      } catch (_) {}
     }
     if (mounted) Navigator.of(context).pop();
   }
@@ -868,6 +933,7 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
   void dispose() {
     _timer?.cancel();
     _recorder.dispose();
+    _player.dispose();
     super.dispose();
   }
 
@@ -890,7 +956,8 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(height: 8),
-          // Recording indicator
+
+          // ── Icon indicator ──
           AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             width: 80,
@@ -899,28 +966,44 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
               shape: BoxShape.circle,
               color: _isRecording
                   ? AppColors.error.withValues(alpha: 0.1)
-                  : AppColors.primary.withValues(alpha: 0.1),
+                  : _isPreview
+                      ? AppColors.success.withValues(alpha: 0.1)
+                      : AppColors.primary.withValues(alpha: 0.1),
             ),
             child: Icon(
-              _isRecording ? Icons.mic : Icons.mic_none,
+              _isRecording
+                  ? Icons.mic
+                  : _isPreview
+                      ? Icons.headphones_rounded
+                      : Icons.mic_none,
               size: 40,
-              color: _isRecording ? AppColors.error : AppColors.primary,
+              color: _isRecording
+                  ? AppColors.error
+                  : _isPreview
+                      ? AppColors.success
+                      : AppColors.primary,
             ),
           ),
           const SizedBox(height: 16),
 
-          // Timer
+          // ── Timer / Duration ──
           Text(
-            _formatDuration(_seconds),
+            _isPreview
+                ? _formatDuration(_recordedDuration)
+                : _formatDuration(_seconds),
             style: AppTypography.h1.copyWith(
               fontFeatures: [const FontFeature.tabularFigures()],
             ),
           ),
           const SizedBox(height: 4),
+
+          // ── Status text ──
           Text(
             _isRecording
                 ? 'Recording... Tap stop when done'
-                : 'Tap the mic to start recording',
+                : _isPreview
+                    ? 'Listen to your recording before sending'
+                    : 'Tap the mic to start recording',
             style: AppTypography.bodySmall,
             textAlign: TextAlign.center,
           ),
@@ -936,35 +1019,87 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
 
           const SizedBox(height: 24),
 
-          // Action buttons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Cancel
-              TextButton(
-                onPressed: _cancelRecording,
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
+          // ── Action buttons ──
+          if (_isPreview) ...[
+            // Preview mode: Play + Re-record / Send
+            FilledButton.icon(
+              onPressed: _togglePlayback,
+              icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+              label: Text(_isPlaying ? 'Pause' : 'Play'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                foregroundColor: AppColors.primary,
+                minimumSize: const Size(200, 48),
               ),
-              const SizedBox(width: 16),
-              // Record / Stop
-              FilledButton.icon(
-                onPressed: _isRecording ? _stopRecording : _startRecording,
-                icon: Icon(_isRecording ? Icons.stop : Icons.mic),
-                label: Text(_isRecording ? 'Stop' : 'Record'),
-                style: FilledButton.styleFrom(
-                  backgroundColor:
-                      _isRecording ? AppColors.error : AppColors.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Re-record
+                OutlinedButton.icon(
+                  onPressed: _reRecord,
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text('Re-record'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary,
+                    side: BorderSide(
+                      color: AppColors.textMuted.withValues(alpha: 0.3),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 12),
+                // Send
+                FilledButton.icon(
+                  onPressed: _submitRecording,
+                  icon: const Icon(Icons.send_rounded, size: 18),
+                  label: const Text('Send'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            // Idle / Recording mode
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Cancel
+                TextButton(
+                  onPressed: _cancelRecording,
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Record / Stop
+                FilledButton.icon(
+                  onPressed:
+                      _isRecording ? _stopRecording : _startRecording,
+                  icon: Icon(_isRecording ? Icons.stop : Icons.mic),
+                  label: Text(_isRecording ? 'Stop' : 'Record'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor:
+                        _isRecording ? AppColors.error : AppColors.primary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
