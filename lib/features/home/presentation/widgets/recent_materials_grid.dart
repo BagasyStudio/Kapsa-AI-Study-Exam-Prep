@@ -81,8 +81,10 @@ class RecentMaterialsGrid extends ConsumerWidget {
                     title: material.title,
                     subtitle: _timeAgo(material.createdAt),
                     type: _mapType(material.type),
-                    onTap: () => context
-                        .push(Routes.courseDetailPath(material.courseId)),
+                    onTap: () => context.push(
+                      Routes.materialViewerPath(
+                          material.courseId, material.id),
+                    ),
                   ),
                 // "New Folder" placeholder
                 MaterialThumbnail(

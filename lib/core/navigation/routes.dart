@@ -15,6 +15,7 @@ abstract final class Routes {
   static const flashcardSession = '/flashcards/:sessionId';
   static const chat = '/chat/:courseId';
   static const testResults = '/test-results/:testId';
+  static const materialViewer = '/material/:courseId/:materialId';
   static const oracle = '/oracle';
   static const paywall = '/paywall';
 
@@ -32,4 +33,6 @@ abstract final class Routes {
       '/flashcards/$sessionId';
   static String chatPath(String courseId) => '/chat/$courseId';
   static String testResultsPath(String testId) => '/test-results/$testId';
+  static String materialViewerPath(String courseId, String materialId) =>
+      '/material/$courseId/$materialId';
 }

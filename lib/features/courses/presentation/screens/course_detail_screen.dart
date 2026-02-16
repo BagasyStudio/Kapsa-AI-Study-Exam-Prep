@@ -566,6 +566,11 @@ class _MaterialsTab extends StatelessWidget {
                     typeLabel: material.typeLabel,
                     kind: _kindFromType(material.type),
                     isReviewed: material.isReviewed,
+                    onTap: () {
+                      context.push(
+                        Routes.materialViewerPath(courseId, material.id),
+                      );
+                    },
                     onGenerateQuiz: () async {
                       final canUse = await checkFeatureAccess(
                         ref: ref,

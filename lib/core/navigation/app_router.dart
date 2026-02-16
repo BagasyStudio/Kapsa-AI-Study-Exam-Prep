@@ -17,6 +17,7 @@ import '../../features/chat/presentation/screens/chat_screen.dart';
 import '../../features/test_results/presentation/screens/test_results_screen.dart';
 import '../../features/paywall/presentation/screens/paywall_screen.dart';
 import '../../features/assistant/presentation/screens/global_chat_screen.dart';
+import '../../features/courses/presentation/screens/material_viewer_screen.dart';
 import '../../features/legal/presentation/screens/legal_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../theme/app_animations.dart';
@@ -261,6 +262,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => _slideFromRight(
           TestResultsScreen(
             testId: state.pathParameters['testId'] ?? '',
+          ),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.materialViewer,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _slideFromRight(
+          MaterialViewerScreen(
+            courseId: state.pathParameters['courseId'] ?? '',
+            materialId: state.pathParameters['materialId'] ?? '',
           ),
         ),
       ),

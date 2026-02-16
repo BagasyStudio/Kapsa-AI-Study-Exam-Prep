@@ -34,9 +34,27 @@ class CaptureSheet extends ConsumerStatefulWidget {
   ConsumerState<CaptureSheet> createState() => _CaptureSheetState();
 }
 
-class _CaptureSheetState extends ConsumerState<CaptureSheet> {
+class _CaptureSheetState extends ConsumerState<CaptureSheet>
+    with SingleTickerProviderStateMixin {
   bool _isProcessing = false;
   String _processingStatus = 'Processing...';
+  int _processingStep = 0; // 0=uploading, 1=analyzing, 2=done
+  late AnimationController _pulseController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   Future<void> _scanPages(List<CourseModel> courses) async {
     // Check feature access for OCR
@@ -77,6 +95,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
 
     setState(() {
       _isProcessing = true;
+      _processingStep = 0;
       _processingStatus = 'Uploading image...';
     });
 
@@ -97,7 +116,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
           client.storage.from('course-materials').getPublicUrl(fileName);
 
       if (mounted) {
-        setState(() => _processingStatus = 'AI is extracting text...');
+        setState(() {
+          _processingStep = 1;
+          _processingStatus = 'AI is extracting text...';
+        });
       }
 
       // Process with OCR Edge Function
@@ -149,6 +171,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
 
     setState(() {
       _isProcessing = true;
+      _processingStep = 0;
       _processingStatus = 'Uploading audio...';
     });
 
@@ -176,7 +199,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
           client.storage.from('course-materials').getPublicUrl(fileName);
 
       if (mounted) {
-        setState(() => _processingStatus = 'AI is transcribing audio...');
+        setState(() {
+          _processingStep = 1;
+          _processingStatus = 'AI is transcribing audio...';
+        });
       }
 
       // Process with Whisper Edge Function
@@ -247,6 +273,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
 
     setState(() {
       _isProcessing = true;
+      _processingStep = 0;
       _processingStatus = 'Uploading PDF...';
     });
 
@@ -264,7 +291,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
           client.storage.from('course-materials').getPublicUrl(fileName);
 
       if (mounted) {
-        setState(() => _processingStatus = 'AI is extracting text...');
+        setState(() {
+          _processingStep = 1;
+          _processingStatus = 'AI is extracting text...';
+        });
       }
 
       // Process with OCR Edge Function
@@ -300,7 +330,11 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
     final result = await _showPasteDialog();
     if (result == null || result.isEmpty) return;
 
-    setState(() => _isProcessing = true);
+    setState(() {
+      _isProcessing = true;
+      _processingStep = 1;
+      _processingStatus = 'Saving note...';
+    });
 
     try {
       final user = ref.read(currentUserProvider);
@@ -367,34 +401,38 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
 
   Future<String?> _showPasteDialog() async {
     final controller = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Quick Paste'),
-        content: TextField(
-          controller: controller,
-          maxLines: 8,
-          maxLength: AppLimits.maxPasteLength,
-          inputFormatters: [
-            LengthLimitingTextInputFormatter(AppLimits.maxPasteLength),
+    try {
+      return await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Quick Paste'),
+          content: TextField(
+            controller: controller,
+            maxLines: 8,
+            maxLength: AppLimits.maxPasteLength,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(AppLimits.maxPasteLength),
+            ],
+            decoration: const InputDecoration(
+              hintText: 'Paste or type your notes here...',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(controller.text),
+              child: const Text('Save'),
+            ),
           ],
-          decoration: const InputDecoration(
-            hintText: 'Paste or type your notes here...',
-            border: OutlineInputBorder(),
-          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
+      );
+    } finally {
+      controller.dispose();
+    }
   }
 
   @override
@@ -437,31 +475,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
                   // Content
                   Expanded(
                     child: _isProcessing
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const CircularProgressIndicator(),
-                                const SizedBox(height: AppSpacing.lg),
-                                Text(
-                                  _processingStatus,
-                                  style: AppTypography.h3,
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: AppSpacing.sm),
-                                AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 300),
-                                  child: Text(
-                                    _processingStatus.contains('Upload')
-                                        ? 'Sending your file to the cloud...'
-                                        : 'AI is analyzing your material',
-                                    key: ValueKey(_processingStatus),
-                                    style: AppTypography.bodySmall,
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ],
-                            ),
+                        ? _UploadProgressView(
+                            status: _processingStatus,
+                            step: _processingStep,
+                            pulseAnimation: _pulseController,
                           )
                         : ListView(
                             controller: scrollController,
@@ -750,6 +767,224 @@ class _RecentItem extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════
+// Upload Progress View
+// ═══════════════════════════════════════════
+
+/// Beautiful animated upload progress view with step indicators.
+class _UploadProgressView extends StatelessWidget {
+  final String status;
+  final int step; // 0=uploading, 1=analyzing
+  final AnimationController pulseAnimation;
+
+  const _UploadProgressView({
+    required this.status,
+    required this.step,
+    required this.pulseAnimation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Animated orb
+            AnimatedBuilder(
+              animation: pulseAnimation,
+              builder: (_, __) {
+                final scale = 1.0 + (pulseAnimation.value * 0.12);
+                final glowOpacity = 0.2 + (pulseAnimation.value * 0.15);
+                return Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: glowOpacity),
+                        blurRadius: 40,
+                        spreadRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: Transform.scale(
+                    scale: scale,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            AppColors.primaryLight,
+                            AppColors.primary,
+                            AppColors.primaryDark,
+                          ],
+                        ),
+                      ),
+                      child: Icon(
+                        step == 0
+                            ? Icons.cloud_upload_rounded
+                            : Icons.auto_awesome_rounded,
+                        color: Colors.white,
+                        size: 40,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: AppSpacing.xxl),
+
+            // Status text
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 400),
+              switchInCurve: Curves.easeOut,
+              switchOutCurve: Curves.easeIn,
+              child: Text(
+                status,
+                key: ValueKey(status),
+                style: AppTypography.h3.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+
+            const SizedBox(height: AppSpacing.sm),
+
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: Text(
+                step == 0
+                    ? 'Sending your file to the cloud...'
+                    : 'Our AI is working its magic...',
+                key: ValueKey(step),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textMuted,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+
+            const SizedBox(height: AppSpacing.xxxl),
+
+            // Step indicators
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _StepDot(
+                  label: 'Upload',
+                  icon: Icons.cloud_upload_outlined,
+                  isActive: step == 0,
+                  isComplete: step > 0,
+                ),
+                _StepConnector(isComplete: step > 0),
+                _StepDot(
+                  label: 'Analyze',
+                  icon: Icons.psychology_outlined,
+                  isActive: step == 1,
+                  isComplete: step > 1,
+                ),
+                _StepConnector(isComplete: step > 1),
+                _StepDot(
+                  label: 'Done',
+                  icon: Icons.check_circle_outline,
+                  isActive: false,
+                  isComplete: step > 1,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StepDot extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool isActive;
+  final bool isComplete;
+
+  const _StepDot({
+    required this.label,
+    required this.icon,
+    required this.isActive,
+    required this.isComplete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isComplete
+        ? AppColors.success
+        : isActive
+            ? AppColors.primary
+            : AppColors.textMuted.withValues(alpha: 0.4);
+
+    return Column(
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOut,
+          width: isActive ? 44 : 36,
+          height: isActive ? 44 : 36,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color.withValues(alpha: isActive ? 0.15 : 0.08),
+            border: Border.all(
+              color: color.withValues(alpha: isActive ? 0.5 : 0.2),
+              width: isActive ? 2 : 1,
+            ),
+          ),
+          child: Icon(
+            isComplete ? Icons.check_rounded : icon,
+            size: isActive ? 22 : 18,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: AppTypography.caption.copyWith(
+            color: isActive ? AppColors.primary : AppColors.textMuted,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StepConnector extends StatelessWidget {
+  final bool isComplete;
+
+  const _StepConnector({required this.isComplete});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        width: 40,
+        height: 2,
+        decoration: BoxDecoration(
+          color: isComplete
+              ? AppColors.success.withValues(alpha: 0.5)
+              : AppColors.textMuted.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(1),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════
 // Audio Recorder Dialog
 // ═══════════════════════════════════════════
 
@@ -763,6 +998,7 @@ class _AudioRecorderDialog extends StatefulWidget {
 class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
   final _recorder = AudioRecorder();
   final _player = AudioPlayer();
+  StreamSubscription? _playerCompleteSub;
 
   // States: idle → recording → preview
   bool _isRecording = false;
@@ -780,7 +1016,7 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
   void initState() {
     super.initState();
     _checkPermission();
-    _player.onPlayerComplete.listen((_) {
+    _playerCompleteSub = _player.onPlayerComplete.listen((_) {
       if (mounted) setState(() => _isPlaying = false);
     });
   }
@@ -932,6 +1168,7 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
   @override
   void dispose() {
     _timer?.cancel();
+    _playerCompleteSub?.cancel();
     _recorder.dispose();
     _player.dispose();
     super.dispose();
