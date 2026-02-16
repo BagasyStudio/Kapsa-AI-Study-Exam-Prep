@@ -268,7 +268,7 @@ class ProfileScreen extends ConsumerWidget {
                             Padding(
                               padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                               child: Divider(
-                                color: const Color(0xFF94A3B8).withValues(alpha: 0.2),
+                                color: const Color(0xFF94A3B8).withValues(alpha: 0.35),
                               ),
                             ),
 
@@ -464,13 +464,13 @@ class _SubscriptionSection extends ConsumerWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppColors.primary.withValues(alpha: 0.15),
-                  const Color(0xFF6366F1).withValues(alpha: 0.1),
+                  AppColors.primary.withValues(alpha: 0.12),
+                  const Color(0xFF6366F1).withValues(alpha: 0.08),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.2),
+                color: AppColors.primary.withValues(alpha: 0.3),
               ),
             ),
             child: Row(
@@ -583,16 +583,16 @@ class _StatCard extends StatelessWidget {
             horizontal: AppSpacing.sm,
           ),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.5),
+            color: Colors.white.withValues(alpha: 0.85),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.6),
+              color: Colors.white.withValues(alpha: 0.9),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -707,9 +707,9 @@ class _NotificationToggleTileState
               height: 36,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.5),
+                color: AppColors.primary.withValues(alpha: 0.08),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.4),
+                  color: AppColors.primary.withValues(alpha: 0.12),
                 ),
               ),
               child: Icon(
@@ -789,9 +789,9 @@ class _SoundToggleTileState extends State<_SoundToggleTile> {
               height: 36,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.5),
+                color: AppColors.primary.withValues(alpha: 0.08),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.4),
+                  color: AppColors.primary.withValues(alpha: 0.12),
                 ),
               ),
               child: Icon(
@@ -860,9 +860,9 @@ class _SettingsTile extends StatelessWidget {
               height: 36,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.5),
+                color: AppColors.primary.withValues(alpha: 0.08),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.4),
+                  color: AppColors.primary.withValues(alpha: 0.12),
                 ),
               ),
               child: Icon(

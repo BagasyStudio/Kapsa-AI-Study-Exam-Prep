@@ -16,6 +16,7 @@ import '../../../courses/presentation/providers/course_provider.dart';
 import '../../../courses/data/models/course_model.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
+import '../../../../core/utils/error_handler.dart';
 
 /// Bottom sheet modal for capturing new study materials.
 ///
@@ -114,9 +115,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _isProcessing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        AppErrorHandler.showError(e, context: context);
       }
     }
   }
@@ -219,9 +218,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _isProcessing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        AppErrorHandler.showError(e, context: context);
       }
     }
   }
@@ -257,9 +254,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _isProcessing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        AppErrorHandler.showError(e, context: context);
       }
     }
   }
@@ -432,7 +427,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
                                       child: CircularProgressIndicator()),
                                 ),
                                 error: (e, _) => Center(
-                                  child: Text('Error loading courses: $e'),
+                                  child: Text(AppErrorHandler.friendlyMessage(e)),
                                 ),
                                 data: (courses) => GridView.count(
                                   crossAxisCount: 2,
@@ -495,7 +490,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
                                 loading: () =>
                                     const CircularProgressIndicator(),
                                 error: (e, _) =>
-                                    Text('Error: $e'),
+                                    Text(AppErrorHandler.friendlyMessage(e)),
                                 data: (materials) {
                                   if (materials.isEmpty) {
                                     return _RecentItem(

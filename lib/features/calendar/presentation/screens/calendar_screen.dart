@@ -103,7 +103,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 80),
+        padding: const EdgeInsets.only(bottom: 100),
         child: FloatingActionButton.extended(
           onPressed: _isGeneratingSuggestions ? null : _generateAISuggestions,
           backgroundColor: AppColors.primary,
