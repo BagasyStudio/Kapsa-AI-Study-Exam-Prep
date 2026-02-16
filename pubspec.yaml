@@ -66,7 +66,7 @@ dependencies:
 
   # Audio
   audioplayers: ^6.1.0
-  record: ^5.2.0
+  record: ^6.0.0
   path_provider: ^2.1.5
 
   # Utilities
