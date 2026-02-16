@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 async function runOCR(apiKey: string, imageUrl: string): Promise<string> {
-  const createRes = await fetch("https://api.replicate.com/v1/models/lucataco/deepseek-ocr/predictions", {
+  const createRes = await fetch("https://api.replicate.com/v1/models/google-deepmind/gemma-3-27b-it/predictions", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
@@ -16,6 +16,9 @@ async function runOCR(apiKey: string, imageUrl: string): Promise<string> {
     body: JSON.stringify({
       input: {
         image: imageUrl,
+        prompt: "Extract ALL text from this image. Preserve the original formatting, paragraphs, and structure. Return only the extracted text, nothing else. If the text is in a language other than English, keep it in the original language.",
+        max_new_tokens: 4096,
+        temperature: 0.1,
       },
     }),
   });
@@ -45,8 +48,8 @@ async function runOCR(apiKey: string, imageUrl: string): Promise<string> {
     throw new Error("OCR prediction timed out");
   }
 
-  // deepseek-ocr output is a string
-  return typeof result.output === "string" ? result.output : String(result.output);
+  // Gemma 3 returns output as array of strings or a single string
+  return Array.isArray(result.output) ? result.output.join("") : String(result.output);
 }
 
 async function runWhisper(apiKey: string, audioUrl: string): Promise<string> {

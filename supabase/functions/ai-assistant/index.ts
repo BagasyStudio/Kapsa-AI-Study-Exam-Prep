@@ -10,7 +10,7 @@ const corsHeaders = {
 // Replicate API helpers
 // ═══════════════════════════════════════════
 async function callReplicate(apiKey: string, systemPrompt: string, userPrompt: string, maxTokens = 512): Promise<string> {
-  const response = await fetch("https://api.replicate.com/v1/models/meta/meta-llama-3-8b-instruct/predictions", {
+  const response = await fetch("https://api.replicate.com/v1/models/google-deepmind/gemma-3-27b-it/predictions", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
@@ -20,7 +20,7 @@ async function callReplicate(apiKey: string, systemPrompt: string, userPrompt: s
       input: {
         prompt: userPrompt,
         system_prompt: systemPrompt,
-        max_tokens: maxTokens,
+        max_new_tokens: maxTokens,
         temperature: 0.7,
         top_p: 0.9,
       },
