@@ -1,9 +1,14 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 import '../../../../core/constants/app_limits.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -132,26 +137,75 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
     final courseId = await _pickCourse(courses);
     if (courseId == null) return;
 
-    // Audio recording not yet implemented
-    if (mounted) {
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: const [
-              Icon(Icons.info_outline, color: Colors.white, size: 18),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text('Coming soon! Audio recording will be available in a future update.'),
-              ),
-            ],
-          ),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.primary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          duration: const Duration(seconds: 3),
-        ),
-      );
+    // Show recording dialog
+    final audioPath = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const _AudioRecorderDialog(),
+    );
+
+    if (audioPath == null || !mounted) return;
+
+    setState(() {
+      _isProcessing = true;
+      _processingStatus = 'Uploading audio...';
+    });
+
+    try {
+      final file = File(audioPath);
+      final audioBytes = await file.readAsBytes();
+
+      // Check file size
+      if (audioBytes.length > AppLimits.maxFileSizeBytes) {
+        throw Exception(
+          'Audio too large. Maximum size is ${AppLimits.maxFileSizeMB} MB.',
+        );
+      }
+
+      final client = ref.read(supabaseClientProvider);
+      final user = ref.read(currentUserProvider);
+      if (user == null) throw Exception('Not authenticated');
+
+      final fileName =
+          '${user.id}/${DateTime.now().millisecondsSinceEpoch}.m4a';
+      await client.storage
+          .from('course-materials')
+          .uploadBinary(fileName, audioBytes);
+      final fileUrl =
+          client.storage.from('course-materials').getPublicUrl(fileName);
+
+      if (mounted) {
+        setState(() => _processingStatus = 'AI is transcribing audio...');
+      }
+
+      // Process with Whisper Edge Function
+      final material = await ref
+          .read(materialRepositoryProvider)
+          .processCapture(
+            courseId: courseId,
+            type: 'whisper',
+            fileUrl: fileUrl,
+            title: 'Recording - ${DateTime.now().day}/${DateTime.now().month}',
+          );
+
+      // Record usage after success
+      await recordFeatureUsage(ref: ref, feature: 'whisper');
+
+      // Clean up temp file
+      try {
+        await file.delete();
+      } catch (_) {}
+
+      if (mounted) {
+        SoundService.playProcessingComplete();
+        Navigator.of(context)
+            .pop('Transcribed: ${material.title}');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        AppErrorHandler.showError(e, context: context);
+      }
     }
   }
 
@@ -687,6 +741,229 @@ class _RecentItem extends StatelessWidget {
             Icons.chevron_right_rounded,
             size: 16,
             color: AppColors.textMuted,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════
+// Audio Recorder Dialog
+// ═══════════════════════════════════════════
+
+class _AudioRecorderDialog extends StatefulWidget {
+  const _AudioRecorderDialog();
+
+  @override
+  State<_AudioRecorderDialog> createState() => _AudioRecorderDialogState();
+}
+
+class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
+  final _recorder = AudioRecorder();
+  bool _isRecording = false;
+  bool _hasPermission = false;
+  int _seconds = 0;
+  Timer? _timer;
+  String? _filePath;
+
+  static const _maxDurationSeconds = 300; // 5 minutes max
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPermission();
+  }
+
+  Future<void> _checkPermission() async {
+    final granted = await _recorder.hasPermission();
+    if (mounted) {
+      setState(() => _hasPermission = granted);
+      if (!granted) {
+        Navigator.of(context).pop(); // Close dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Microphone permission is required. Please enable it in Settings.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _startRecording() async {
+    try {
+      final dir = await getTemporaryDirectory();
+      _filePath =
+          '${dir.path}/kapsa_recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+      await _recorder.start(
+        const RecordConfig(
+          encoder: AudioEncoder.aacLc,
+          bitRate: 128000,
+          sampleRate: 44100,
+          numChannels: 1,
+        ),
+        path: _filePath!,
+      );
+
+      setState(() {
+        _isRecording = true;
+        _seconds = 0;
+      });
+
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!mounted) {
+          timer.cancel();
+          return;
+        }
+        setState(() => _seconds++);
+        if (_seconds >= _maxDurationSeconds) {
+          _stopRecording();
+        }
+      });
+    } catch (e) {
+      if (kDebugMode) debugPrint('[AudioRecorder] Start failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to start recording: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _stopRecording() async {
+    _timer?.cancel();
+    try {
+      final path = await _recorder.stop();
+      if (mounted && path != null) {
+        Navigator.of(context).pop(path);
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('[AudioRecorder] Stop failed: $e');
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    }
+  }
+
+  Future<void> _cancelRecording() async {
+    _timer?.cancel();
+    if (_isRecording) {
+      try {
+        await _recorder.stop();
+      } catch (_) {}
+      // Delete temp file
+      if (_filePath != null) {
+        try {
+          await File(_filePath!).delete();
+        } catch (_) {}
+      }
+    }
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _recorder.dispose();
+    super.dispose();
+  }
+
+  String _formatDuration(int totalSeconds) {
+    final m = totalSeconds ~/ 60;
+    final s = totalSeconds % 60;
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_hasPermission) {
+      return const SizedBox.shrink();
+    }
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      contentPadding: const EdgeInsets.all(24),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 8),
+          // Recording indicator
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _isRecording
+                  ? AppColors.error.withValues(alpha: 0.1)
+                  : AppColors.primary.withValues(alpha: 0.1),
+            ),
+            child: Icon(
+              _isRecording ? Icons.mic : Icons.mic_none,
+              size: 40,
+              color: _isRecording ? AppColors.error : AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Timer
+          Text(
+            _formatDuration(_seconds),
+            style: AppTypography.h1.copyWith(
+              fontFeatures: [const FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _isRecording
+                ? 'Recording... Tap stop when done'
+                : 'Tap the mic to start recording',
+            style: AppTypography.bodySmall,
+            textAlign: TextAlign.center,
+          ),
+          if (_isRecording) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Max ${_maxDurationSeconds ~/ 60} min',
+              style: AppTypography.caption.copyWith(
+                color: AppColors.textMuted,
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 24),
+
+          // Action buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Cancel
+              TextButton(
+                onPressed: _cancelRecording,
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Record / Stop
+              FilledButton.icon(
+                onPressed: _isRecording ? _stopRecording : _startRecording,
+                icon: Icon(_isRecording ? Icons.stop : Icons.mic),
+                label: Text(_isRecording ? 'Stop' : 'Record'),
+                style: FilledButton.styleFrom(
+                  backgroundColor:
+                      _isRecording ? AppColors.error : AppColors.primary,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
