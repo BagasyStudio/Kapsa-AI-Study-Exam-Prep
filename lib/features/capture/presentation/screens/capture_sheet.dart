@@ -132,11 +132,26 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet> {
     final courseId = await _pickCourse(courses);
     if (courseId == null) return;
 
-    // For now, show a coming soon message since audio recording
-    // requires more complex setup with the record package
+    // Audio recording not yet implemented
     if (mounted) {
-      Navigator.of(context)
-          .pop('Audio recording requires microphone permissions. Coming soon!');
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: const [
+              Icon(Icons.info_outline, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text('Coming soon! Audio recording will be available in a future update.'),
+              ),
+            ],
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.primary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 

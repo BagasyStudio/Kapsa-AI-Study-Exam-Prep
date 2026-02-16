@@ -16,6 +16,8 @@ import '../../../../core/widgets/staggered_list.dart';
 import '../providers/test_provider.dart';
 import '../../data/test_repository.dart';
 import '../../data/models/test_question_model.dart';
+import '../../../flashcards/presentation/providers/flashcard_provider.dart';
+import '../../../subscription/presentation/providers/subscription_provider.dart';
 
 class TestResultsScreen extends ConsumerStatefulWidget {
   final String testId;
@@ -99,13 +101,49 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
             bottom: MediaQuery.of(context).padding.bottom + 24,
             left: AppSpacing.xl,
             right: AppSpacing.xl,
-            child: PrimaryButton(
-              label: 'Practice Weak Areas',
-              trailingIcon: Icons.fitness_center,
-              onPressed: () => context.push(
-                  Routes.flashcardSessionPath(
-                      '${widget.testId}-weak-areas')),
-            ),
+            child: resultsAsync.whenOrNull(
+                  data: (result) {
+                    if (result == null) return const SizedBox.shrink();
+                    return PrimaryButton(
+                      label: 'Practice Weak Areas',
+                      trailingIcon: Icons.fitness_center,
+                      onPressed: () async {
+                        final canUse = await checkFeatureAccess(
+                          ref: ref,
+                          feature: 'flashcards',
+                          context: context,
+                        );
+                        if (!canUse) return;
+
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Generating weak area flashcards...')),
+                          );
+                        }
+                        try {
+                          final deck = await ref
+                              .read(flashcardRepositoryProvider)
+                              .generateFlashcards(
+                                courseId: result.test.courseId,
+                                count: 10,
+                                topic: 'weak areas',
+                              );
+                          if (context.mounted) {
+                            context.push(Routes.flashcardSessionPath(deck.id));
+                          }
+                          await recordFeatureUsage(ref: ref, feature: 'flashcards');
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error: $e')),
+                            );
+                          }
+                        }
+                      },
+                    );
+                  },
+                ) ??
+                const SizedBox.shrink(),
           ),
         ],
       ),

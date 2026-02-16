@@ -42,6 +42,11 @@ class AppErrorHandler {
   static String friendlyMessage(Object error) {
     final msg = error.toString().toLowerCase();
 
+    // Log the real error for debugging
+    if (kDebugMode) {
+      debugPrint('[ErrorHandler] Raw error: $error');
+    }
+
     // Network errors
     if (msg.contains('socketexception') ||
         msg.contains('handshakeexception') ||
@@ -67,7 +72,11 @@ class AppErrorHandler {
     if (msg.contains('user already registered')) {
       return 'An account with this email already exists.';
     }
-    if (msg.contains('jwt') || msg.contains('token')) {
+    // Session expiry — only match specific JWT/token expiry messages
+    if (msg.contains('jwt expired') ||
+        msg.contains('token is expired') ||
+        msg.contains('invalid claim: missing sub claim') ||
+        msg.contains('refresh_token_not_found')) {
       return 'Your session has expired. Please sign in again.';
     }
 
@@ -76,17 +85,20 @@ class AppErrorHandler {
       return 'Too many requests. Please wait a moment and try again.';
     }
 
+    // Edge function errors — check BEFORE generic server errors
+    if (msg.contains('functionserror') ||
+        msg.contains('functionsrelayhror') ||
+        msg.contains('edge function') ||
+        msg.contains('functions/v1')) {
+      return 'AI service is temporarily unavailable. Please try again.';
+    }
+
     // Server errors
     if (msg.contains('500') || msg.contains('internal server')) {
       return 'Server error. Please try again later.';
     }
     if (msg.contains('502') || msg.contains('503') || msg.contains('504')) {
       return 'Service temporarily unavailable. Please try again.';
-    }
-
-    // Edge function errors
-    if (msg.contains('functionserror') || msg.contains('edge function')) {
-      return 'AI service is temporarily unavailable. Please try again.';
     }
 
     // Generic fallback

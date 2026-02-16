@@ -490,8 +490,35 @@ class _MaterialsTab extends StatelessWidget {
           weakTopic: 'Review Materials',
           recommendation:
               'Upload course materials to unlock AI-powered flashcards, quizzes, and study insights.',
-          onReviewTap: () =>
-              context.push(Routes.flashcardSessionPath('$courseId-review')),
+          onReviewTap: () async {
+            final canUse = await checkFeatureAccess(
+              ref: ref,
+              feature: 'flashcards',
+              context: context,
+            );
+            if (!canUse) return;
+
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Generating review flashcards...')),
+              );
+            }
+            try {
+              final deck = await ref
+                  .read(flashcardRepositoryProvider)
+                  .generateFlashcards(courseId: courseId, count: 10);
+              if (context.mounted) {
+                context.push(Routes.flashcardSessionPath(deck.id));
+              }
+              await recordFeatureUsage(ref: ref, feature: 'flashcards');
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: $e')),
+                );
+              }
+            }
+          },
         ),
 
         const SizedBox(height: AppSpacing.xl),
@@ -539,8 +566,39 @@ class _MaterialsTab extends StatelessWidget {
                     typeLabel: material.typeLabel,
                     kind: _kindFromType(material.type),
                     isReviewed: material.isReviewed,
-                    onGenerateQuiz: () => context.push(
-                        Routes.flashcardSessionPath('$courseId-${material.id}')),
+                    onGenerateQuiz: () async {
+                      final canUse = await checkFeatureAccess(
+                        ref: ref,
+                        feature: 'flashcards',
+                        context: context,
+                      );
+                      if (!canUse) return;
+
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Generating flashcards from material...')),
+                        );
+                      }
+                      try {
+                        final deck = await ref
+                            .read(flashcardRepositoryProvider)
+                            .generateFlashcards(
+                              courseId: courseId,
+                              count: 10,
+                              materialId: material.id,
+                            );
+                        if (context.mounted) {
+                          context.push(Routes.flashcardSessionPath(deck.id));
+                        }
+                        await recordFeatureUsage(ref: ref, feature: 'flashcards');
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: $e')),
+                          );
+                        }
+                      }
+                    },
                     onDelete: () async {
                       await ref
                           .read(materialRepositoryProvider)
