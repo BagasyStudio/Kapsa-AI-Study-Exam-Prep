@@ -94,7 +94,13 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
         ),
       );
       Future.delayed(const Duration(milliseconds: 600), () {
-        if (mounted) Navigator.of(context).pop();
+        if (mounted) {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          } else {
+            context.go(Routes.home);
+          }
+        }
       });
     }
   }
@@ -116,7 +122,13 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
       );
       if (success) {
         Future.delayed(const Duration(milliseconds: 600), () {
-          if (mounted) Navigator.of(context).pop();
+          if (mounted) {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go(Routes.home);
+            }
+          }
         });
       }
     }
@@ -262,7 +274,13 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
 
                   // Close button
                   _GlassCloseButton(
-                    onTap: () => Navigator.of(context).pop(),
+                    onTap: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      } else {
+                        context.go(Routes.home);
+                      }
+                    },
                   ),
 
                   const SizedBox(height: AppSpacing.xxl),

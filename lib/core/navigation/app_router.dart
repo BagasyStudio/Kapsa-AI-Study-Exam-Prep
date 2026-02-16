@@ -89,6 +89,9 @@ class _AuthStateNotifier extends ChangeNotifier {
 /// Provider for the onboarding flag.
 final hasSeenOnboardingProvider = StateProvider<bool>((ref) => true);
 
+/// Flag: user tapped "Try Pro Free" → show paywall after login.
+final pendingPaywallProvider = StateProvider<bool>((ref) => false);
+
 /// GoRouter provider with auth-based redirect logic.
 ///
 /// Observes auth state via [refreshListenable] and redirects:
@@ -98,6 +101,7 @@ final hasSeenOnboardingProvider = StateProvider<bool>((ref) => true);
 final goRouterProvider = Provider<GoRouter>((ref) {
   final authNotifier = _AuthStateNotifier();
   final hasSeenOnboarding = ref.watch(hasSeenOnboardingProvider);
+  final pendingPaywall = ref.watch(pendingPaywallProvider);
 
   ref.onDispose(() => authNotifier.dispose());
 
@@ -124,13 +128,19 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       }
 
       // Not logged in and trying to access a protected route → login
-      // Allow paywall access without auth (from onboarding "Try Pro Free")
       if (!isLoggedIn && !isAuthRoute && !isOnboardingRoute && !isPaywallRoute) {
         return Routes.login;
       }
 
-      // Logged in but on an auth route → home
-      if (isLoggedIn && isAuthRoute) return Routes.home;
+      // Logged in on auth route → check if paywall is pending
+      if (isLoggedIn && isAuthRoute) {
+        if (pendingPaywall) {
+          // Clear the flag and redirect to paywall
+          ref.read(pendingPaywallProvider.notifier).state = false;
+          return Routes.paywall;
+        }
+        return Routes.home;
+      }
 
       // No redirect needed
       return null;

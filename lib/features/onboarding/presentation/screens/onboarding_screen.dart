@@ -89,8 +89,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('has_seen_onboarding', true);
     if (mounted) {
+      // Set pending paywall flag so router redirects to paywall after login
+      ref.read(pendingPaywallProvider.notifier).state = true;
       ref.read(hasSeenOnboardingProvider.notifier).state = true;
-      context.go(Routes.paywall);
+      // Router will redirect: onboarding → login → (after login) → paywall
+      context.go(Routes.login);
     }
   }
 
