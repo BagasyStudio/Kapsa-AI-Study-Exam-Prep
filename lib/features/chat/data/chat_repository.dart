@@ -78,7 +78,10 @@ class ChatRepository {
       },
     );
 
-    final responseData = response.data as Map<String, dynamic>;
+    final responseData = response.data;
+    if (responseData == null || responseData is! Map<String, dynamic>) {
+      throw Exception('Invalid response from AI chat');
+    }
     return ChatMessageModel.fromJson(responseData);
   }
 }

@@ -79,7 +79,11 @@ class MaterialRepository {
         'maxPages': AppLimits.maxPdfPages,
       },
     );
-    return MaterialModel.fromJson(response.data as Map<String, dynamic>);
+    final responseData = response.data;
+    if (responseData == null || responseData is! Map<String, dynamic>) {
+      throw Exception('Invalid response from capture processing');
+    }
+    return MaterialModel.fromJson(responseData);
   }
 
   /// Mark a material as reviewed.

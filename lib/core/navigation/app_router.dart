@@ -103,6 +103,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final isAuthRoute = state.matchedLocation == Routes.login ||
           state.matchedLocation == Routes.register;
       final isOnboardingRoute = state.matchedLocation == Routes.onboarding;
+      final isPaywallRoute = state.matchedLocation == Routes.paywall;
 
       // First launch → show onboarding
       if (!hasSeenOnboarding && !isOnboardingRoute) {
@@ -115,7 +116,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       }
 
       // Not logged in and trying to access a protected route → login
-      if (!isLoggedIn && !isAuthRoute && !isOnboardingRoute) {
+      // Allow paywall access without auth (from onboarding "Try Pro Free")
+      if (!isLoggedIn && !isAuthRoute && !isOnboardingRoute && !isPaywallRoute) {
         return Routes.login;
       }
 

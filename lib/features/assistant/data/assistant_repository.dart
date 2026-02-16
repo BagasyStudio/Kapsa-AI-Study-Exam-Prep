@@ -19,7 +19,10 @@ class AssistantRepository {
       body: {'mode': 'insights'},
     );
 
-    final data = response.data as Map<String, dynamic>;
+    final data = response.data;
+    if (data == null || data is! Map<String, dynamic>) {
+      throw Exception('Invalid response from AI assistant');
+    }
     return AssistantInsightModel.fromJson(data);
   }
 
@@ -83,7 +86,10 @@ class AssistantRepository {
       },
     );
 
-    final responseData = response.data as Map<String, dynamic>;
+    final responseData = response.data;
+    if (responseData == null || responseData is! Map<String, dynamic>) {
+      throw Exception('Invalid response from AI assistant');
+    }
     final aiContent = responseData['content'] as String? ?? '';
 
     // Save AI response to DB
@@ -108,7 +114,10 @@ class AssistantRepository {
       body: {'mode': 'calendar_suggestions'},
     );
 
-    final data = response.data as Map<String, dynamic>;
+    final data = response.data;
+    if (data == null || data is! Map<String, dynamic>) {
+      throw Exception('Invalid response from AI assistant');
+    }
     final suggestions = data['suggestions'] as List? ?? [];
     return suggestions.length;
   }

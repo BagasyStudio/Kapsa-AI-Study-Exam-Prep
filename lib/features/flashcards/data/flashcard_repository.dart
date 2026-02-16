@@ -47,7 +47,11 @@ class FlashcardRepository {
         if (topic != null) 'topic': topic,
       },
     );
-    return DeckModel.fromJson(response.data as Map<String, dynamic>);
+    final responseData = response.data;
+    if (responseData == null || responseData is! Map<String, dynamic>) {
+      throw Exception('Invalid response from flashcard generation');
+    }
+    return DeckModel.fromJson(responseData);
   }
 
   /// Update mastery level for a card.

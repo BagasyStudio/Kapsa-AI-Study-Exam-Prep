@@ -31,7 +31,10 @@ class TestRepository {
       },
     );
 
-    final data = response.data as Map<String, dynamic>;
+    final data = response.data;
+    if (data == null || data is! Map<String, dynamic>) {
+      throw Exception('Invalid response from quiz generation');
+    }
     final test = TestModel.fromJson(data['test'] as Map<String, dynamic>);
     final questions = (data['questions'] as List)
         .map((e) => TestQuestionModel.fromJson(e as Map<String, dynamic>))
@@ -54,7 +57,10 @@ class TestRepository {
       },
     );
 
-    final data = response.data as Map<String, dynamic>;
+    final data = response.data;
+    if (data == null || data is! Map<String, dynamic>) {
+      throw Exception('Invalid response from quiz evaluation');
+    }
     final test = TestModel.fromJson(data['test'] as Map<String, dynamic>);
     final questions = (data['questions'] as List)
         .map((e) => TestQuestionModel.fromJson(e as Map<String, dynamic>))
