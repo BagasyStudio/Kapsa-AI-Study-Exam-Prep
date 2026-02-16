@@ -121,8 +121,9 @@ class _OnboardingPaywallPageState extends State<OnboardingPaywallPage>
             ),
 
             // Content
-            SingleChildScrollView(
-              physics: const NeverScrollableScrollPhysics(),
+            Positioned.fill(
+              child: SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
@@ -327,6 +328,7 @@ class _OnboardingPaywallPageState extends State<OnboardingPaywallPage>
                   ),
                 ),
               ),
+            ),
           ],
         );
       },
