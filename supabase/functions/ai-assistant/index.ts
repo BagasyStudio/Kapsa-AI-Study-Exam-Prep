@@ -9,7 +9,8 @@ const corsHeaders = {
 // ═══════════════════════════════════════════
 // Replicate API helpers
 // ═══════════════════════════════════════════
-const GEMMA_VERSION = "c0f0aebe8e578c15a7531e08a62cf01206f5870e9d0a67804b8152822db58c54";
+const LLAMA_VERSION = "5a6809ca6288247d06daf6365557e5e429063f32a21146b2a807c682652136b8";
+const LLAMA_TEMPLATE = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n";
 
 async function callReplicate(apiKey: string, systemPrompt: string, userPrompt: string, maxTokens = 512): Promise<string> {
   const response = await fetch("https://api.replicate.com/v1/predictions", {
@@ -19,11 +20,12 @@ async function callReplicate(apiKey: string, systemPrompt: string, userPrompt: s
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      version: GEMMA_VERSION,
+      version: LLAMA_VERSION,
       input: {
         prompt: userPrompt,
         system_prompt: systemPrompt,
-        max_new_tokens: maxTokens,
+        prompt_template: LLAMA_TEMPLATE,
+        max_tokens: maxTokens,
         temperature: 0.7,
         top_p: 0.9,
       },

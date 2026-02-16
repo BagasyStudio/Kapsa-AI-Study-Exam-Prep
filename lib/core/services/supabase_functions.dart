@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -52,11 +53,18 @@ class SupabaseFunctions {
     try {
       // The SDK's AuthHttpClient automatically refreshes the
       // access token if it's expired before sending the request.
-      return await _client.functions.invoke(
-        functionName,
-        headers: headers,
-        body: body,
-        method: method,
+      // Timeout prevents infinite waiting if Edge Function hangs.
+      return await _client.functions
+          .invoke(
+            functionName,
+            headers: headers,
+            body: body,
+            method: method,
+          )
+          .timeout(const Duration(seconds: 120));
+    } on TimeoutException {
+      throw Exception(
+        'The AI is taking too long to respond. Please try again.',
       );
     } on FunctionException catch (e) {
       if (kDebugMode) {
