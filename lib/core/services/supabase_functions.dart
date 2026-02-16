@@ -78,12 +78,18 @@ class SupabaseFunctions {
   /// - authStateProvider filters out tokenRefreshed events
   /// - _AuthStateNotifier in app_router also filters them
   Future<void> _ensureFreshToken() async {
-    final session = _client.auth.currentSession;
-
-    // No session at all — user must sign in
-    if (session == null) {
+    // currentUser persists through token refreshes; currentSession can be
+    // temporarily null during a refresh cycle.
+    final user = _client.auth.currentUser;
+    if (user == null) {
       throw const SessionExpiredException();
     }
+
+    final session = _client.auth.currentSession;
+
+    // Session temporarily null during refresh — let the SDK's
+    // AuthHttpClient handle it (it has its own refresh logic).
+    if (session == null) return;
 
     // expiresAt is Unix timestamp in seconds (from JWT `exp` claim)
     final expiresAt = session.expiresAt;
