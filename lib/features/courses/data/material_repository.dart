@@ -67,7 +67,7 @@ class MaterialRepository {
     required String title,
   }) async {
     // Refresh token before Edge Function call to prevent JWT expiration errors
-    await _client.auth.refreshSession();
+    try { await _client.auth.refreshSession(); } catch (_) {}
 
     final response = await _client.functions.invoke(
       'process-capture',

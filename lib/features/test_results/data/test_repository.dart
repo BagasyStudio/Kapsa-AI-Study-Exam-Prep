@@ -21,7 +21,7 @@ class TestRepository {
     required String courseId,
     int count = 5,
   }) async {
-    await _client.auth.refreshSession();
+    try { await _client.auth.refreshSession(); } catch (_) {}
     final response = await _client.functions.invoke(
       'ai-generate-quiz',
       body: {
@@ -44,7 +44,7 @@ class TestRepository {
     required String testId,
     required List<Map<String, String>> answers,
   }) async {
-    await _client.auth.refreshSession();
+    try { await _client.auth.refreshSession(); } catch (_) {}
     final response = await _client.functions.invoke(
       'ai-generate-quiz',
       body: {
