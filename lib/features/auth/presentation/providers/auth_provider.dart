@@ -8,9 +8,16 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(ref.watch(supabaseClientProvider));
 });
 
-/// Stream of auth state changes — used to trigger router redirects.
+/// Stream of auth state changes — used to trigger provider recalculation.
+///
+/// Filtered to only emit on signedIn / signedOut. Without this filter,
+/// every tokenRefreshed event (fired by refreshSession()) would cascade
+/// through currentUserProvider → all downstream providers, causing
+/// all home screen widgets to re-fetch and flicker.
 final authStateProvider = StreamProvider<AuthState>((ref) {
-  return ref.watch(authRepositoryProvider).authStateChanges;
+  return ref.watch(authRepositoryProvider).authStateChanges.where((state) =>
+      state.event == AuthChangeEvent.signedIn ||
+      state.event == AuthChangeEvent.signedOut);
 });
 
 /// The currently authenticated user (null = not logged in).
