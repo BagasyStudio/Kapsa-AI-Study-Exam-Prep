@@ -135,6 +135,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
       // Record usage after success
       await recordFeatureUsage(ref: ref, feature: 'ocr');
 
+      // Refresh materials lists so new material appears immediately
+      ref.invalidate(courseMaterialsProvider(courseId));
+      ref.invalidate(recentMaterialsProvider);
+
       if (mounted) {
         SoundService.playProcessingComplete();
         Navigator.of(context)
@@ -223,6 +227,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         await file.delete();
       } catch (_) {}
 
+      // Refresh materials lists so new material appears immediately
+      ref.invalidate(courseMaterialsProvider(courseId));
+      ref.invalidate(recentMaterialsProvider);
+
       if (mounted) {
         SoundService.playProcessingComplete();
         Navigator.of(context)
@@ -310,6 +318,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
       // Record usage after success
       await recordFeatureUsage(ref: ref, feature: 'ocr');
 
+      // Refresh materials lists so new material appears immediately
+      ref.invalidate(courseMaterialsProvider(courseId));
+      ref.invalidate(recentMaterialsProvider);
+
       if (mounted) {
         SoundService.playProcessingComplete();
         Navigator.of(context)
@@ -349,6 +361,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
             type: 'paste',
             content: result,
           );
+
+      // Refresh materials lists so new material appears immediately
+      ref.invalidate(courseMaterialsProvider(courseId));
+      ref.invalidate(recentMaterialsProvider);
 
       if (mounted) {
         SoundService.playProcessingComplete();

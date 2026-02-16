@@ -61,7 +61,7 @@ class SupabaseFunctions {
             body: body,
             method: method,
           )
-          .timeout(const Duration(seconds: 120));
+          .timeout(const Duration(seconds: 180));
     } on TimeoutException {
       throw Exception(
         'The AI is taking too long to respond. Please try again.',
