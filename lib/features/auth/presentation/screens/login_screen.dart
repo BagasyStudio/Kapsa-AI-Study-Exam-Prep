@@ -89,7 +89,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final msg = e.toString().toLowerCase();
       if (msg.contains('cancel') || msg.contains('1001')) return;
 
-      AppErrorHandler.showError(e, context: context);
+      // DEBUG: Show full error to diagnose Apple Sign-In issue
+      debugPrint('APPLE SIGN-IN ERROR: ${e.runtimeType}: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${e.runtimeType}: $e'),
+            duration: const Duration(seconds: 10),
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isAppleLoading = false);
     }
