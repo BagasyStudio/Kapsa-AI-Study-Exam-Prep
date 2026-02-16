@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../../core/services/sound_service.dart';
@@ -23,8 +24,11 @@ final assistantInsightProvider =
   if (user == null) return null;
   try {
     return await ref.watch(assistantRepositoryProvider).getInsight();
-  } catch (_) {
-    return null; // Silently fail — insight card just won't show
+  } catch (e) {
+    if (kDebugMode) {
+      debugPrint('[AssistantInsight] Error fetching insight: $e');
+    }
+    return null; // Insight card won't show, but error is logged
   }
 });
 

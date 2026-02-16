@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_functions.dart';
 
 /// Global error handler for Kapsa.
@@ -44,6 +45,33 @@ class AppErrorHandler {
     // Typed exception — no string matching needed
     if (error is SessionExpiredException) {
       return 'Your session has expired. Please sign in again.';
+    }
+
+    // Edge Function errors — handle by type for precise error messages
+    if (error is FunctionException) {
+      final status = error.status;
+      final details = error.details;
+
+      if (kDebugMode) {
+        debugPrint('[ErrorHandler] FunctionException: status=$status, details=$details');
+      }
+
+      // Extract server message from response body
+      String? serverMsg;
+      if (details is Map) {
+        serverMsg = details['error']?.toString() ?? details['message']?.toString();
+      }
+
+      if (status == 401) {
+        return 'Your session has expired. Please sign in again.';
+      }
+      if (status == 429) {
+        return 'Too many requests. Please wait a moment and try again.';
+      }
+      if (serverMsg != null && serverMsg.isNotEmpty) {
+        return 'AI service error: $serverMsg';
+      }
+      return 'AI service is temporarily unavailable. Please try again.';
     }
 
     final msg = error.toString().toLowerCase();
@@ -93,7 +121,7 @@ class AppErrorHandler {
 
     // Edge function errors — check BEFORE generic server errors
     if (msg.contains('functionserror') ||
-        msg.contains('functionsrelayhror') ||
+        msg.contains('functionsrelayerror') ||
         msg.contains('edge function') ||
         msg.contains('functions/v1')) {
       return 'AI service is temporarily unavailable. Please try again.';

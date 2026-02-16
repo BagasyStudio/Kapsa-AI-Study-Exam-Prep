@@ -34,6 +34,7 @@ class SupabaseFunctions {
   /// Invoke an Edge Function with automatic token refresh.
   ///
   /// Parameters mirror [FunctionsClient.invoke] exactly.
+  /// If the call fails with 401, retries once after refreshing the token.
   Future<FunctionResponse> invoke(
     String functionName, {
     Map<String, String>? headers,
@@ -41,12 +42,33 @@ class SupabaseFunctions {
     HttpMethod method = HttpMethod.post,
   }) async {
     await _ensureFreshToken();
-    return _client.functions.invoke(
-      functionName,
-      headers: headers,
-      body: body,
-      method: method,
-    );
+    try {
+      return await _client.functions.invoke(
+        functionName,
+        headers: headers,
+        body: body,
+        method: method,
+      );
+    } on FunctionException catch (e) {
+      if (kDebugMode) {
+        debugPrint(
+          '[SupabaseFunctions] $functionName failed: '
+          'status=${e.status}, details=${e.details}',
+        );
+      }
+      // If 401, the token might have expired between our check and the call.
+      // Refresh and retry once.
+      if (e.status == 401) {
+        await _tryRefresh();
+        return _client.functions.invoke(
+          functionName,
+          headers: headers,
+          body: body,
+          method: method,
+        );
+      }
+      rethrow;
+    }
   }
 
   /// Check if the current access token is expired or about to
