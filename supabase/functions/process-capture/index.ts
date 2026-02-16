@@ -6,14 +6,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const GEMMA_VERSION = "c0f0aebe8e578c15a7531e08a62cf01206f5870e9d0a67804b8152822db58c54";
+const WHISPER_VERSION = "3ab86df6c8f54c11309d4d1f930ac292bad43ace52d10c80d87eb258b3c9f79c";
+
 async function runOCR(apiKey: string, imageUrl: string): Promise<string> {
-  const createRes = await fetch("https://api.replicate.com/v1/models/google-deepmind/gemma-3-27b-it/predictions", {
+  const createRes = await fetch("https://api.replicate.com/v1/predictions", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
+      version: GEMMA_VERSION,
       input: {
         image: imageUrl,
         prompt: "Extract ALL text from this image. Preserve the original formatting, paragraphs, and structure. Return only the extracted text, nothing else. If the text is in a language other than English, keep it in the original language.",
@@ -53,13 +57,14 @@ async function runOCR(apiKey: string, imageUrl: string): Promise<string> {
 }
 
 async function runWhisper(apiKey: string, audioUrl: string): Promise<string> {
-  const createRes = await fetch("https://api.replicate.com/v1/models/vaibhavs10/incredibly-fast-whisper/predictions", {
+  const createRes = await fetch("https://api.replicate.com/v1/predictions", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
+      version: WHISPER_VERSION,
       input: {
         audio: audioUrl,
         task: "transcribe",

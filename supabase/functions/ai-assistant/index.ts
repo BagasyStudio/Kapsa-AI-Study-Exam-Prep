@@ -9,14 +9,17 @@ const corsHeaders = {
 // ═══════════════════════════════════════════
 // Replicate API helpers
 // ═══════════════════════════════════════════
+const GEMMA_VERSION = "c0f0aebe8e578c15a7531e08a62cf01206f5870e9d0a67804b8152822db58c54";
+
 async function callReplicate(apiKey: string, systemPrompt: string, userPrompt: string, maxTokens = 512): Promise<string> {
-  const response = await fetch("https://api.replicate.com/v1/models/google-deepmind/gemma-3-27b-it/predictions", {
+  const response = await fetch("https://api.replicate.com/v1/predictions", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
+      version: GEMMA_VERSION,
       input: {
         prompt: userPrompt,
         system_prompt: systemPrompt,
