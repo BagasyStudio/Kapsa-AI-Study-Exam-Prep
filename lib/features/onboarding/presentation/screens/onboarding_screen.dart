@@ -147,6 +147,26 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           SafeArea(
             child: Column(
               children: [
+                // TODO: TEMPORARY skip button — remove when paywall is fixed
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                        right: AppSpacing.xl, top: AppSpacing.xs),
+                    child: TapScale(
+                      onTap: _completeOnboarding,
+                      child: Text(
+                        'Skip',
+                        style: AppTypography.labelLarge.copyWith(
+                          color: isPaywallPage
+                              ? Colors.white.withValues(alpha: 0.6)
+                              : AppColors.textMuted,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
                 // Top bar: progress (always in tree to prevent layout thrashing)
                 IgnorePointer(
                   ignoring: isPaywallPage,
