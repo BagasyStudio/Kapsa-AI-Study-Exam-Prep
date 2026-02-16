@@ -129,7 +129,9 @@ class CoursesListScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.3),
       builder: (ctx) => _CreateCourseSheet(ref: ref),
     );
   }
