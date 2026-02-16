@@ -71,11 +71,6 @@ class _OnboardingPaywallPageState extends State<OnboardingPaywallPage>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
-        final bgOpacity = CurvedAnimation(
-          parent: _controller,
-          curve: const Interval(0, 0.2, curve: Curves.easeOut),
-        ).value;
-
         final badgeOpacity = CurvedAnimation(
           parent: _controller,
           curve: const Interval(0.15, 0.35, curve: Curves.easeOut),
@@ -96,40 +91,28 @@ class _OnboardingPaywallPageState extends State<OnboardingPaywallPage>
           curve: const Interval(0.85, 1.0, curve: Curves.easeOut),
         ).value;
 
-        return Stack(
-          children: [
-            // Dark background
-            Positioned.fill(
-              child: Opacity(
-                opacity: bgOpacity,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF0B0D1E),
-                        Color(0xFF111338),
-                        Color(0xFF0F1029),
-                        Color(0xFF0B0D1E),
-                      ],
-                      stops: [0.0, 0.3, 0.7, 1.0],
-                    ),
-                  ),
-                ),
-              ),
+        return Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF0B0D1E),
+                Color(0xFF111338),
+                Color(0xFF0F1029),
+                Color(0xFF0B0D1E),
+              ],
+              stops: [0.0, 0.3, 0.7, 1.0],
             ),
-
-            // Content
-            Positioned.fill(
-              child: SingleChildScrollView(
-                physics: const NeverScrollableScrollPhysics(),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: AppSpacing.xxl),
+          ),
+          child: SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+              child: Column(
+                children: [
+                  const SizedBox(height: AppSpacing.xxl),
 
                       // Mascot
                       Opacity(
@@ -323,13 +306,11 @@ class _OnboardingPaywallPageState extends State<OnboardingPaywallPage>
                         ),
                       ),
 
-                      const SizedBox(height: AppSpacing.lg),
-                    ],
-                  ),
-                ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
               ),
             ),
-          ],
+          ),
         );
       },
     );
