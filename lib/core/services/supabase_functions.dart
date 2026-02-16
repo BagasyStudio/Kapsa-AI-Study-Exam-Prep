@@ -14,35 +14,44 @@ class SessionExpiredException implements Exception {
   String toString() => 'SessionExpiredException: $message';
 }
 
-/// Wrapper around Supabase Edge Function calls that ensures a
-/// fresh JWT access token before every invocation.
+/// Wrapper around Supabase Edge Function calls with retry on 401.
 ///
-/// The Supabase Flutter SDK auto-refreshes tokens for Postgrest
-/// and Realtime, but NOT for `functions.invoke()`. This service
-/// fills that gap by proactively refreshing the token when it is
-/// about to expire (within [_refreshThreshold] seconds).
+/// The Supabase Flutter SDK's internal [AuthHttpClient] already
+/// auto-refreshes expired tokens before every HTTP request
+/// (including `functions.invoke()`). This wrapper does NOT
+/// attempt its own token refresh — it simply:
+///
+/// 1. Checks that a user is logged in (fast, no network call).
+/// 2. Delegates to `_client.functions.invoke()` (SDK handles auth).
+/// 3. If the call fails with 401, retries ONCE (handles rare race
+///    conditions where the token expired between SDK refresh and
+///    Edge Function processing).
 class SupabaseFunctions {
   final SupabaseClient _client;
 
-  /// How many seconds before expiry to proactively refresh.
-  /// 60 seconds gives comfortable margin for slow networks +
-  /// long AI operations (5-30s).
-  static const int _refreshThreshold = 60;
-
   SupabaseFunctions(this._client);
 
-  /// Invoke an Edge Function with automatic token refresh.
+  /// Invoke an Edge Function.
   ///
   /// Parameters mirror [FunctionsClient.invoke] exactly.
-  /// If the call fails with 401, retries once after refreshing the token.
+  /// Throws [SessionExpiredException] only if there is truly no
+  /// logged-in user.
   Future<FunctionResponse> invoke(
     String functionName, {
     Map<String, String>? headers,
     Map<String, dynamic>? body,
     HttpMethod method = HttpMethod.post,
   }) async {
-    await _ensureFreshToken();
+    // Quick check: is there a user at all?
+    // currentUser persists through token refresh cycles, so this
+    // is a reliable indicator of "logged in".
+    if (_client.auth.currentUser == null) {
+      throw const SessionExpiredException();
+    }
+
     try {
+      // The SDK's AuthHttpClient automatically refreshes the
+      // access token if it's expired before sending the request.
       return await _client.functions.invoke(
         functionName,
         headers: headers,
@@ -56,10 +65,22 @@ class SupabaseFunctions {
           'status=${e.status}, details=${e.details}',
         );
       }
-      // If 401, the token might have expired between our check and the call.
-      // Refresh and retry once.
+
+      // 401 → token might have expired in a race condition.
+      // Try refreshing manually and retry once.
       if (e.status == 401) {
-        await _tryRefresh();
+        try {
+          await _client.auth.refreshSession();
+        } catch (refreshError) {
+          if (kDebugMode) {
+            debugPrint(
+              '[SupabaseFunctions] Token refresh failed: $refreshError',
+            );
+          }
+          // Only NOW do we know the session is truly gone.
+          throw const SessionExpiredException();
+        }
+        // Retry the call with the fresh token.
         return _client.functions.invoke(
           functionName,
           headers: headers,
@@ -68,61 +89,6 @@ class SupabaseFunctions {
         );
       }
       rethrow;
-    }
-  }
-
-  /// Check if the current access token is expired or about to
-  /// expire, and refresh it if needed.
-  ///
-  /// This does NOT trigger UI rebuilds because:
-  /// - authStateProvider filters out tokenRefreshed events
-  /// - _AuthStateNotifier in app_router also filters them
-  Future<void> _ensureFreshToken() async {
-    // currentUser persists through token refreshes; currentSession can be
-    // temporarily null during a refresh cycle.
-    final user = _client.auth.currentUser;
-    if (user == null) {
-      throw const SessionExpiredException();
-    }
-
-    final session = _client.auth.currentSession;
-
-    // Session temporarily null during refresh — let the SDK's
-    // AuthHttpClient handle it (it has its own refresh logic).
-    if (session == null) return;
-
-    // expiresAt is Unix timestamp in seconds (from JWT `exp` claim)
-    final expiresAt = session.expiresAt;
-    if (expiresAt == null) {
-      // No expiry info — try refreshing to be safe
-      await _tryRefresh();
-      return;
-    }
-
-    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final secondsUntilExpiry = expiresAt - now;
-
-    if (secondsUntilExpiry <= _refreshThreshold) {
-      if (kDebugMode) {
-        debugPrint(
-          '[SupabaseFunctions] Token expires in ${secondsUntilExpiry}s '
-          '(threshold: ${_refreshThreshold}s) — refreshing...',
-        );
-      }
-      await _tryRefresh();
-    }
-  }
-
-  /// Attempt to refresh the session. If it fails, throw
-  /// [SessionExpiredException] so callers can handle it.
-  Future<void> _tryRefresh() async {
-    try {
-      await _client.auth.refreshSession();
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('[SupabaseFunctions] Token refresh failed: $e');
-      }
-      throw const SessionExpiredException();
     }
   }
 }
