@@ -141,6 +141,7 @@ class AuthRepository {
   /// Calls the delete-user-data Edge Function which handles
   /// cascading deletion of all user data before removing the auth user.
   Future<void> deleteAccount() async {
+    await _client.auth.refreshSession();
     await _client.functions.invoke('delete-user-data');
     await _client.auth.signOut();
   }

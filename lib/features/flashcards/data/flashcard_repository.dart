@@ -37,6 +37,7 @@ class FlashcardRepository {
     String? materialId,
     String? topic,
   }) async {
+    await _client.auth.refreshSession();
     final response = await _client.functions.invoke(
       'ai-generate-flashcards',
       body: {

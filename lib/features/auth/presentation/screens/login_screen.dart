@@ -11,6 +11,7 @@ import '../../../../core/widgets/gradient_text.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/staggered_list.dart';
+import '../../../../core/utils/error_handler.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_text_field.dart';
 
@@ -49,12 +50,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // Auth state change will trigger router redirect to /home
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_parseError(e.toString())),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      AppErrorHandler.showError(e, context: context);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -77,9 +73,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_parseError(e.toString()))),
-      );
+      AppErrorHandler.showError(e, context: context);
     }
   }
 
@@ -95,28 +89,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final msg = e.toString().toLowerCase();
       if (msg.contains('cancel') || msg.contains('1001')) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_parseError(e.toString())),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      AppErrorHandler.showError(e, context: context);
     } finally {
       if (mounted) setState(() => _isAppleLoading = false);
     }
-  }
-
-  String _parseError(String error) {
-    if (error.contains('Invalid login credentials')) {
-      return 'Invalid email or password';
-    }
-    if (error.contains('Email not confirmed')) {
-      return 'Please verify your email first';
-    }
-    if (error.contains('network')) {
-      return 'No internet connection';
-    }
-    return 'Something went wrong. Please try again.';
   }
 
   @override

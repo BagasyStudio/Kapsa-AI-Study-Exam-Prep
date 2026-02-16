@@ -212,9 +212,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg),
                     child: Text(
-                      'Error: ${chatState.error}',
-                      style:
-                          AppTypography.caption.copyWith(color: Colors.red),
+                      chatState.error!,
+                      style: AppTypography.caption.copyWith(
+                        color: const Color(0xFFEF4444),
+                      ),
                     ),
                   ),
 

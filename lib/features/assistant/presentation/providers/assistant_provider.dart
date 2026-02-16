@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../../core/services/sound_service.dart';
+import '../../../../core/utils/error_handler.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../chat/data/models/chat_message_model.dart';
 import '../../../chat/presentation/providers/chat_provider.dart';
@@ -52,7 +53,7 @@ class GlobalChatNotifier extends StateNotifier<ChatState> {
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: AppErrorHandler.friendlyMessage(e));
     }
   }
 
@@ -95,7 +96,7 @@ class GlobalChatNotifier extends StateNotifier<ChatState> {
       );
       SoundService.playMessageReceived();
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: AppErrorHandler.friendlyMessage(e));
     }
   }
 }

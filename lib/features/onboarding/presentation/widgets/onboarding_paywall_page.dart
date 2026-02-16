@@ -99,29 +99,30 @@ class _OnboardingPaywallPageState extends State<OnboardingPaywallPage>
         return Stack(
           children: [
             // Dark background
-            Opacity(
-              opacity: bgOpacity,
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF0B0D1E),
-                      Color(0xFF111338),
-                      Color(0xFF0F1029),
-                      Color(0xFF0B0D1E),
-                    ],
-                    stops: [0.0, 0.3, 0.7, 1.0],
+            Positioned.fill(
+              child: Opacity(
+                opacity: bgOpacity,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF0B0D1E),
+                        Color(0xFF111338),
+                        Color(0xFF0F1029),
+                        Color(0xFF0B0D1E),
+                      ],
+                      stops: [0.0, 0.3, 0.7, 1.0],
+                    ),
                   ),
                 ),
               ),
             ),
 
             // Content
-            SafeArea(
-              child: SingleChildScrollView(
-                physics: const NeverScrollableScrollPhysics(),
+            SingleChildScrollView(
+              physics: const NeverScrollableScrollPhysics(),
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
@@ -326,7 +327,6 @@ class _OnboardingPaywallPageState extends State<OnboardingPaywallPage>
                   ),
                 ),
               ),
-            ),
           ],
         );
       },

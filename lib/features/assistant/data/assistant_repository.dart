@@ -13,6 +13,7 @@ class AssistantRepository {
 
   /// Get a personalized insight for the home screen.
   Future<AssistantInsightModel> getInsight() async {
+    await _client.auth.refreshSession();
     final response = await _client.functions.invoke(
       'ai-assistant',
       body: {'mode': 'insights'},
@@ -69,6 +70,9 @@ class AssistantRepository {
       'content': message,
     });
 
+    // Refresh token before Edge Function call
+    await _client.auth.refreshSession();
+
     // Call Edge Function for AI response
     final response = await _client.functions.invoke(
       'ai-assistant',
@@ -98,6 +102,7 @@ class AssistantRepository {
 
   /// Generate AI-powered calendar suggestions.
   Future<int> generateCalendarSuggestions() async {
+    await _client.auth.refreshSession();
     final response = await _client.functions.invoke(
       'ai-assistant',
       body: {'mode': 'calendar_suggestions'},

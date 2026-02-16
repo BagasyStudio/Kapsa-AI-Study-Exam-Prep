@@ -132,44 +132,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 if (!isPaywallPage)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.xl, AppSpacing.sm, AppSpacing.lg, 0,
+                      AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, 0,
                     ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(100),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 400),
-                              curve: AppAnimations.curveStandard,
-                              height: 4,
-                              child: LinearProgressIndicator(
-                                value: (_currentPage + 1) / _totalPages,
-                                backgroundColor:
-                                    AppColors.primary.withValues(alpha: 0.12),
-                                valueColor:
-                                    const AlwaysStoppedAnimation<Color>(
-                                  AppColors.primary,
-                                ),
-                              ),
-                            ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(100),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 400),
+                        curve: AppAnimations.curveStandard,
+                        height: 4,
+                        child: LinearProgressIndicator(
+                          value: (_currentPage + 1) / _totalPages,
+                          backgroundColor:
+                              AppColors.primary.withValues(alpha: 0.12),
+                          valueColor:
+                              const AlwaysStoppedAnimation<Color>(
+                            AppColors.primary,
                           ),
                         ),
-                        const SizedBox(width: AppSpacing.md),
-                        TapScale(
-                          onTap: _completeOnboarding,
-                          child: Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Text(
-                              'Skip',
-                              style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.textMuted,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
 

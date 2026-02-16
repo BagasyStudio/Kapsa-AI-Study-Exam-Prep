@@ -64,6 +64,9 @@ class ChatRepository {
       'content': message,
     });
 
+    // Refresh token before Edge Function call
+    await _client.auth.refreshSession();
+
     // Call Edge Function for AI response
     final response = await _client.functions.invoke(
       'ai-chat',
