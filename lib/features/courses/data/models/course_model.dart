@@ -88,6 +88,8 @@ class CourseModel {
   }
 
   /// Map icon name string to IconData.
+  ///
+  /// Also handles legacy codePoint strings from older course records.
   IconData get icon {
     const iconMap = <String, IconData>{
       'menu_book': Icons.menu_book,
@@ -102,7 +104,21 @@ class CourseModel {
       'computer': Icons.computer,
       'gavel': Icons.gavel,
       'business': Icons.business,
+      'sports_soccer': Icons.sports_soccer,
+      'architecture': Icons.architecture,
     };
-    return iconMap[iconName] ?? Icons.menu_book;
+
+    // First try by name
+    if (iconMap.containsKey(iconName)) return iconMap[iconName]!;
+
+    // Fallback: try legacy codePoint format (e.g. "58725")
+    final codePoint = int.tryParse(iconName);
+    if (codePoint != null) {
+      for (final entry in iconMap.entries) {
+        if (entry.value.codePoint == codePoint) return entry.value;
+      }
+    }
+
+    return Icons.menu_book;
   }
 }

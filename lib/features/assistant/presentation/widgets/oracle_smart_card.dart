@@ -132,8 +132,9 @@ class OracleSmartCard extends ConsumerWidget {
                             style: AppTypography.bodySmall.copyWith(
                               color: Colors.white.withValues(alpha: 0.7),
                               fontSize: 12,
+                              height: 1.5,
                             ),
-                            maxLines: 2,
+                            maxLines: 4,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],

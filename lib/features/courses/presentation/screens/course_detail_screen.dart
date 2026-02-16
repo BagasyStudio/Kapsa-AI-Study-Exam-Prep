@@ -16,6 +16,8 @@ import '../providers/course_provider.dart';
 import '../../../flashcards/presentation/providers/flashcard_provider.dart';
 import '../../../test_results/presentation/providers/test_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
+import '../../../capture/presentation/screens/capture_sheet.dart';
+import '../../../../core/theme/app_radius.dart';
 
 class CourseDetailScreen extends ConsumerStatefulWidget {
   final String courseId;
@@ -480,6 +482,17 @@ class _MaterialsTab extends StatelessWidget {
     required this.ref,
   });
 
+  void _openCapture(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.3),
+      builder: (_) => const CaptureSheet(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return StaggeredColumn(
@@ -523,11 +536,42 @@ class _MaterialsTab extends StatelessWidget {
 
         const SizedBox(height: AppSpacing.xl),
 
-        // "Materials" header
+        // "Materials" header with add button
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('Materials', style: AppTypography.h4),
+            TapScale(
+              onTap: () => _openCapture(context),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: AppRadius.borderRadiusPill,
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add_rounded,
+                        size: 16, color: AppColors.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Add Material',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
 
@@ -539,16 +583,8 @@ class _MaterialsTab extends StatelessWidget {
           error: (e, _) => Text('Error: $e'),
           data: (materials) {
             if (materials.isEmpty) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 20),
-                  child: Text(
-                    'No materials yet. Use Capture to add content.',
-                    style: AppTypography.bodyMedium
-                        .copyWith(color: AppColors.textMuted),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
+              return _EmptyMaterials(
+                onAddMaterial: () => _openCapture(context),
               );
             }
             // Use ListView.builder for efficient rendering of long lists
@@ -806,6 +842,95 @@ class _CircleButton extends StatelessWidget {
           color: Colors.transparent,
         ),
         child: Icon(icon, color: AppColors.textSecondary),
+      ),
+    );
+  }
+}
+
+/// Beautiful empty state for the materials tab with a CTA to add materials.
+class _EmptyMaterials extends StatelessWidget {
+  final VoidCallback onAddMaterial;
+
+  const _EmptyMaterials({required this.onAddMaterial});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: TapScale(
+        onTap: onAddMaterial,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(
+            vertical: AppSpacing.xxl,
+            horizontal: AppSpacing.xl,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.4),
+            borderRadius: AppRadius.borderRadiusXxl,
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.15),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                ),
+                child: Icon(
+                  Icons.note_add_rounded,
+                  size: 30,
+                  color: AppColors.primary.withValues(alpha: 0.6),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'No materials yet',
+                style: AppTypography.labelLarge.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Tap here to upload PDFs, scan pages, record audio, or paste notes',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textMuted,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: AppRadius.borderRadiusPill,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.add_rounded,
+                        size: 18, color: Colors.white),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Add Material',
+                      style: AppTypography.labelLarge.copyWith(
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

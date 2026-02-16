@@ -14,7 +14,22 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/course_provider.dart';
 import '../../data/models/course_model.dart';
 
-/// Available icons for course creation.
+/// Available icons for course creation (name → IconData).
+const _courseIconNames = <String>[
+  'menu_book',
+  'science',
+  'calculate',
+  'history_edu',
+  'language',
+  'palette',
+  'computer',
+  'psychology',
+  'biotech',
+  'music_note',
+  'sports_soccer',
+  'architecture',
+];
+
 const _courseIcons = <IconData>[
   Icons.menu_book,
   Icons.science,
@@ -208,7 +223,7 @@ class _CreateCourseSheetState extends State<_CreateCourseSheet> {
             userId: user.id,
             title: title,
             subtitle: subtitle.isEmpty ? null : subtitle,
-            iconName: _courseIcons[_selectedIconIndex].codePoint.toString(),
+            iconName: _courseIconNames[_selectedIconIndex],
             colorHex: _colorToHex(_courseColors[_selectedColorIndex]),
             examDate: _examDate,
           );
