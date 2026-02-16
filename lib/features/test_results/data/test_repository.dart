@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/supabase_functions.dart';
 import 'models/test_model.dart';
 import 'models/test_question_model.dart';
 
@@ -13,15 +14,16 @@ class TestWithQuestions {
 /// Repository for test/quiz operations.
 class TestRepository {
   final SupabaseClient _client;
+  final SupabaseFunctions _functions;
 
-  TestRepository(this._client);
+  TestRepository(this._client, this._functions);
 
   /// Generate a quiz via Edge Function.
   Future<TestWithQuestions> generateQuiz({
     required String courseId,
     int count = 5,
   }) async {
-    final response = await _client.functions.invoke(
+    final response = await _functions.invoke(
       'ai-generate-quiz',
       body: {
         'action': 'generate',
@@ -46,7 +48,7 @@ class TestRepository {
     required String testId,
     required List<Map<String, String>> answers,
   }) async {
-    final response = await _client.functions.invoke(
+    final response = await _functions.invoke(
       'ai-generate-quiz',
       body: {
         'action': 'evaluate',

@@ -1,12 +1,14 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/app_limits.dart';
+import '../../../core/services/supabase_functions.dart';
 import 'models/material_model.dart';
 
 /// Repository for course materials (PDFs, audio, notes, etc.).
 class MaterialRepository {
   final SupabaseClient _client;
+  final SupabaseFunctions _functions;
 
-  MaterialRepository(this._client);
+  MaterialRepository(this._client, this._functions);
 
   /// Fetch all materials for a course.
   Future<List<MaterialModel>> getMaterials(String courseId) async {
@@ -66,7 +68,7 @@ class MaterialRepository {
     required String fileUrl,
     required String title,
   }) async {
-    final response = await _client.functions.invoke(
+    final response = await _functions.invoke(
       'process-capture',
       body: {
         'courseId': courseId,

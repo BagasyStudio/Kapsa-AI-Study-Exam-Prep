@@ -10,7 +10,10 @@ import '../../data/models/assistant_insight_model.dart';
 
 /// Provider for the assistant repository.
 final assistantRepositoryProvider = Provider<AssistantRepository>((ref) {
-  return AssistantRepository(ref.watch(supabaseClientProvider));
+  return AssistantRepository(
+    ref.watch(supabaseClientProvider),
+    ref.watch(supabaseFunctionsProvider),
+  );
 });
 
 /// Provider for the home screen AI insight card.

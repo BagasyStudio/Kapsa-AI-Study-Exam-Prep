@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../services/supabase_functions.dart';
 
 /// Global error handler for Kapsa.
 ///
@@ -40,6 +41,11 @@ class AppErrorHandler {
 
   /// Parse an error into a user-friendly message.
   static String friendlyMessage(Object error) {
+    // Typed exception — no string matching needed
+    if (error is SessionExpiredException) {
+      return 'Your session has expired. Please sign in again.';
+    }
+
     final msg = error.toString().toLowerCase();
 
     // Log the real error for debugging

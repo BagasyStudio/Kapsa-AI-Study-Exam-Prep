@@ -6,7 +6,10 @@ import '../../data/models/flashcard_model.dart';
 
 /// Provider for the flashcard repository.
 final flashcardRepositoryProvider = Provider<FlashcardRepository>((ref) {
-  return FlashcardRepository(ref.watch(supabaseClientProvider));
+  return FlashcardRepository(
+    ref.watch(supabaseClientProvider),
+    ref.watch(supabaseFunctionsProvider),
+  );
 });
 
 /// Fetches all decks for a course.

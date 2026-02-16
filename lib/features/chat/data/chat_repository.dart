@@ -1,11 +1,13 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/supabase_functions.dart';
 import 'models/chat_message_model.dart';
 
 /// Repository for AI chat operations.
 class ChatRepository {
   final SupabaseClient _client;
+  final SupabaseFunctions _functions;
 
-  ChatRepository(this._client);
+  ChatRepository(this._client, this._functions);
 
   /// Get or create a chat session for a course.
   Future<String> getOrCreateSession(String courseId, String userId) async {
@@ -65,7 +67,7 @@ class ChatRepository {
     });
 
     // Call Edge Function for AI response
-    final response = await _client.functions.invoke(
+    final response = await _functions.invoke(
       'ai-chat',
       body: {
         'courseId': courseId,

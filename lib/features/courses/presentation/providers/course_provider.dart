@@ -13,7 +13,10 @@ final courseRepositoryProvider = Provider<CourseRepository>((ref) {
 
 /// Provider for the material repository.
 final materialRepositoryProvider = Provider<MaterialRepository>((ref) {
-  return MaterialRepository(ref.watch(supabaseClientProvider));
+  return MaterialRepository(
+    ref.watch(supabaseClientProvider),
+    ref.watch(supabaseFunctionsProvider),
+  );
 });
 
 /// Fetches all courses for the current user.

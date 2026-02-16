@@ -5,7 +5,10 @@ import '../../data/auth_repository.dart';
 
 /// Provider for the auth repository.
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return AuthRepository(ref.watch(supabaseClientProvider));
+  return AuthRepository(
+    ref.watch(supabaseClientProvider),
+    ref.watch(supabaseFunctionsProvider),
+  );
 });
 
 /// Stream of auth state changes — used to trigger provider recalculation.

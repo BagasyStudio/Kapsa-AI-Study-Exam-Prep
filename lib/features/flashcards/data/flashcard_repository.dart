@@ -1,12 +1,14 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/supabase_functions.dart';
 import 'models/deck_model.dart';
 import 'models/flashcard_model.dart';
 
 /// Repository for flashcard operations.
 class FlashcardRepository {
   final SupabaseClient _client;
+  final SupabaseFunctions _functions;
 
-  FlashcardRepository(this._client);
+  FlashcardRepository(this._client, this._functions);
 
   /// Fetch all decks for a course.
   Future<List<DeckModel>> getDecks(String courseId) async {
@@ -37,7 +39,7 @@ class FlashcardRepository {
     String? materialId,
     String? topic,
   }) async {
-    final response = await _client.functions.invoke(
+    final response = await _functions.invoke(
       'ai-generate-flashcards',
       body: {
         'courseId': courseId,

@@ -4,13 +4,16 @@ import 'package:crypto/crypto.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/revenue_cat_service.dart';
+import '../../../core/services/supabase_functions.dart';
 
 /// Repository handling all authentication operations via Supabase Auth.
 class AuthRepository {
   final SupabaseClient _client;
+  final SupabaseFunctions _functions;
   final RevenueCatService _revenueCat;
 
-  AuthRepository(this._client) : _revenueCat = RevenueCatService(_client);
+  AuthRepository(this._client, this._functions)
+      : _revenueCat = RevenueCatService(_client);
 
   /// Stream of auth state changes (sign in, sign out, token refresh).
   Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
@@ -141,7 +144,7 @@ class AuthRepository {
   /// Calls the delete-user-data Edge Function which handles
   /// cascading deletion of all user data before removing the auth user.
   Future<void> deleteAccount() async {
-    await _client.functions.invoke('delete-user-data');
+    await _functions.invoke('delete-user-data');
     await _client.auth.signOut();
   }
 }

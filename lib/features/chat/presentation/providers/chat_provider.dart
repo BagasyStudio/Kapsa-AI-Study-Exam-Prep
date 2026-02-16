@@ -8,7 +8,10 @@ import '../../data/models/chat_message_model.dart';
 
 /// Provider for the chat repository.
 final chatRepositoryProvider = Provider<ChatRepository>((ref) {
-  return ChatRepository(ref.watch(supabaseClientProvider));
+  return ChatRepository(
+    ref.watch(supabaseClientProvider),
+    ref.watch(supabaseFunctionsProvider),
+  );
 });
 
 /// State for a chat session.

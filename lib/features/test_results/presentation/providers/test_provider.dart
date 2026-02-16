@@ -4,7 +4,10 @@ import '../../data/test_repository.dart';
 
 /// Provider for the test repository.
 final testRepositoryProvider = Provider<TestRepository>((ref) {
-  return TestRepository(ref.watch(supabaseClientProvider));
+  return TestRepository(
+    ref.watch(supabaseClientProvider),
+    ref.watch(supabaseFunctionsProvider),
+  );
 });
 
 /// Fetches test results with questions.
