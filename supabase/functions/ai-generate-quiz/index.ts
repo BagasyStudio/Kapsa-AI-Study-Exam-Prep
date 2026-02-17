@@ -236,14 +236,23 @@ Deno.serve(async (req: Request) => {
         .not("content", "is", null)
         .limit(5);
 
-      let materialContent = "Generate general knowledge questions for the course.";
-      if (materials && materials.length > 0) {
-        materialContent = materials
-          .map((m: any) => `--- ${m.title} ---\n${(m.content || "").substring(0, 2000)}`)
-          .join("\n\n");
+      // Check if course has materials with content
+      const validMaterials = (materials || []).filter((m: any) => m.content && m.content.trim().length > 0);
+
+      if (validMaterials.length === 0) {
+        return new Response(JSON.stringify({
+          error: "This course has no materials yet. Upload PDFs, notes, or audio first, then generate a quiz.",
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
-      const allContent = materials?.map((m: any) => m.content || "").join(" ") || "";
+      const materialContent = validMaterials
+        .map((m: any) => `--- ${m.title} ---\n${(m.content || "").substring(0, 2000)}`)
+        .join("\n\n");
+
+      const allContent = validMaterials.map((m: any) => m.content || "").join(" ");
       const detectedLang = detectLanguageHint(allContent);
 
       const systemPrompt = `You are a quiz generator for "${course.title}".

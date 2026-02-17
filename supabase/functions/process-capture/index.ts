@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GEMMA_VERSION = "c0f0aebe8e578c15a7531e08a62cf01206f5870e9d0a67804b8152822db58c54";
+const DEEPSEEK_OCR_VERSION = "cb3b474fbfc56b1664c8c7841550bccecbe7b74c30e45ce938ffca1180b4dff5";
 const WHISPER_VERSION = "3ab86df6c8f54c11309d4d1f930ac292bad43ace52d10c80d87eb258b3c9f79c";
 
 // ── Input validation helpers ──────────────────────────────────────
@@ -41,18 +41,17 @@ async function runOCR(apiKey: string, imageUrl: string): Promise<string> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      version: GEMMA_VERSION,
+      version: DEEPSEEK_OCR_VERSION,
       input: {
         image: imageUrl,
-        prompt: "Extract ALL text from this image. Preserve the original formatting, paragraphs, and structure. Return only the extracted text, nothing else. If the text is in a language other than English, keep it in the original language.",
-        max_new_tokens: 4096,
-        temperature: 0.1,
       },
     }),
   });
 
   if (!createRes.ok) {
-    throw new Error("OCR service unavailable");
+    const errBody = await createRes.text();
+    console.error("OCR API error:", createRes.status, errBody);
+    throw new Error("OCR service unavailable. Please try again.");
   }
 
   const prediction = await createRes.json();
@@ -68,6 +67,7 @@ async function runOCR(apiKey: string, imageUrl: string): Promise<string> {
   }
 
   if (result.status === "failed") {
+    console.error("OCR prediction failed:", result.error);
     throw new Error("OCR processing failed. Please try again.");
   }
 
@@ -75,7 +75,14 @@ async function runOCR(apiKey: string, imageUrl: string): Promise<string> {
     throw new Error("OCR processing timed out. Please try again.");
   }
 
-  return Array.isArray(result.output) ? result.output.join("") : String(result.output);
+  // DeepSeek OCR returns markdown text
+  const output = Array.isArray(result.output) ? result.output.join("") : String(result.output);
+
+  if (!output || output.trim().length === 0) {
+    throw new Error("No text found in the document. Make sure the PDF contains readable text.");
+  }
+
+  return output;
 }
 
 async function runWhisper(apiKey: string, audioUrl: string): Promise<string> {

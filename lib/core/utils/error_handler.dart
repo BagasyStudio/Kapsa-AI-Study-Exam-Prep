@@ -69,7 +69,17 @@ class AppErrorHandler {
         return 'Too many requests. Please wait a moment and try again.';
       }
       if (serverMsg != null && serverMsg.isNotEmpty) {
-        return 'AI service error: $serverMsg';
+        // These messages from our Edge Functions are already user-friendly
+        // — show them directly without "AI service error:" prefix
+        final isActionable = serverMsg.contains('no materials') ||
+            serverMsg.contains('No materials') ||
+            serverMsg.contains('Upload') ||
+            serverMsg.contains('upload') ||
+            serverMsg.contains('No text found') ||
+            serverMsg.contains('not found') ||
+            serverMsg.contains('timed out') ||
+            serverMsg.contains('unavailable');
+        return isActionable ? serverMsg : 'AI service error: $serverMsg';
       }
       return 'AI service is temporarily unavailable. Please try again.';
     }
