@@ -266,10 +266,26 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     if (result == null || result.files.isEmpty) return;
 
     final file = result.files.first;
-    if (file.bytes == null) return;
+
+    // Get bytes: prefer file.bytes (web), fall back to file.path (mobile)
+    Uint8List? fileBytes = file.bytes;
+    if (fileBytes == null && file.path != null) {
+      try {
+        fileBytes = await File(file.path!).readAsBytes();
+      } catch (_) {}
+    }
+    if (fileBytes == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Could not read the PDF. Please try again.')),
+        );
+      }
+      return;
+    }
 
     // Validate file size (25 MB max)
-    if (file.bytes!.length > AppLimits.maxFileSizeBytes) {
+    if (fileBytes.length > AppLimits.maxFileSizeBytes) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -297,7 +313,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
           '${user.id}/${DateTime.now().millisecondsSinceEpoch}.pdf';
       await client.storage
           .from('course-materials')
-          .uploadBinary(fileName, file.bytes!);
+          .uploadBinary(fileName, fileBytes);
       final fileUrl =
           client.storage.from('course-materials').getPublicUrl(fileName);
 
