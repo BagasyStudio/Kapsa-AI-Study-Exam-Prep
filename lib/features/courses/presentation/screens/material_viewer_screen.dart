@@ -13,6 +13,7 @@ import '../../../../core/widgets/tap_scale.dart';
 import '../../data/models/material_model.dart';
 import '../providers/course_provider.dart';
 import '../widgets/material_list_item.dart';
+import '../../../../core/utils/error_handler.dart';
 
 /// A beautiful full-screen viewer for course materials.
 ///
@@ -133,7 +134,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
                   )
                 : materialsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
+              error: (e, _) => Center(child: Text(AppErrorHandler.friendlyMessage(e))),
               data: (materials) {
                 final matches = materials
                     .where((m) => m.id == widget.materialId);

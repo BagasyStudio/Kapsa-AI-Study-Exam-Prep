@@ -98,6 +98,7 @@ class _CardStackState extends State<CardStack>
     );
 
     animation.addListener(() {
+      if (!mounted) return;
       setState(() {
         _dragOffset = Offset.lerp(
           startOffset,
@@ -109,6 +110,7 @@ class _CardStackState extends State<CardStack>
     });
 
     _animController.forward().then((_) {
+      if (!mounted) return;
       // Reset and notify
       setState(() {
         _dragOffset = Offset.zero;
@@ -132,6 +134,7 @@ class _CardStackState extends State<CardStack>
     );
 
     animation.addListener(() {
+      if (!mounted) return;
       setState(() {
         _dragOffset = Offset.lerp(
           startOffset,
@@ -143,6 +146,7 @@ class _CardStackState extends State<CardStack>
     });
 
     _animController.forward().then((_) {
+      if (!mounted) return;
       widget.onSwipeProgress?.call(0);
     });
   }

@@ -12,8 +12,7 @@ class AuthRepository {
   final SupabaseFunctions _functions;
   final RevenueCatService _revenueCat;
 
-  AuthRepository(this._client, this._functions)
-      : _revenueCat = RevenueCatService(_client);
+  AuthRepository(this._client, this._functions, this._revenueCat);
 
   /// Stream of auth state changes (sign in, sign out, token refresh).
   Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;

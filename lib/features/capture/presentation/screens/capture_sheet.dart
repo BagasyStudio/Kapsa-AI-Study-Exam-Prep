@@ -159,10 +159,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
       feature: 'whisper',
       context: context,
     );
-    if (!canUse) return;
+    if (!canUse || !mounted) return;
 
     final courseId = await _pickCourse(courses);
-    if (courseId == null) return;
+    if (courseId == null || !mounted) return;
 
     // Show recording dialog
     final audioPath = await showDialog<String>(
@@ -1092,7 +1092,7 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
       if (kDebugMode) debugPrint('[AudioRecorder] Start failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to start recording: $e')),
+          SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
         );
       }
     }

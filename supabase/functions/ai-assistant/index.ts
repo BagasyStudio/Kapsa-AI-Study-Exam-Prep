@@ -33,8 +33,7 @@ async function callReplicate(apiKey: string, systemPrompt: string, userPrompt: s
   });
 
   if (!response.ok) {
-    const errBody = await response.text();
-    throw new Error(`AI service error (${response.status})`);
+    throw new Error("AI service unavailable");
   }
 
   const prediction = await response.json();
@@ -372,7 +371,7 @@ Prioritize:
     });
   } catch (error) {
     console.error("ai-assistant error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

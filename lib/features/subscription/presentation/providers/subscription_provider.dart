@@ -29,6 +29,17 @@ final isProProvider = FutureProvider.autoDispose<bool>((ref) async {
   }
 });
 
+/// Remaining uses for a specific feature.
+///
+/// Uses a record ({String userId, String feature}) to avoid creating
+/// the Future inline in FutureBuilder (which would recreate on every rebuild).
+final remainingUsesProvider = FutureProvider.autoDispose
+    .family<int, ({String userId, String feature})>((ref, params) async {
+  return ref
+      .read(subscriptionRepositoryProvider)
+      .getRemainingUses(params.userId, params.feature);
+});
+
 /// Daily usage map for the current user.
 final dailyUsageProvider =
     FutureProvider.autoDispose<Map<String, int>>((ref) async {

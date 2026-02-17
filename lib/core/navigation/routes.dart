@@ -13,7 +13,9 @@ abstract final class Routes {
 
   // ── Full-screen (outside shell) ──
   static const flashcardSession = '/flashcards/:sessionId';
+  static const deckList = '/decks/:courseId';
   static const chat = '/chat/:courseId';
+  static const quizSession = '/quiz-session/:testId';
   static const testResults = '/test-results/:testId';
   static const materialViewer = '/material/:courseId/:materialId';
   static const oracle = '/oracle';
@@ -31,7 +33,9 @@ abstract final class Routes {
   static String courseDetailPath(String courseId) => '/courses/$courseId';
   static String flashcardSessionPath(String sessionId) =>
       '/flashcards/$sessionId';
+  static String deckListPath(String courseId) => '/decks/$courseId';
   static String chatPath(String courseId) => '/chat/$courseId';
+  static String quizSessionPath(String testId) => '/quiz-session/$testId';
   static String testResultsPath(String testId) => '/test-results/$testId';
   static String materialViewerPath(String courseId, String materialId) =>
       '/material/$courseId/$materialId';

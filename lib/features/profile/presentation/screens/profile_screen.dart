@@ -55,6 +55,9 @@ class ProfileScreen extends ConsumerWidget {
             onPressed: () async {
               Navigator.of(ctx).pop();
               await ref.read(authRepositoryProvider).signOut();
+              // Clear cached data from previous user session
+              ref.invalidate(coursesProvider);
+              ref.invalidate(recentMaterialsProvider);
             },
             child: Text(
               'Sign Out',

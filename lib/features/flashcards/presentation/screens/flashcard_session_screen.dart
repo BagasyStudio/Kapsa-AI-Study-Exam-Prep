@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/error_handler.dart';
 import '../../../../core/widgets/confetti_overlay.dart';
 import '../widgets/session_progress_bar.dart';
 import '../widgets/flashcard_widget.dart';
@@ -50,10 +51,11 @@ class _FlashcardSessionScreenState
       SoundService.playWrongAnswer();
     }
 
-    // Update mastery in background
+    // Update mastery in background (catch errors silently — non-critical)
     ref
         .read(flashcardRepositoryProvider)
-        .updateMastery(card.id, newMastery);
+        .updateMastery(card.id, newMastery)
+        .catchError((_) {/* silent — mastery sync is best-effort */});
 
     final nextIndex = _currentIndex + 1;
 
@@ -101,7 +103,7 @@ class _FlashcardSessionScreenState
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    '$e',
+                    AppErrorHandler.friendlyMessage(e),
                     style: AppTypography.bodySmall.copyWith(
                       color: Colors.white.withValues(alpha: 0.6),
                     ),

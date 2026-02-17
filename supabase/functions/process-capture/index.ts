@@ -9,6 +9,30 @@ const corsHeaders = {
 const GEMMA_VERSION = "c0f0aebe8e578c15a7531e08a62cf01206f5870e9d0a67804b8152822db58c54";
 const WHISPER_VERSION = "3ab86df6c8f54c11309d4d1f930ac292bad43ace52d10c80d87eb258b3c9f79c";
 
+// ── Input validation helpers ──────────────────────────────────────
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUUID(value: unknown): value is string {
+  return typeof value === "string" && UUID_REGEX.test(value);
+}
+
+function isValidUrl(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+function sanitizeErrorMessage(error: unknown): string {
+  // Never leak internal error details to the client
+  console.error("process-capture internal error:", error);
+  return "An internal error occurred while processing your request.";
+}
+
+// ── AI processing functions ───────────────────────────────────────
 async function runOCR(apiKey: string, imageUrl: string): Promise<string> {
   const createRes = await fetch("https://api.replicate.com/v1/predictions", {
     method: "POST",
@@ -28,8 +52,7 @@ async function runOCR(apiKey: string, imageUrl: string): Promise<string> {
   });
 
   if (!createRes.ok) {
-    const errBody = await createRes.text();
-    throw new Error(`OCR API error ${createRes.status}: ${errBody}`);
+    throw new Error("OCR service unavailable");
   }
 
   const prediction = await createRes.json();
@@ -45,14 +68,13 @@ async function runOCR(apiKey: string, imageUrl: string): Promise<string> {
   }
 
   if (result.status === "failed") {
-    throw new Error(`OCR failed: ${result.error}`);
+    throw new Error("OCR processing failed. Please try again.");
   }
 
   if (result.status !== "succeeded") {
-    throw new Error("OCR prediction timed out");
+    throw new Error("OCR processing timed out. Please try again.");
   }
 
-  // Gemma 3 returns output as array of strings or a single string
   return Array.isArray(result.output) ? result.output.join("") : String(result.output);
 }
 
@@ -74,8 +96,7 @@ async function runWhisper(apiKey: string, audioUrl: string): Promise<string> {
   });
 
   if (!createRes.ok) {
-    const errBody = await createRes.text();
-    throw new Error(`Whisper API error ${createRes.status}: ${errBody}`);
+    throw new Error("Transcription service unavailable");
   }
 
   const prediction = await createRes.json();
@@ -91,20 +112,20 @@ async function runWhisper(apiKey: string, audioUrl: string): Promise<string> {
   }
 
   if (result.status === "failed") {
-    throw new Error(`Whisper transcription failed: ${result.error}`);
+    throw new Error("Transcription failed. Please try again.");
   }
 
   if (result.status !== "succeeded") {
-    throw new Error("Whisper transcription timed out");
+    throw new Error("Transcription timed out. Please try again.");
   }
 
-  // Whisper returns { text: "...", chunks: [...] }
   if (typeof result.output === "object" && result.output !== null && result.output.text) {
     return result.output.text;
   }
   return typeof result.output === "string" ? result.output : String(result.output);
 }
 
+// ── Main handler ──────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -136,18 +157,59 @@ Deno.serve(async (req: Request) => {
 
     const { courseId, type, fileUrl, title } = await req.json();
 
+    // ── Input validation ──────────────────────────────────────────
+    if (!isValidUUID(courseId)) {
+      return new Response(JSON.stringify({ error: "Invalid course ID" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (type !== "ocr" && type !== "whisper") {
+      return new Response(JSON.stringify({ error: "Invalid type. Use 'ocr' or 'whisper'." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!isValidUrl(fileUrl)) {
+      return new Response(JSON.stringify({ error: "Invalid file URL" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Ownership check: verify course belongs to user ────────────
+    const { data: course, error: courseError } = await supabase
+      .from("courses")
+      .select("id")
+      .eq("id", courseId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (courseError || !course) {
+      return new Response(JSON.stringify({ error: "Course not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Process file ──────────────────────────────────────────────
     let extractedText = "";
     let materialType = "notes";
 
     if (type === "ocr") {
       extractedText = await runOCR(replicateKey, fileUrl);
       materialType = "pdf";
-    } else if (type === "whisper") {
+    } else {
       extractedText = await runWhisper(replicateKey, fileUrl);
       materialType = "audio";
-    } else {
-      throw new Error("Invalid type. Use 'ocr' or 'whisper'.");
     }
+
+    // Sanitize title input
+    const sanitizedTitle = typeof title === "string" && title.trim().length > 0
+      ? title.trim().substring(0, 200)
+      : `${type === "ocr" ? "Scanned" : "Transcribed"} - ${new Date().toLocaleDateString()}`;
 
     // Save as course material
     const { data: material } = await supabase
@@ -155,7 +217,7 @@ Deno.serve(async (req: Request) => {
       .insert({
         course_id: courseId,
         user_id: user.id,
-        title: title || `${type === "ocr" ? "Scanned" : "Transcribed"} - ${new Date().toLocaleDateString()}`,
+        title: sanitizedTitle,
         type: materialType,
         content: extractedText,
         file_url: fileUrl,
@@ -167,8 +229,14 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("process-capture error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    // Known user-facing errors (thrown explicitly above)
+    const message = error instanceof Error && (
+      error.message.includes("unavailable") ||
+      error.message.includes("timed out") ||
+      error.message.includes("failed. Please")
+    ) ? error.message : sanitizeErrorMessage(error);
+
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

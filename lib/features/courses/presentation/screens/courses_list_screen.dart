@@ -13,6 +13,7 @@ import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/course_provider.dart';
 import '../../data/models/course_model.dart';
+import '../../../../core/utils/error_handler.dart';
 
 /// Available icons for course creation (name → IconData).
 const _courseIconNames = <String>[
@@ -100,7 +101,7 @@ class CoursesListScreen extends ConsumerWidget {
                     child: Padding(
                       padding: const EdgeInsets.only(top: 60),
                       child:
-                          Text('Error: $e', style: AppTypography.bodyMedium),
+                          Text(AppErrorHandler.friendlyMessage(e), style: AppTypography.bodyMedium),
                     ),
                   ),
                   data: (courses) {
@@ -147,22 +148,20 @@ class CoursesListScreen extends ConsumerWidget {
       useRootNavigator: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.3),
-      builder: (ctx) => _CreateCourseSheet(ref: ref),
+      builder: (ctx) => const _CreateCourseSheet(),
     );
   }
 }
 
 /// Bottom sheet for creating a new course with icon, color, and optional exam date.
-class _CreateCourseSheet extends StatefulWidget {
-  final WidgetRef ref;
-
-  const _CreateCourseSheet({required this.ref});
+class _CreateCourseSheet extends ConsumerStatefulWidget {
+  const _CreateCourseSheet();
 
   @override
-  State<_CreateCourseSheet> createState() => _CreateCourseSheetState();
+  ConsumerState<_CreateCourseSheet> createState() => _CreateCourseSheetState();
 }
 
-class _CreateCourseSheetState extends State<_CreateCourseSheet> {
+class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
   final _titleController = TextEditingController();
   final _subtitleController = TextEditingController();
   int _selectedIconIndex = 0;
@@ -215,11 +214,11 @@ class _CreateCourseSheetState extends State<_CreateCourseSheet> {
     setState(() => _isCreating = true);
 
     try {
-      final user = widget.ref.read(currentUserProvider);
+      final user = ref.read(currentUserProvider);
       if (user == null) return;
 
       final subtitle = _subtitleController.text.trim();
-      await widget.ref.read(courseRepositoryProvider).createCourse(
+      await ref.read(courseRepositoryProvider).createCourse(
             userId: user.id,
             title: title,
             subtitle: subtitle.isEmpty ? null : subtitle,
@@ -227,13 +226,13 @@ class _CreateCourseSheetState extends State<_CreateCourseSheet> {
             colorHex: _colorToHex(_courseColors[_selectedColorIndex]),
             examDate: _examDate,
           );
-      widget.ref.invalidate(coursesProvider);
+      ref.invalidate(coursesProvider);
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
         setState(() => _isCreating = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
         );
       }
     }

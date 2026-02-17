@@ -13,6 +13,7 @@ import '../widgets/focus_flow_carousel.dart';
 import '../widgets/recent_materials_grid.dart';
 import '../../../assistant/presentation/widgets/oracle_smart_card.dart';
 import '../../../subscription/presentation/widgets/usage_limit_banner.dart';
+import '../widgets/study_activity_card.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -133,6 +134,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   // Focus Flow Carousel
                   const SizedBox(height: AppSpacing.lg),
                   const FocusFlowCarousel(),
+
+                  // Study Activity (recent quizzes & flashcards)
+                  const SizedBox(height: AppSpacing.xxl),
+                  const StudyActivityCard(),
 
                   // Recent Materials Grid
                   const SizedBox(height: AppSpacing.xxl),

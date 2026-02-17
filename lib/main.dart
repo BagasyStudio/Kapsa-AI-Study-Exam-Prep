@@ -7,6 +7,7 @@ import 'app.dart';
 import 'core/config/env.dart';
 import 'core/navigation/app_router.dart';
 import 'core/providers/error_observer.dart';
+import 'core/providers/revenue_cat_provider.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/revenue_cat_service.dart';
 import 'core/services/sound_service.dart';
@@ -28,7 +29,7 @@ void main() {
     // Initialize sound effects
     await SoundService.init();
 
-    // Initialize RevenueCat
+    // Initialize RevenueCat (single instance shared via provider override)
     final revenueCat = RevenueCatService(Supabase.instance.client);
     await revenueCat.initialize();
 
@@ -43,7 +44,7 @@ void main() {
     final hasSeenOnboarding = prefs.getBool('has_seen_onboarding') ?? false;
 
     // Force portrait orientation for iOS
-    SystemChrome.setPreferredOrientations([
+    await SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
     ]);
 
@@ -62,6 +63,8 @@ void main() {
           hasSeenOnboardingProvider.overrideWith(
             (ref) => hasSeenOnboarding,
           ),
+          // Share the pre-initialized RevenueCat instance with all providers
+          revenueCatServiceProvider.overrideWithValue(revenueCat),
         ],
         child: const KapsaApp(),
       ),

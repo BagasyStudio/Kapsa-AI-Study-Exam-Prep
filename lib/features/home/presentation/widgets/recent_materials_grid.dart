@@ -7,6 +7,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import 'material_thumbnail.dart';
 import '../../../courses/presentation/providers/course_provider.dart';
+import '../../../../core/utils/error_handler.dart';
 
 /// 2x2 grid of recent study materials on the Home screen.
 class RecentMaterialsGrid extends ConsumerWidget {
@@ -29,7 +30,7 @@ class RecentMaterialsGrid extends ConsumerWidget {
           error: (e, _) => SizedBox(
             height: 200,
             child: Center(
-              child: Text('Error: $e', style: AppTypography.bodySmall),
+              child: Text(AppErrorHandler.friendlyMessage(e), style: AppTypography.bodySmall),
             ),
           ),
           data: (materials) {

@@ -8,6 +8,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import 'focus_flow_card.dart';
 import '../../../courses/presentation/providers/course_provider.dart';
+import '../../../../core/utils/error_handler.dart';
 
 /// Horizontal scrollable carousel of Focus Flow cards.
 ///
@@ -81,7 +82,7 @@ class _FocusFlowCarouselState extends ConsumerState<FocusFlowCarousel> {
           child: coursesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(
-              child: Text('Error: $e', style: AppTypography.bodySmall),
+              child: Text(AppErrorHandler.friendlyMessage(e), style: AppTypography.bodySmall),
             ),
             data: (courses) {
               if (courses.isEmpty) {

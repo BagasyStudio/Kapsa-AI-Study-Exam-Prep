@@ -35,13 +35,16 @@ class FeatureGate extends ConsumerWidget {
       data: (isPro) {
         if (isPro || user == null) return child;
 
-        return FutureBuilder<int>(
-          future: ref
-              .read(subscriptionRepositoryProvider)
-              .getRemainingUses(user.id, feature),
-          builder: (context, snapshot) {
-            final remaining = snapshot.data ?? 1;
+        final remainingAsync = ref.watch(
+          remainingUsesProvider(
+            (userId: user.id, feature: feature),
+          ),
+        );
 
+        return remainingAsync.when(
+          loading: () => child,
+          error: (_, __) => child,
+          data: (remaining) {
             if (remaining > 0) return child;
 
             // Feature is locked

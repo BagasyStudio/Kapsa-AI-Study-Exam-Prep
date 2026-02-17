@@ -12,6 +12,7 @@ import '../providers/calendar_provider.dart';
 import '../../data/models/calendar_event_model.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../assistant/presentation/providers/assistant_provider.dart';
+import '../../../../core/utils/error_handler.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
@@ -50,7 +51,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(AppErrorHandler.friendlyMessage(e)),
             backgroundColor: AppColors.error,
           ),
         );
@@ -307,7 +308,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         padding: const EdgeInsets.only(top: 60),
                         child: Center(
                           child: Text(
-                            'Error loading events: $e',
+                            AppErrorHandler.friendlyMessage(e),
                             style: AppTypography.bodySmall,
                           ),
                         ),

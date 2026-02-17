@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/providers/supabase_provider.dart';
+import '../../../../core/providers/revenue_cat_provider.dart';
 import '../../data/auth_repository.dart';
 
 /// Provider for the auth repository.
@@ -8,6 +9,7 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(
     ref.watch(supabaseClientProvider),
     ref.watch(supabaseFunctionsProvider),
+    ref.watch(revenueCatServiceProvider),
   );
 });
 

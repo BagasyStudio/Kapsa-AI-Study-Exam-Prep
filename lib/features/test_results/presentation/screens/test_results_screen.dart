@@ -13,6 +13,7 @@ import '../widgets/correction_card.dart';
 import '../widgets/collapsed_correction_card.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/staggered_list.dart';
+import '../../../../core/utils/error_handler.dart';
 import '../providers/test_provider.dart';
 import '../../data/test_repository.dart';
 import '../../data/models/test_question_model.dart';
@@ -72,7 +73,7 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
                       Text('Could not load results',
                           style: AppTypography.h3),
                       const SizedBox(height: AppSpacing.sm),
-                      Text('$e',
+                      Text(AppErrorHandler.friendlyMessage(e),
                           style: AppTypography.bodySmall,
                           textAlign: TextAlign.center),
                       const SizedBox(height: AppSpacing.xl),
@@ -85,12 +86,6 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
                 ),
               ),
               data: (result) {
-                if (result == null) {
-                  return Center(
-                    child: Text('Test not found',
-                        style: AppTypography.h3),
-                  );
-                }
                 return _buildResults(result);
               },
             ),
@@ -103,7 +98,6 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
             right: AppSpacing.xl,
             child: resultsAsync.whenOrNull(
                   data: (result) {
-                    if (result == null) return const SizedBox.shrink();
                     return PrimaryButton(
                       label: 'Practice Weak Areas',
                       trailingIcon: Icons.fitness_center,
@@ -135,7 +129,7 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
                         } catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e')),
+                              SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
                             );
                           }
                         }

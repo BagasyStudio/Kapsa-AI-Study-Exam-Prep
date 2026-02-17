@@ -15,6 +15,8 @@ import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/flashcards/presentation/screens/flashcard_session_screen.dart';
 import '../../features/chat/presentation/screens/chat_screen.dart';
 import '../../features/test_results/presentation/screens/test_results_screen.dart';
+import '../../features/test_results/presentation/screens/quiz_session_screen.dart';
+import '../../features/flashcards/presentation/screens/deck_list_screen.dart';
 import '../../features/paywall/presentation/screens/paywall_screen.dart';
 import '../../features/assistant/presentation/screens/global_chat_screen.dart';
 import '../../features/courses/presentation/screens/material_viewer_screen.dart';
@@ -247,12 +249,36 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(
+        path: Routes.deckList,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _slideFromRight(
+          DeckListScreen(
+            courseId: state.pathParameters['courseId'] ?? '',
+          ),
+        ),
+      ),
+
+      GoRoute(
         path: Routes.chat,
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) => _slideFromRight(
           ChatScreen(
             courseId: state.pathParameters['courseId'] ?? '',
           ),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.quizSession,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          child: QuizSessionScreen(
+            testId: state.pathParameters['testId'] ?? '',
+          ),
+          transitionDuration: AppAnimations.durationSlow,
+          reverseTransitionDuration: AppAnimations.durationSlow,
+          transitionsBuilder: (_, animation, __, child) =>
+              FadeTransition(opacity: animation, child: child),
         ),
       ),
 

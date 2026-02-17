@@ -9,6 +9,28 @@ const corsHeaders = {
 const LLAMA_VERSION = "5a6809ca6288247d06daf6365557e5e429063f32a21146b2a807c682652136b8";
 const LLAMA_TEMPLATE = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n";
 
+// ── Constants ─────────────────────────────────────────────────────
+const MAX_FLASHCARD_COUNT = 30;
+const MIN_FLASHCARD_COUNT = 1;
+
+// ── Input validation helpers ──────────────────────────────────────
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUUID(value: unknown): value is string {
+  return typeof value === "string" && UUID_REGEX.test(value);
+}
+
+function sanitizeErrorMessage(error: unknown): string {
+  console.error("ai-generate-flashcards internal error:", error);
+  return "An internal error occurred. Please try again.";
+}
+
+function clampCount(value: unknown): number {
+  const num = typeof value === "number" ? value : 10;
+  return Math.max(MIN_FLASHCARD_COUNT, Math.min(MAX_FLASHCARD_COUNT, Math.floor(num)));
+}
+
+// ── AI call ───────────────────────────────────────────────────────
 async function callReplicate(apiKey: string, prompt: string, systemPrompt: string, maxTokens = 2048): Promise<string> {
   const createRes = await fetch("https://api.replicate.com/v1/predictions", {
     method: "POST",
@@ -30,8 +52,7 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
   });
 
   if (!createRes.ok) {
-    const errBody = await createRes.text();
-    throw new Error(`Replicate API error ${createRes.status}: ${errBody}`);
+    throw new Error("AI service unavailable");
   }
 
   const prediction = await createRes.json();
@@ -47,76 +68,61 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
   }
 
   if (result.status === "failed") {
-    throw new Error(`Replicate prediction failed: ${result.error}`);
+    throw new Error("AI processing failed. Please try again.");
   }
   if (result.status !== "succeeded") {
-    throw new Error("Replicate prediction timed out");
+    throw new Error("AI processing timed out. Please try again.");
   }
 
   return Array.isArray(result.output) ? result.output.join("") : String(result.output);
 }
 
-/**
- * Detect the primary language of a text sample.
- * Returns a language hint string for the AI prompt.
- */
+// ── Language detection ────────────────────────────────────────────
 function detectLanguageHint(text: string): string {
   if (!text || text.length < 20) return "";
-  
-  // Sample the first 500 chars for detection
+
   const sample = text.substring(0, 500).toLowerCase();
-  
-  // Spanish indicators
+
   const spanishWords = ["que", "los", "las", "del", "una", "con", "por", "para", "como", "más", "esta", "pero", "sobre", "entre", "cuando", "también", "puede", "tiene", "desde", "todo", "según", "donde", "después", "porque", "cada", "hacer", "sin", "ser", "este", "así"];
   const spanishChars = /[áéíóúñ¿¡]/;
-  
-  // Portuguese indicators
+
   const portugueseWords = ["não", "uma", "com", "são", "mais", "para", "como", "está", "pode", "isso", "pelo", "muito", "também", "onde", "quando", "ainda", "então", "sobre", "depois"];
   const portugueseChars = /[ãõç]/;
-  
-  // French indicators
+
   const frenchWords = ["les", "des", "une", "que", "dans", "pour", "avec", "sur", "sont", "pas", "plus", "mais", "comme", "cette", "tout", "être", "fait", "aussi", "nous", "même"];
   const frenchChars = /[àâêëîïôùûüÿçœæ]/;
-  
-  // German indicators  
+
   const germanWords = ["und", "die", "der", "das", "ist", "ein", "eine", "mit", "auf", "für", "nicht", "auch", "sich", "von", "sind", "werden", "hat", "wird", "dass", "oder"];
   const germanChars = /[äöüß]/;
-  
-  // Count matches
+
   const words = sample.split(/\s+/);
   let esCount = 0, ptCount = 0, frCount = 0, deCount = 0;
-  
+
   for (const w of words) {
     if (spanishWords.includes(w)) esCount++;
     if (portugueseWords.includes(w)) ptCount++;
     if (frenchWords.includes(w)) frCount++;
     if (germanWords.includes(w)) deCount++;
   }
-  
-  // Boost with character detection
+
   if (spanishChars.test(sample)) esCount += 3;
   if (portugueseChars.test(sample)) ptCount += 3;
   if (frenchChars.test(sample)) frCount += 3;
   if (germanChars.test(sample)) deCount += 3;
-  
+
   const scores = [
-    { lang: "Spanish", code: "es", score: esCount },
-    { lang: "Portuguese", code: "pt", score: ptCount },
-    { lang: "French", code: "fr", score: frCount },
-    { lang: "German", code: "de", score: deCount },
+    { lang: "Spanish", score: esCount },
+    { lang: "Portuguese", score: ptCount },
+    { lang: "French", score: frCount },
+    { lang: "German", score: deCount },
   ];
-  
+
   const best = scores.sort((a, b) => b.score - a.score)[0];
-  
-  // If strong signal for a non-English language
-  if (best.score >= 3) {
-    return best.lang;
-  }
-  
-  // Default: assume English
+  if (best.score >= 3) return best.lang;
   return "English";
 }
 
+// ── Main handler ──────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -145,20 +151,47 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { courseId, count = 10, materialId, topic } = await req.json();
+    const { courseId, count: rawCount, materialId, topic } = await req.json();
 
-    // Fetch course info
-    const { data: course } = await supabase
+    // ── Input validation ──────────────────────────────────────────
+    if (!isValidUUID(courseId)) {
+      return new Response(JSON.stringify({ error: "Invalid course ID" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (materialId !== undefined && !isValidUUID(materialId)) {
+      return new Response(JSON.stringify({ error: "Invalid material ID" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const count = clampCount(rawCount);
+    const sanitizedTopic = typeof topic === "string" ? topic.trim().substring(0, 200) : undefined;
+
+    // ── Ownership check: verify course belongs to user ────────────
+    const { data: course, error: courseError } = await supabase
       .from("courses")
-      .select("title, subtitle")
+      .select("id, title, subtitle")
       .eq("id", courseId)
+      .eq("user_id", user.id)
       .single();
 
-    // Fetch materials
+    if (courseError || !course) {
+      return new Response(JSON.stringify({ error: "Course not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Fetch materials (scoped to user) ──────────────────────────
     let materialsQuery = supabase
       .from("course_materials")
       .select("title, content, type")
       .eq("course_id", courseId)
+      .eq("user_id", user.id)
       .not("content", "is", null);
 
     if (materialId) {
@@ -174,11 +207,11 @@ Deno.serve(async (req: Request) => {
         .join("\n\n");
     }
 
-    // Detect language from materials
+    // Detect language
     const allContent = materials?.map((m: any) => m.content || "").join(" ") || "";
     const detectedLang = detectLanguageHint(allContent);
 
-    const systemPrompt = `You are a flashcard generator for the course "${course?.title || "Study Course"}".
+    const systemPrompt = `You are a flashcard generator for the course "${course.title}".
 
 CRITICAL LANGUAGE RULE: The course material is in ${detectedLang}. You MUST generate ALL flashcard content (topic, question_before, keyword, question_after, and answer) in ${detectedLang}. Do NOT translate to English. Keep the same language as the source material.
 
@@ -197,7 +230,7 @@ Example (if material is in Spanish):
 Example (if material is in English):
 {"topic":"Cell Structure","question_before":"What is the primary function of the ","keyword":"mitochondria","question_after":"?","answer":"Generate most of the chemical energy needed to power the cell's biochemical reactions through ATP production."}
 
-IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation, just the JSON array.${topic ? `\nFocus on the topic: ${topic}` : ""}`;
+IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation, just the JSON array.${sanitizedTopic ? `\nFocus on the topic: ${sanitizedTopic}` : ""}`;
 
     const prompt = `Based on this course material, generate ${count} flashcards in the SAME LANGUAGE as the material:\n\n${materialContent}\n\nOutput the JSON array now:`;
 
@@ -209,7 +242,7 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation, just the
       const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
       cards = JSON.parse(jsonMatch ? jsonMatch[0] : aiResponse);
     } catch {
-      throw new Error("Failed to parse flashcards from AI response");
+      throw new Error("Failed to generate flashcards. Please try again.");
     }
 
     // Create deck
@@ -218,20 +251,20 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation, just the
       .insert({
         course_id: courseId,
         user_id: user.id,
-        title: topic || course?.title || "Study Deck",
+        title: sanitizedTopic || course.title || "Study Deck",
         card_count: cards.length,
       })
       .select()
       .single();
 
-    // Insert cards
+    // Insert cards (sanitize AI output fields)
     const cardRows = cards.map((c: any) => ({
       deck_id: deck.id,
-      topic: c.topic || "General",
-      question_before: c.question_before || "",
-      keyword: c.keyword || "",
-      question_after: c.question_after || "",
-      answer: c.answer || "",
+      topic: typeof c.topic === "string" ? c.topic.substring(0, 200) : "General",
+      question_before: typeof c.question_before === "string" ? c.question_before.substring(0, 500) : "",
+      keyword: typeof c.keyword === "string" ? c.keyword.substring(0, 100) : "",
+      question_after: typeof c.question_after === "string" ? c.question_after.substring(0, 500) : "",
+      answer: typeof c.answer === "string" ? c.answer.substring(0, 2000) : "",
     }));
 
     await supabase.from("flashcards").insert(cardRows);
@@ -240,8 +273,14 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation, just the
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("ai-generate-flashcards error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const message = error instanceof Error && (
+      error.message.includes("unavailable") ||
+      error.message.includes("timed out") ||
+      error.message.includes("failed. Please") ||
+      error.message.includes("Failed to generate")
+    ) ? error.message : sanitizeErrorMessage(error);
+
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

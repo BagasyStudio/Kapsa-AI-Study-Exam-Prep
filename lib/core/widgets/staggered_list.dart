@@ -60,6 +60,55 @@ class _StaggeredColumnState extends State<StaggeredColumn>
     _startAnimations();
   }
 
+  @override
+  void didUpdateWidget(StaggeredColumn oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.children.length != oldWidget.children.length) {
+      final oldCount = _controllers.length;
+      final newCount = widget.children.length;
+
+      if (newCount > oldCount) {
+        // Add controllers for new children
+        for (int i = oldCount; i < newCount; i++) {
+          final controller = AnimationController(
+            vsync: this,
+            duration: widget.itemDuration,
+          );
+          _controllers.add(controller);
+          _fadeAnimations.add(CurvedAnimation(
+            parent: controller,
+            curve: AppAnimations.curveEntrance,
+          ));
+          _slideAnimations.add(Tween<Offset>(
+            begin: widget.slideOffset,
+            end: Offset.zero,
+          ).animate(CurvedAnimation(
+            parent: controller,
+            curve: AppAnimations.curveEntrance,
+          )));
+
+          // Animate new items in
+          if (i >= AppAnimations.maxStaggerItems) {
+            controller.value = 1.0;
+          } else {
+            final delay = widget.staggerDelay * (i - oldCount);
+            Future.delayed(delay, () {
+              if (mounted) controller.forward();
+            });
+          }
+        }
+      } else if (newCount < oldCount) {
+        // Remove excess controllers
+        for (int i = oldCount - 1; i >= newCount; i--) {
+          _controllers[i].dispose();
+          _controllers.removeAt(i);
+          _fadeAnimations.removeAt(i);
+          _slideAnimations.removeAt(i);
+        }
+      }
+    }
+  }
+
   void _initAnimations() {
     final count = widget.children.length;
     _controllers = List.generate(count, (i) {
