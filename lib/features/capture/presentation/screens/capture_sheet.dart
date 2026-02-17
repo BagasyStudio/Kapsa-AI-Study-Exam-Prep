@@ -28,7 +28,10 @@ import '../../../../core/utils/error_handler.dart';
 ///
 /// Covers 92% of screen, shows 2x2 action grid + recent captures.
 class CaptureSheet extends ConsumerStatefulWidget {
-  const CaptureSheet({super.key});
+  /// If provided, skips the course picker and uses this course directly.
+  final String? courseId;
+
+  const CaptureSheet({super.key, this.courseId});
 
   @override
   ConsumerState<CaptureSheet> createState() => _CaptureSheetState();
@@ -380,6 +383,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
   }
 
   Future<String?> _pickCourse(List<CourseModel> courses) async {
+    // If a course was pre-selected (opened from course detail), use it directly
+    if (widget.courseId != null) return widget.courseId;
+
     if (courses.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -456,12 +462,14 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     final coursesAsync = ref.watch(coursesProvider);
     final recentAsync = ref.watch(recentMaterialsProvider);
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.92,
-      minChildSize: 0.5,
-      maxChildSize: 0.92,
-      builder: (context, scrollController) {
-        return ClipRRect(
+    return PopScope(
+      canPop: !_isProcessing,
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.92,
+        minChildSize: _isProcessing ? 0.92 : 0.5,
+        maxChildSize: 0.92,
+        builder: (context, scrollController) {
+          return ClipRRect(
           borderRadius: AppRadius.borderRadiusSheet,
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
@@ -661,7 +669,8 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
             ),
           ),
         );
-      },
+        },
+      ),
     );
   }
 

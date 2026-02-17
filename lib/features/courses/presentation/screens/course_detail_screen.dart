@@ -497,7 +497,7 @@ class _MaterialsTab extends ConsumerWidget {
       useRootNavigator: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.3),
-      builder: (_) => const CaptureSheet(),
+      builder: (_) => CaptureSheet(courseId: courseId),
     );
   }
 

@@ -30,6 +30,32 @@ function clampCount(value: unknown, defaultVal: number): number {
   return Math.max(MIN_QUIZ_COUNT, Math.min(MAX_QUIZ_COUNT, Math.floor(num)));
 }
 
+// ── JSON parsing with sanitization ────────────────────────────────
+function parseJsonArray(raw: string): any[] {
+  // Try direct parse first
+  const jsonMatch = raw.match(/\[[\s\S]*\]/);
+  const jsonStr = jsonMatch ? jsonMatch[0] : raw.trim();
+
+  try {
+    const parsed = JSON.parse(jsonStr);
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+  } catch {
+    // Continue to sanitization
+  }
+
+  // Sanitize common LLM JSON issues
+  let sanitized = jsonStr
+    .replace(/,\s*}/g, "}")        // trailing comma before }
+    .replace(/,\s*\]/g, "]")       // trailing comma before ]
+    .replace(/'/g, '"')            // single quotes → double quotes
+    .replace(/\n/g, "\\n")        // unescaped newlines in strings
+    .replace(/\t/g, "\\t");       // unescaped tabs
+
+  const parsed = JSON.parse(sanitized);
+  if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+  throw new Error("No valid JSON array found");
+}
+
 // ── AI call ───────────────────────────────────────────────────────
 async function callReplicate(apiKey: string, prompt: string, systemPrompt: string, maxTokens = 2048): Promise<string> {
   const createRes = await fetch("https://api.replicate.com/v1/predictions", {
@@ -239,10 +265,17 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation.`;
 
       let questions;
       try {
-        const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
-        questions = JSON.parse(jsonMatch ? jsonMatch[0] : aiResponse);
+        questions = parseJsonArray(aiResponse);
       } catch {
-        throw new Error("Failed to generate quiz. Please try again.");
+        // Retry once with a stricter prompt
+        console.warn("First quiz parse attempt failed, retrying with stricter prompt...");
+        const retryPrompt = `Generate exactly ${count} quiz questions as a JSON array. Output ONLY the JSON array starting with [ and ending with ]. No text before or after.\n\nMaterial:\n${materialContent.substring(0, 2000)}\n\nJSON array:`;
+        const retryResponse = await callReplicate(replicateKey, retryPrompt, systemPrompt, 2048);
+        try {
+          questions = parseJsonArray(retryResponse);
+        } catch {
+          throw new Error("Failed to generate quiz. Please try again.");
+        }
       }
 
       // Create test
@@ -359,8 +392,7 @@ One object per question, in order. No markdown, no explanation outside the JSON.
 
       try {
         const aiEvalResponse = await callReplicate(replicateKey, evalPrompt, evalSystemPrompt, 2048);
-        const jsonMatch = aiEvalResponse.match(/\[[\s\S]*\]/);
-        const evaluations = JSON.parse(jsonMatch ? jsonMatch[0] : aiEvalResponse);
+        const evaluations = parseJsonArray(aiEvalResponse);
 
         for (let i = 0; i < (questions || []).length; i++) {
           const q = questions![i];
