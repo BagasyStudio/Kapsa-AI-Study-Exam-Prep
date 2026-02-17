@@ -12,6 +12,7 @@ import '../../../../core/widgets/tap_scale.dart';
 import '../providers/test_provider.dart';
 import '../../data/models/test_question_model.dart';
 import '../../../../core/utils/error_handler.dart';
+import '../../../courses/presentation/providers/course_provider.dart';
 
 /// Full-screen quiz session where users answer AI-generated questions.
 ///
@@ -194,6 +195,13 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
             testId: widget.testId,
             answers: answersList,
           );
+
+      // Recalculate course progress in background
+      ref
+          .read(courseRepositoryProvider)
+          .recalculateProgress(result.test.courseId)
+          .then((_) => ref.invalidate(coursesProvider))
+          .catchError((_) {/* best-effort */});
 
       if (!mounted) return;
       // Navigate to results, replacing this screen

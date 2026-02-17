@@ -62,4 +62,14 @@ class FlashcardRepository {
         .update({'mastery': mastery})
         .eq('id', cardId);
   }
+
+  /// Get the course ID for a deck.
+  Future<String?> getCourseIdForDeck(String deckId) async {
+    final data = await _client
+        .from('flashcard_decks')
+        .select('course_id')
+        .eq('id', deckId)
+        .maybeSingle();
+    return data?['course_id'] as String?;
+  }
 }

@@ -324,12 +324,12 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         });
       }
 
-      // Process with OCR Edge Function
+      // Extract text from PDF (direct extraction, no AI needed)
       final material = await ref
           .read(materialRepositoryProvider)
           .processCapture(
             courseId: courseId,
-            type: 'ocr',
+            type: 'pdf',
             fileUrl: fileUrl,
             title: file.name,
           );

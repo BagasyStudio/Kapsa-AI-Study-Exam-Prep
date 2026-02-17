@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { extractText, getDocumentProxy } from "https://esm.sh/unpdf";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -134,6 +135,24 @@ async function runWhisper(apiKey: string, audioUrl: string): Promise<string> {
   return typeof result.output === "string" ? result.output : String(result.output);
 }
 
+// ── PDF text extraction (no AI needed) ───────────────────────────
+async function extractPdfText(fileUrl: string): Promise<string> {
+  const res = await fetch(fileUrl);
+  if (!res.ok) {
+    throw new Error("Could not download the PDF. Please try uploading again.");
+  }
+
+  const buffer = await res.arrayBuffer();
+  const pdf = await getDocumentProxy(new Uint8Array(buffer));
+  const { text } = await extractText(pdf, { mergePages: true });
+
+  if (!text || (typeof text === "string" && text.trim().length === 0)) {
+    throw new Error("No text found in the PDF. Make sure it contains selectable text, not just scanned images.");
+  }
+
+  return typeof text === "string" ? text : (text as string[]).join("\n");
+}
+
 // ── Main handler ──────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -174,8 +193,8 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    if (type !== "ocr" && type !== "whisper") {
-      return new Response(JSON.stringify({ error: "Invalid type. Use 'ocr' or 'whisper'." }), {
+    if (type !== "pdf" && type !== "ocr" && type !== "whisper") {
+      return new Response(JSON.stringify({ error: "Invalid type. Use 'pdf', 'ocr', or 'whisper'." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -207,7 +226,10 @@ Deno.serve(async (req: Request) => {
     let extractedText = "";
     let materialType = "notes";
 
-    if (type === "ocr") {
+    if (type === "pdf") {
+      extractedText = await extractPdfText(fileUrl);
+      materialType = "pdf";
+    } else if (type === "ocr") {
       extractedText = await runOCR(replicateKey, fileUrl);
       materialType = "pdf";
     } else {
@@ -218,7 +240,7 @@ Deno.serve(async (req: Request) => {
     // Sanitize title input
     const sanitizedTitle = typeof title === "string" && title.trim().length > 0
       ? title.trim().substring(0, 200)
-      : `${type === "ocr" ? "Scanned" : "Transcribed"} - ${new Date().toLocaleDateString()}`;
+      : `${type === "whisper" ? "Transcribed" : "Scanned"} - ${new Date().toLocaleDateString()}`;
 
     // Save as course material
     const { data: material } = await supabase
@@ -243,7 +265,8 @@ Deno.serve(async (req: Request) => {
       error.message.includes("unavailable") ||
       error.message.includes("timed out") ||
       error.message.includes("failed. Please") ||
-      error.message.includes("No text found")
+      error.message.includes("No text found") ||
+      error.message.includes("Could not download")
     ) ? error.message : sanitizeErrorMessage(error);
 
     return new Response(JSON.stringify({ error: message }), {

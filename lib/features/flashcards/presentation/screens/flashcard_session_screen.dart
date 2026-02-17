@@ -14,6 +14,7 @@ import '../widgets/swipe_indicator.dart';
 import '../widgets/floating_toolbar.dart';
 import '../providers/flashcard_provider.dart';
 import '../../data/models/flashcard_model.dart';
+import '../../../courses/presentation/providers/course_provider.dart';
 
 class FlashcardSessionScreen extends ConsumerStatefulWidget {
   final String sessionId;
@@ -65,10 +66,27 @@ class _FlashcardSessionScreenState
       _swipeProgress = 0;
     });
 
-    // Trigger confetti when deck is completed for the first time
+    // Trigger confetti and recalculate progress when deck is completed
     if (nextIndex == cards.length && !_hasCompletedOnce) {
       _hasCompletedOnce = true;
       ConfettiOverlay.show(context);
+      _recalculateCourseProgress();
+    }
+  }
+
+  Future<void> _recalculateCourseProgress() async {
+    try {
+      final courseId = await ref
+          .read(flashcardRepositoryProvider)
+          .getCourseIdForDeck(widget.sessionId);
+      if (courseId != null) {
+        await ref
+            .read(courseRepositoryProvider)
+            .recalculateProgress(courseId);
+        ref.invalidate(coursesProvider);
+      }
+    } catch (_) {
+      // Best-effort — don't interrupt the user's session
     }
   }
 
