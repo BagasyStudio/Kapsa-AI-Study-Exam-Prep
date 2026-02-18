@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,20 +24,24 @@ void main() {
       anonKey: Env.supabaseAnonKey,
     );
 
-    // Initialize local notifications
-    await NotificationService.initialize();
+    // Skip native-only plugins on web
+    RevenueCatService? revenueCat;
+    if (!kIsWeb) {
+      // Initialize local notifications
+      await NotificationService.initialize();
 
-    // Initialize sound effects
-    await SoundService.init();
+      // Initialize sound effects
+      await SoundService.init();
 
-    // Initialize RevenueCat (single instance shared via provider override)
-    final revenueCat = RevenueCatService(Supabase.instance.client);
-    await revenueCat.initialize();
+      // Initialize RevenueCat (single instance shared via provider override)
+      revenueCat = RevenueCatService(Supabase.instance.client);
+      await revenueCat.initialize();
 
-    // If user is already signed in, log in to RevenueCat
-    final currentUser = Supabase.instance.client.auth.currentUser;
-    if (currentUser != null) {
-      await revenueCat.login(currentUser.id);
+      // If user is already signed in, log in to RevenueCat
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser != null) {
+        await revenueCat.login(currentUser.id);
+      }
     }
 
     // Check onboarding flag
@@ -64,7 +69,8 @@ void main() {
             (ref) => hasSeenOnboarding,
           ),
           // Share the pre-initialized RevenueCat instance with all providers
-          revenueCatServiceProvider.overrideWithValue(revenueCat),
+          if (revenueCat != null)
+            revenueCatServiceProvider.overrideWithValue(revenueCat),
         ],
         child: const KapsaApp(),
       ),

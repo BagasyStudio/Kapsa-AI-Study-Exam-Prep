@@ -6,6 +6,7 @@ import '../../../../core/navigation/routes.dart';
 import '../../../../core/providers/revenue_cat_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/subscription_repository.dart';
+import '../widgets/ai_consent_dialog.dart';
 
 /// Provider for [SubscriptionRepository].
 final subscriptionRepositoryProvider = Provider<SubscriptionRepository>((ref) {
@@ -48,10 +49,14 @@ final dailyUsageProvider =
   return ref.read(subscriptionRepositoryProvider).getDailyUsage(user.id);
 });
 
+/// Cached AI consent state so we don't query the DB on every feature use.
+/// `null` means not yet loaded; `true`/`false` reflects the DB value.
+final aiConsentCacheProvider = StateProvider<bool?>((ref) => null);
+
 /// Helper to check feature access and show paywall if blocked.
 ///
+/// Also checks AI consent before allowing any AI feature.
 /// Returns true if the user can proceed, false if blocked.
-/// If blocked, navigates to the paywall screen.
 Future<bool> checkFeatureAccess({
   required WidgetRef ref,
   required String feature,
@@ -60,6 +65,40 @@ Future<bool> checkFeatureAccess({
   final user = ref.read(currentUserProvider);
   if (user == null) return false;
 
+  // ── AI Consent Check ──
+  var hasConsent = ref.read(aiConsentCacheProvider);
+
+  // First time: load from DB
+  if (hasConsent == null) {
+    try {
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select('ai_consent_accepted')
+          .eq('id', user.id)
+          .maybeSingle();
+      hasConsent = profile?['ai_consent_accepted'] as bool? ?? false;
+      ref.read(aiConsentCacheProvider.notifier).state = hasConsent;
+    } catch (_) {
+      hasConsent = false;
+    }
+  }
+
+  // If no consent yet, show the dialog
+  if (!hasConsent && context.mounted) {
+    final accepted = await AiConsentDialog.show(context);
+    if (accepted) {
+      // Save consent to DB
+      await Supabase.instance.client.from('profiles').update({
+        'ai_consent_accepted': true,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', user.id);
+      ref.read(aiConsentCacheProvider.notifier).state = true;
+    } else {
+      return false;
+    }
+  }
+
+  // ── Subscription / Usage Check ──
   final canUse = await ref
       .read(subscriptionRepositoryProvider)
       .checkCanUseFeature(user.id, feature);

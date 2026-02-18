@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/providers/revenue_cat_provider.dart';
 import '../../../../core/services/notification_service.dart';
@@ -16,6 +17,7 @@ import '../../../../core/widgets/staggered_list.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../courses/presentation/providers/course_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
+import '../../../subscription/presentation/widgets/ai_consent_dialog.dart';
 import '../providers/profile_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -266,6 +268,7 @@ class ProfileScreen extends ConsumerWidget {
 
                             _NotificationToggleTile(),
                             _SoundToggleTile(),
+                            _AiDataToggleTile(),
                             _SettingsTile(
                               icon: Icons.palette_outlined,
                               label: 'Appearance',
@@ -849,6 +852,131 @@ class _SoundToggleTileState extends State<_SoundToggleTile> {
               onChanged: _toggle,
               activeColor: AppColors.primary,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// AI Data Processing consent toggle.
+class _AiDataToggleTile extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_AiDataToggleTile> createState() => _AiDataToggleTileState();
+}
+
+class _AiDataToggleTileState extends ConsumerState<_AiDataToggleTile> {
+  bool _enabled = false;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadState();
+  }
+
+  Future<void> _loadState() async {
+    // Try cache first
+    final cached = ref.read(aiConsentCacheProvider);
+    if (cached != null) {
+      if (mounted) setState(() { _enabled = cached; _loading = false; });
+      return;
+    }
+    // Load from DB
+    try {
+      final user = ref.read(currentUserProvider);
+      if (user == null) return;
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select('ai_consent_accepted')
+          .eq('id', user.id)
+          .maybeSingle();
+      final value = profile?['ai_consent_accepted'] as bool? ?? false;
+      ref.read(aiConsentCacheProvider.notifier).state = value;
+      if (mounted) setState(() { _enabled = value; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _toggle(bool value) async {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return;
+
+    if (value) {
+      // Re-show consent dialog when re-enabling
+      final accepted = await AiConsentDialog.show(context);
+      if (!accepted) return;
+    }
+
+    await Supabase.instance.client.from('profiles').update({
+      'ai_consent_accepted': value,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', user.id);
+
+    ref.read(aiConsentCacheProvider.notifier).state = value;
+    setState(() => _enabled = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TapScale(
+      onTap: () => _toggle(!_enabled),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primary.withValues(alpha: 0.08),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                ),
+              ),
+              child: Icon(
+                _enabled ? Icons.auto_awesome : Icons.auto_awesome_outlined,
+                size: 18,
+                color: _enabled
+                    ? AppColors.primary
+                    : const Color(0xFF475569),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AI Data Processing',
+                    style: AppTypography.labelLarge.copyWith(
+                      color: const Color(0xFF1E293B),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    _enabled ? 'Allowed' : 'Not allowed',
+                    style: AppTypography.caption.copyWith(
+                      color: const Color(0xFF94A3B8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_loading)
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              Switch.adaptive(
+                value: _enabled,
+                onChanged: _toggle,
+                activeColor: AppColors.primary,
+              ),
           ],
         ),
       ),

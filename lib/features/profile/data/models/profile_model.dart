@@ -6,6 +6,7 @@ class ProfileModel {
   final int streakDays;
   final int totalCourses;
   final String? averageGrade;
+  final bool aiConsentAccepted;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -16,6 +17,7 @@ class ProfileModel {
     this.streakDays = 0,
     this.totalCourses = 0,
     this.averageGrade,
+    this.aiConsentAccepted = false,
     this.createdAt,
     this.updatedAt,
   });
@@ -28,6 +30,7 @@ class ProfileModel {
       streakDays: (json['streak_days'] as num?)?.toInt() ?? 0,
       totalCourses: (json['total_courses'] as num?)?.toInt() ?? 0,
       averageGrade: json['average_grade'] as String?,
+      aiConsentAccepted: json['ai_consent_accepted'] as bool? ?? false,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
@@ -45,6 +48,7 @@ class ProfileModel {
       'streak_days': streakDays,
       'total_courses': totalCourses,
       'average_grade': averageGrade,
+      'ai_consent_accepted': aiConsentAccepted,
     };
   }
 
@@ -54,6 +58,7 @@ class ProfileModel {
     int? streakDays,
     int? totalCourses,
     String? averageGrade,
+    bool? aiConsentAccepted,
   }) {
     return ProfileModel(
       id: id,
@@ -62,6 +67,7 @@ class ProfileModel {
       streakDays: streakDays ?? this.streakDays,
       totalCourses: totalCourses ?? this.totalCourses,
       averageGrade: averageGrade ?? this.averageGrade,
+      aiConsentAccepted: aiConsentAccepted ?? this.aiConsentAccepted,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
