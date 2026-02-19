@@ -10,12 +10,7 @@ type ScrollRevealProps = {
   direction?: "up" | "left" | "right";
 };
 
-export function ScrollReveal({
-  children,
-  className,
-  delay = 0,
-  direction = "up",
-}: ScrollRevealProps) {
+export function ScrollReveal({ children, className, delay = 0, direction = "up" }: ScrollRevealProps) {
   const offsets = {
     up: { y: 30, x: 0 },
     left: { y: 0, x: -30 },
@@ -27,7 +22,7 @@ export function ScrollReveal({
       initial={{ opacity: 0, ...offsets[direction] }}
       whileInView={{ opacity: 1, x: 0, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.6, delay, ease: "easeOut" }}
+      transition={{ type: "spring", stiffness: 100, damping: 20, delay }}
       className={cn(className)}
     >
       {children}

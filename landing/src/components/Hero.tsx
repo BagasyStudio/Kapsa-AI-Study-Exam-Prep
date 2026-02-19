@@ -1,47 +1,85 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useRef } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { PhoneMockup } from "@/components/ui/PhoneMockup";
 import { FloatingOrbs } from "@/components/ui/FloatingOrbs";
+import { WordReveal } from "@/components/ui/WordReveal";
+import { Marquee } from "@/components/ui/Marquee";
 import { LINKS } from "@/lib/constants";
 
+const UNIVERSITIES = [
+  "Stanford", "MIT", "Oxford", "Harvard", "Cambridge",
+  "Yale", "Princeton", "Columbia", "Berkeley", "UCLA",
+];
+
 export function Hero() {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start start", "end start"],
+  });
+
+  const phoneY = useTransform(scrollYProgress, [0, 1], [0, 100]);
+  const textY = useTransform(scrollYProgress, [0, 1], [0, 40]);
+  const orbsY = useTransform(scrollYProgress, [0, 1], [0, -60]);
+
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden pt-24 pb-16">
-      <FloatingOrbs />
+    <section
+      ref={sectionRef}
+      className="relative min-h-screen flex items-center overflow-hidden pt-24 pb-16"
+    >
+      <motion.div style={{ y: orbsY }} className="absolute inset-0">
+        <FloatingOrbs />
+      </motion.div>
       <div className="bg-ethereal absolute inset-0" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-          {/* Text column */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-          >
-            {/* Badge */}
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium bg-primary/10 text-primary-light border border-primary/20 mb-6">
+          <motion.div style={{ y: textY }}>
+            <motion.span
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", stiffness: 100, damping: 15 }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium bg-primary/10 text-primary-light border border-primary/20 mb-6"
+            >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z" />
               </svg>
               AI-Powered Study Companion
-            </span>
+            </motion.span>
 
             <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight">
-              Study{" "}
-              <span className="text-gradient">Smarter</span>,
-              <br />
-              Not Harder
+              <WordReveal
+                renderWord={(word) =>
+                  word === "Smarter," ? (
+                    <span className="text-gradient">{word}</span>
+                  ) : (
+                    word
+                  )
+                }
+              >
+                Study Smarter, Not Harder
+              </WordReveal>
             </h1>
 
-            <p className="mt-6 text-lg sm:text-xl text-white/50 max-w-lg leading-relaxed">
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.6 }}
+              className="mt-6 text-lg sm:text-xl text-white/50 max-w-lg leading-relaxed"
+            >
               Turn your notes, PDFs, and lectures into flashcards, quizzes, and
               personalized study plans — all powered by AI.
-            </p>
+            </motion.p>
 
-            {/* CTAs */}
-            <div className="mt-8 flex flex-col sm:flex-row gap-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8, duration: 0.5 }}
+              className="mt-8 flex flex-col sm:flex-row gap-4"
+            >
               <Button href={LINKS.appStore} size="lg" className="animate-pulse-glow">
                 <AppleIcon />
                 Download on the App Store
@@ -49,32 +87,36 @@ export function Hero() {
               <Button href="#how-it-works" variant="secondary" size="lg">
                 See How It Works
               </Button>
-            </div>
+            </motion.div>
 
-            {/* Trust */}
-            <div className="mt-8 flex items-center gap-2 text-sm text-white/30">
-              <span>Join 50,000+ students from</span>
-              <span className="font-medium text-white/40">Stanford</span>
-              <span>·</span>
-              <span className="font-medium text-white/40">MIT</span>
-              <span>·</span>
-              <span className="font-medium text-white/40">Oxford</span>
-            </div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1, duration: 0.8 }}
+              className="mt-10"
+            >
+              <p className="text-xs text-white/25 uppercase tracking-widest mb-3">
+                Trusted by students at
+              </p>
+              <Marquee speed="slow" className="max-w-md">
+                {UNIVERSITIES.map((uni) => (
+                  <span key={uni} className="text-sm font-medium text-white/30 whitespace-nowrap">
+                    {uni}
+                  </span>
+                ))}
+              </Marquee>
+            </motion.div>
           </motion.div>
 
-          {/* Phone mockup column */}
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+            transition={{ duration: 0.9, delay: 0.3, type: "spring", stiffness: 80 }}
+            style={{ y: phoneY }}
             className="flex justify-center lg:justify-end"
           >
             <div className="animate-float">
-              <PhoneMockup
-                src="/mockups/home-screen.png"
-                alt="Kapsa app home screen"
-                priority
-              />
+              <PhoneMockup src="/mockups/home-screen.png" alt="Kapsa app home screen" priority />
             </div>
           </motion.div>
         </div>

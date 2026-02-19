@@ -35,9 +35,19 @@
     border: 1px solid rgba(255, 255, 255, 0.06);
   }
 
+  /* Animated gradient text — cycles violet → blue → pink */
   .text-gradient {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #8A8CF7 0%, #6467F2 50%, #a78bfa 100%);
+    background-image: linear-gradient(
+      90deg,
+      #8A8CF7 0%,
+      #6467F2 25%,
+      #a78bfa 50%,
+      #ec4899 75%,
+      #8A8CF7 100%
+    );
+    background-size: 300% 100%;
+    animation: gradientShift 8s ease infinite;
   }
 
   .bg-ethereal {
@@ -63,5 +73,62 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
     background-repeat: repeat;
     background-size: 256px 256px;
+  }
+
+  /* Shimmer beam effect for stats */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(100, 103, 242, 0.08) 40%,
+      rgba(100, 103, 242, 0.15) 50%,
+      rgba(100, 103, 242, 0.08) 60%,
+      transparent 100%
+    );
+    animation: shimmerSweep 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+}
+
+/* Gradient shift for text-gradient */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Shimmer sweep for stats */
+@keyframes shimmerSweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Marquee animation */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Animated border rotation */
+@keyframes borderRotate {
+  0% { --border-angle: 0deg; }
+  100% { --border-angle: 360deg; }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

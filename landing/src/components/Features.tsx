@@ -2,6 +2,7 @@
 
 import { FEATURES } from "@/lib/constants";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { TiltCard } from "@/components/ui/TiltCard";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
@@ -56,26 +57,24 @@ export function Features() {
           />
         </ScrollReveal>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {FEATURES.map((feature, i) => (
-            <ScrollReveal key={feature.id} delay={i * 0.1}>
-              <GlassCard className="p-6 h-full group hover:scale-[1.02] transition-transform duration-300 hover:border-primary/20">
-                {/* Icon */}
-                <div
-                  className={`w-12 h-12 rounded-xl bg-gradient-to-br ${feature.accent} flex items-center justify-center text-white mb-4 group-hover:shadow-glow transition-shadow`}
-                >
-                  {ICONS[feature.icon]}
-                </div>
-
-                <h3 className="font-heading text-lg font-semibold text-white mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-sm text-white/45 leading-relaxed">
-                  {feature.description}
-                </p>
-              </GlassCard>
-            </ScrollReveal>
-          ))}
+        {/* Bento Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {FEATURES.map((feature, i) => {
+            const isLarge = i < 2;
+            return (
+              <ScrollReveal key={feature.id} delay={i * 0.08} className={isLarge ? "sm:col-span-1 lg:col-span-2" : ""}>
+                <TiltCard>
+                  <GlassCard className={`${isLarge ? "p-8" : "p-6"} h-full group`}>
+                    <div className={`${isLarge ? "w-14 h-14" : "w-12 h-12"} rounded-xl bg-gradient-to-br ${feature.accent} flex items-center justify-center text-white mb-4 group-hover:shadow-glow transition-shadow duration-300`}>
+                      {ICONS[feature.icon]}
+                    </div>
+                    <h3 className={`font-heading ${isLarge ? "text-xl" : "text-lg"} font-semibold text-white mb-2`}>{feature.title}</h3>
+                    <p className={`${isLarge ? "text-base" : "text-sm"} text-white/45 leading-relaxed`}>{feature.description}</p>
+                  </GlassCard>
+                </TiltCard>
+              </ScrollReveal>
+            );
+          })}
         </div>
       </div>
     </section>
