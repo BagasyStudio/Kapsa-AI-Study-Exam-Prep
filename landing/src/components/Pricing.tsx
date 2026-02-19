@@ -122,11 +122,15 @@ export function Pricing() {
                 </ul>
 
                 <Button href={LINKS.appStore} className="w-full mt-8 animate-pulse-glow">
-                  Start {pro.trialDays}-Day Free Trial
+                  {yearly
+                    ? `Start ${pro.trialDays}-Day Free Trial`
+                    : "Get Kapsa Pro"}
                 </Button>
 
                 <p className="mt-3 text-center text-xs text-white/30">
-                  Cancel anytime. No questions asked.
+                  {yearly
+                    ? "7-day free trial, then $59.99/year. Cancel anytime."
+                    : "Cancel anytime. No questions asked."}
                 </p>
 
                 {/* Trust badges */}
