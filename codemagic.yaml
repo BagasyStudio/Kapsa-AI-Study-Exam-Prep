@@ -18,22 +18,33 @@ workflows:
         - kapsa_env
 
     scripts:
-      - name: Fetch signing files
+      - name: Set up code signing
         script: |
-          app-store-connect fetch-signing-files "com.kapsa.kapsaApp" \
-            --type IOS_APP_STORE \
-            --create
+          # Generate a fresh RSA private key for this build
+          openssl genrsa -out /tmp/cert_key.pem 2048
+          export CERTIFICATE_PRIVATE_KEY=$(cat /tmp/cert_key.pem)
 
-      - name: Set up keychain
-        script: |
+          # Initialize keychain
           keychain initialize
 
-      - name: Add certificates to keychain
-        script: |
-          keychain add-certificates
+          # Revoke existing iOS Distribution certificates to avoid key mismatch
+          echo "Cleaning up existing distribution certificates..."
+          app-store-connect certificates list \
+            --type IOS_DISTRIBUTION 2>/dev/null | \
+            awk '/^[A-Z0-9]/ {print $1}' | \
+            while read -r cert_id; do
+              echo "Revoking certificate: $cert_id"
+              app-store-connect certificates delete "$cert_id" 2>/dev/null || true
+            done || true
 
-      - name: Set up code signing settings on Xcode project
-        script: |
+          # Fetch/create signing files with the fresh key
+          app-store-connect fetch-signing-files "com.kapsa.kapsaApp" \
+            --type IOS_APP_STORE \
+            --create \
+            --certificate-key=@file:/tmp/cert_key.pem
+
+          # Add certificates to keychain and configure Xcode project
+          keychain add-certificates
           xcode-project use-profiles
 
       - name: Get Flutter packages
