@@ -60,9 +60,7 @@ class MaterialListItem extends StatelessWidget {
                     : Colors.black.withValues(alpha: 0.06),
               ),
             ),
-            child: Opacity(
-              opacity: isReviewed ? 0.8 : 1.0,
-              child: Column(
+            child: Column(
                 children: [
                   // Top row: icon + info
                   Row(
@@ -87,8 +85,10 @@ class MaterialListItem extends StatelessWidget {
                           children: [
                             Text(
                               title,
-                              style: AppTypography.labelLarge,
-                              maxLines: 1,
+                              style: AppTypography.labelLarge.copyWith(
+                                color: AppColors.textPrimaryFor(brightness),
+                              ),
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 4),
@@ -179,7 +179,6 @@ class MaterialListItem extends StatelessWidget {
                   ],
                 ],
               ),
-            ),
           ),
         ),
       ),

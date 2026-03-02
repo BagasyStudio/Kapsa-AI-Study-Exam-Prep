@@ -46,7 +46,7 @@ class AiMessageBubble extends StatelessWidget {
                 bottomRight: Radius.circular(AppRadius.xxl),
               ),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.lg,
@@ -54,8 +54,8 @@ class AiMessageBubble extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : Colors.white.withValues(alpha: 0.75),
+                        ? Colors.white.withValues(alpha: 0.14)
+                        : Colors.white.withValues(alpha: 0.82),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(AppRadius.xxl),
                       topRight: Radius.circular(AppRadius.xxl),
@@ -64,7 +64,7 @@ class AiMessageBubble extends StatelessWidget {
                     ),
                     border: Border.all(
                       color: isDark
-                          ? Colors.white.withValues(alpha: 0.15)
+                          ? Colors.white.withValues(alpha: 0.20)
                           : Colors.white.withValues(alpha: 0.9),
                     ),
                     boxShadow: [

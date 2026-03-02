@@ -6,6 +6,7 @@ import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
+import '../../../../core/utils/error_handler.dart';
 import '../../data/models/audio_summary_model.dart';
 import '../providers/audio_summary_provider.dart';
 
@@ -77,7 +78,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
       if (!mounted) return;
       setState(() {
         _isGenerating = false;
-        _errorMessage = 'Failed to generate summary. Please try again.';
+        _errorMessage = AppErrorHandler.friendlyMessage(e);
       });
     }
   }

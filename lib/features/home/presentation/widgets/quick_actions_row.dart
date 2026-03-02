@@ -5,7 +5,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
-import '../../../capture/presentation/screens/capture_sheet.dart';
 
 /// Quick action buttons row on the home screen.
 /// 4 circular buttons: Snap & Solve, Quick Quiz, SRS Review, New Capture.
@@ -38,17 +37,10 @@ class QuickActionsRow extends StatelessWidget {
             onTap: () => context.push(Routes.groupsList),
           ),
           _QuickAction(
-            icon: Icons.add_rounded,
-            label: 'Capture',
+            icon: Icons.edit_document,
+            label: 'Exam',
             color: const Color(0xFF10B981),
-            onTap: () => showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              useRootNavigator: true,
-              backgroundColor: Colors.transparent,
-              barrierColor: Colors.black.withValues(alpha: 0.3),
-              builder: (_) => const CaptureSheet(),
-            ),
+            onTap: () => context.push(Routes.practiceExam),
           ),
         ],
       ),

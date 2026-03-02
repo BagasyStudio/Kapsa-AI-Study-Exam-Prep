@@ -94,8 +94,13 @@ class GroupsListScreen extends ConsumerWidget {
       body: groupsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
-          child: Text('Error: $e',
-              style: TextStyle(color: AppColors.textMutedFor(brightness))),
+          child: EmptyState(
+            icon: Icons.cloud_off_rounded,
+            title: 'Could not load groups',
+            subtitle: 'Check your connection and try again.',
+            ctaLabel: 'Retry',
+            onCtaTap: () => ref.invalidate(myGroupsProvider),
+          ),
         ),
         data: (groups) {
           if (groups.isEmpty) {
