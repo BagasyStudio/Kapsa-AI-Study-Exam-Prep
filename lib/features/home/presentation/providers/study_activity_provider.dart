@@ -8,7 +8,14 @@ class StudyActivity {
   final List<TestModel> tests;
   final List<DeckModel> decks;
 
-  const StudyActivity({required this.tests, required this.decks});
+  /// Map of courseId → course title for display context.
+  final Map<String, String> courseNames;
+
+  const StudyActivity({
+    required this.tests,
+    required this.decks,
+    this.courseNames = const {},
+  });
 }
 
 /// Fetches recent study activity (quizzes + flashcard decks) for the home screen.
@@ -35,10 +42,22 @@ final studyActivityProvider =
       .order('created_at', ascending: false)
       .limit(3);
 
+  // Fetch course names for context (helps differentiate same-titled items)
+  final coursesData = await client
+      .from('courses')
+      .select('id, title')
+      .eq('user_id', userId);
+
+  final courseNames = <String, String>{};
+  for (final c in coursesData as List) {
+    courseNames[c['id'] as String] = c['title'] as String;
+  }
+
   return StudyActivity(
     tests:
         (testsData as List).map((e) => TestModel.fromJson(e)).toList(),
     decks:
         (decksData as List).map((e) => DeckModel.fromJson(e)).toList(),
+    courseNames: courseNames,
   );
 });

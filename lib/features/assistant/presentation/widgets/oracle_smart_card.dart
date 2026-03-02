@@ -78,24 +78,29 @@ class _OracleSmartCardState extends ConsumerState<OracleSmartCard>
                   end: Alignment.bottomRight,
                   colors: [
                     Color(0xFF6467F2),
-                    Color(0xFF8B5CF6),
+                    Color(0xFFB44AE0),
                     Color(0xFFEC4899),
                   ],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
+                    color: const Color(0xFFEC4899).withValues(alpha: 0.25),
+                    blurRadius: 24,
+                    offset: const Offset(0, 6),
+                  ),
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.20),
+                    blurRadius: 16,
+                    offset: const Offset(0, 10),
                   ),
                 ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(18.5),
+                borderRadius: BorderRadius.circular(18),
                 child: Container(
-                  margin: const EdgeInsets.all(1.5), // gradient border thickness
+                  margin: const EdgeInsets.all(2.0), // gradient border thickness
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(18.5),
+                    borderRadius: BorderRadius.circular(18),
                     color: const Color(0xFF1A1B3A),
                   ),
                   child: Stack(
@@ -216,18 +221,27 @@ class _OracleSmartCardState extends ConsumerState<OracleSmartCard>
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
               colors: [
-                const Color(0xFF6467F2).withValues(alpha: 0.5),
-                const Color(0xFF8B5CF6).withValues(alpha: 0.5),
-                const Color(0xFFEC4899).withValues(alpha: 0.5),
+                const Color(0xFF6467F2).withValues(alpha: 0.6),
+                const Color(0xFFB44AE0).withValues(alpha: 0.6),
+                const Color(0xFFEC4899).withValues(alpha: 0.6),
               ],
             ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFEC4899).withValues(alpha: 0.15),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Container(
-            margin: const EdgeInsets.all(1.5),
+            margin: const EdgeInsets.all(2.0),
             padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18.5),
+              borderRadius: BorderRadius.circular(18),
               color: const Color(0xFF1A1B3A),
             ),
             child: Row(

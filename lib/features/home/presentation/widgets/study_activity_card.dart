@@ -86,7 +86,10 @@ class StudyActivityCard extends ConsumerWidget {
                 ...activity.tests.take(2).map((test) =>
                     Padding(
                       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                      child: _QuizActivityItem(test: test),
+                      child: _QuizActivityItem(
+                        test: test,
+                        courseName: activity.courseNames[test.courseId],
+                      ),
                     )),
               ],
 
@@ -95,7 +98,10 @@ class StudyActivityCard extends ConsumerWidget {
                 ...activity.decks.take(2).map((deck) =>
                     Padding(
                       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                      child: _DeckActivityItem(deck: deck),
+                      child: _DeckActivityItem(
+                        deck: deck,
+                        courseName: activity.courseNames[deck.courseId],
+                      ),
                     )),
               ],
             ],
@@ -108,8 +114,9 @@ class StudyActivityCard extends ConsumerWidget {
 
 class _QuizActivityItem extends StatelessWidget {
   final TestModel test;
+  final String? courseName;
 
-  const _QuizActivityItem({required this.test});
+  const _QuizActivityItem({required this.test, this.courseName});
 
   @override
   Widget build(BuildContext context) {
@@ -183,11 +190,17 @@ class _QuizActivityItem extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${test.correctCount}/${test.totalCount} correct • ${_timeAgo(test.createdAt)}',
+                    [
+                      if (courseName != null) courseName!,
+                      '${test.correctCount}/${test.totalCount} correct',
+                      _timeAgo(test.createdAt),
+                    ].where((s) => s.isNotEmpty).join(' · '),
                     style: AppTypography.caption.copyWith(
                       color: AppColors.textMutedFor(brightness),
                       fontSize: 11,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -233,8 +246,9 @@ class _QuizActivityItem extends StatelessWidget {
 
 class _DeckActivityItem extends StatelessWidget {
   final DeckModel deck;
+  final String? courseName;
 
-  const _DeckActivityItem({required this.deck});
+  const _DeckActivityItem({required this.deck, this.courseName});
 
   @override
   Widget build(BuildContext context) {
@@ -297,11 +311,17 @@ class _DeckActivityItem extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${deck.cardCount} cards • ${_timeAgo(deck.createdAt)}',
+                    [
+                      if (courseName != null) courseName!,
+                      '${deck.cardCount} cards',
+                      _timeAgo(deck.createdAt),
+                    ].where((s) => s.isNotEmpty).join(' · '),
                     style: AppTypography.caption.copyWith(
                       color: AppColors.textMutedFor(brightness),
                       fontSize: 11,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),

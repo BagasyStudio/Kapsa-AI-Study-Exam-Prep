@@ -211,11 +211,19 @@ class _GradientAction extends AnimatedWidget {
                     width: 1.5,
                   ),
                   boxShadow: [
+                    // Soft ambient glow
                     BoxShadow(
-                      color: data.shadowColor.withValues(alpha: glowAlpha),
-                      blurRadius: 16,
-                      spreadRadius: 1,
-                      offset: const Offset(0, 4),
+                      color: data.shadowColor.withValues(alpha: glowAlpha * 0.6),
+                      blurRadius: 20,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 2),
+                    ),
+                    // Focused directional shadow for elevation
+                    BoxShadow(
+                      color: data.shadowColor.withValues(alpha: 0.30),
+                      blurRadius: 8,
+                      spreadRadius: -2,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
