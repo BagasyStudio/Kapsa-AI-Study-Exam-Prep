@@ -7,6 +7,71 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Same version used by ai-assistant (proven working)
+const LLAMA_VERSION =
+  "5a6809ca6288247d06daf6365557e5e429063f32a21146b2a807c682652136b8";
+const LLAMA_TEMPLATE =
+  "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n";
+
+async function callReplicate(
+  apiKey: string,
+  systemPrompt: string,
+  userPrompt: string,
+  maxTokens = 1024
+): Promise<string> {
+  const response = await fetch("https://api.replicate.com/v1/predictions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      version: LLAMA_VERSION,
+      input: {
+        prompt: userPrompt,
+        system_prompt: systemPrompt,
+        prompt_template: LLAMA_TEMPLATE,
+        max_tokens: maxTokens,
+        temperature: 0.6,
+        top_p: 0.9,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("AI service unavailable");
+  }
+
+  const prediction = await response.json();
+
+  // Poll for result
+  let result = prediction;
+  let attempts = 0;
+  while (
+    result.status !== "succeeded" &&
+    result.status !== "failed" &&
+    attempts < 120
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const pollRes = await fetch(result.urls.get, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    result = await pollRes.json();
+    attempts++;
+  }
+
+  if (result.status === "failed") {
+    throw new Error(result.error || "AI prediction failed");
+  }
+  if (result.status !== "succeeded") {
+    throw new Error("AI prediction timed out");
+  }
+
+  return Array.isArray(result.output)
+    ? result.output.join("")
+    : String(result.output);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -89,43 +154,25 @@ Deno.serve(async (req: Request) => {
 
     // Step 1: Generate summary using LLM
     const truncatedContent = content.substring(0, 8000);
-    const summaryPrompt = `You are a study assistant. Create a concise spoken-word summary of the following study material.
-The summary should be clear, engaging, and suitable for audio listening (2-3 minutes when read aloud).
-Focus on key concepts, definitions, and important relationships.
-Write it as natural speech, not bullet points.
-Do NOT include any markdown formatting.
+    const systemPrompt =
+      "You are a study assistant. Create a concise spoken-word summary. " +
+      "The summary should be clear, engaging, and suitable for audio listening (2-3 minutes when read aloud). " +
+      "Focus on key concepts, definitions, and important relationships. " +
+      "Write it as natural speech, not bullet points. " +
+      "Do NOT include any markdown formatting.";
 
-Material title: ${material.title}
+    const userPrompt = `Material title: ${material.title}\n\nContent:\n${truncatedContent}\n\nSummary:`;
 
-Content:
-${truncatedContent}
-
-Summary:`;
-
-    // Call Replicate LLM for summary
-    const llmResponse = await fetch(
-      "https://api.replicate.com/v1/models/meta/meta-llama-3-8b-instruct/predictions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${replicateApiToken}`,
-          "Content-Type": "application/json",
-          Prefer: "wait",
-        },
-        body: JSON.stringify({
-          input: {
-            prompt: summaryPrompt,
-            max_tokens: 1024,
-            temperature: 0.6,
-            top_p: 0.9,
-          },
-        }),
-      }
-    );
-
-    const llmResult = await llmResponse.json();
-    if (llmResult.error) {
-      console.error("LLM error:", llmResult.error);
+    let summaryText: string;
+    try {
+      summaryText = await callReplicate(
+        replicateApiToken,
+        systemPrompt,
+        userPrompt,
+        1024
+      );
+    } catch (llmError) {
+      console.error("LLM error:", llmError);
       return new Response(
         JSON.stringify({ error: "Failed to generate summary" }),
         {
@@ -134,10 +181,6 @@ Summary:`;
         }
       );
     }
-
-    const summaryText = Array.isArray(llmResult.output)
-      ? llmResult.output.join("")
-      : String(llmResult.output || "");
 
     if (!summaryText || summaryText.length < 20) {
       return new Response(

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/providers/supabase_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -35,7 +35,8 @@ class _KnowledgeScoreScreenState extends ConsumerState<KnowledgeScoreScreen> {
     _aiAnalysisRequested = true;
 
     try {
-      final response = await Supabase.instance.client.functions.invoke(
+      final functions = ref.read(supabaseFunctionsProvider);
+      final response = await functions.invoke(
         'ai-assistant',
         body: {
           'mode': 'knowledge_analysis',

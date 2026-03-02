@@ -23,6 +23,8 @@ class OracleHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brightness = Theme.of(context).brightness;
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
@@ -34,10 +36,14 @@ class OracleHeader extends StatelessWidget {
             AppSpacing.lg,
           ),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
+            color: isDark
+                ? const Color(0xFF1A1B2E).withValues(alpha: 0.85)
+                : Colors.white.withValues(alpha: 0.75),
             border: Border(
               bottom: BorderSide(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.white.withValues(alpha: 0.4),
               ),
             ),
           ),
@@ -72,7 +78,7 @@ class OracleHeader extends StatelessWidget {
                       ),
                       child: Icon(
                         Icons.more_vert,
-                        color: AppColors.textMuted,
+                        color: AppColors.textMutedFor(brightness),
                         size: 24,
                       ),
                     ),
@@ -89,7 +95,7 @@ class OracleHeader extends StatelessWidget {
               Text(
                 courseLabel,
                 style: AppTypography.h4.copyWith(
-                  color: AppColors.textPrimary,
+                  color: AppColors.textPrimaryFor(brightness),
                   fontWeight: FontWeight.w700,
                 ),
               ),
