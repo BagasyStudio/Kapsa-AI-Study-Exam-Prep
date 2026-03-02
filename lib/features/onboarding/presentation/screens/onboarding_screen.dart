@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:in_app_review/in_app_review.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/navigation/app_router.dart';
 import '../../../../core/navigation/routes.dart';
@@ -19,13 +20,14 @@ import '../widgets/onboarding_study_time_page.dart';
 import '../widgets/onboarding_plan_ready_page.dart';
 import '../widgets/onboarding_features_page.dart';
 import '../widgets/onboarding_social_proof_page.dart';
+import '../widgets/onboarding_rate_page.dart';
 import '../widgets/onboarding_paywall_page.dart';
 
 // ─────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────
 
-const _totalPages = 8;
+const _totalPages = 9;
 
 const _studyAreas = [
   'Sciences',
@@ -107,6 +109,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
+  Future<void> _handleRate() async {
+    try {
+      final inAppReview = InAppReview.instance;
+      if (await inAppReview.isAvailable()) {
+        await inAppReview.requestReview();
+      }
+    } catch (_) {
+      // Silently fail — store review may not be available
+    }
+    _nextPage();
+  }
+
   void _onPageChanged(int index) {
     setState(() => _currentPage = index);
   }
@@ -116,6 +130,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final isPaywallPage = _currentPage == _totalPages - 1;
+    final isRatePage = _currentPage == _totalPages - 2;
+    final hideBottomBar = isPaywallPage || isRatePage;
     final brightness = Theme.of(context).brightness;
 
     return Scaffold(
@@ -153,9 +169,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               children: [
                 // Top bar: progress (always in tree to prevent layout thrashing)
                 IgnorePointer(
-                  ignoring: isPaywallPage,
+                  ignoring: hideBottomBar,
                   child: AnimatedOpacity(
-                    opacity: isPaywallPage ? 0.0 : 1.0,
+                    opacity: hideBottomBar ? 0.0 : 1.0,
                     duration: const Duration(milliseconds: 300),
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(
@@ -242,9 +258,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         isActive: _currentPage == 6,
                       ),
 
-                      // 7 — Paywall
-                      OnboardingPaywallPage(
+                      // 7 — Rate Us
+                      OnboardingRatePage(
                         isActive: _currentPage == 7,
+                        onRate: _handleRate,
+                        onSkip: _nextPage,
+                      ),
+
+                      // 8 — Paywall
+                      OnboardingPaywallPage(
+                        isActive: _currentPage == 8,
                         onTryPro: _goToPaywall,
                         onSkip: _completeOnboarding,
                       ),
@@ -254,9 +277,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
                 // Page indicators + CTA (always in tree to prevent layout thrashing)
                 IgnorePointer(
-                  ignoring: isPaywallPage,
+                  ignoring: hideBottomBar,
                   child: AnimatedOpacity(
-                    opacity: isPaywallPage ? 0.0 : 1.0,
+                    opacity: hideBottomBar ? 0.0 : 1.0,
                     duration: const Duration(milliseconds: 300),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
