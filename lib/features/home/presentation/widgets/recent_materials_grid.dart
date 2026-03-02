@@ -5,6 +5,7 @@ import '../../../../core/navigation/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/empty_state.dart';
 import 'material_thumbnail.dart';
 import '../../../courses/presentation/providers/course_provider.dart';
 import '../../../../core/utils/error_handler.dart';
@@ -20,49 +21,40 @@ class RecentMaterialsGrid extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('RECENT MATERIALS', style: AppTypography.sectionHeader),
+        Text(
+          'RECENT MATERIALS',
+          style: AppTypography.sectionHeader.copyWith(
+            color: AppColors.textMutedFor(Theme.of(context).brightness),
+          ),
+        ),
         const SizedBox(height: AppSpacing.md),
         materialsAsync.when(
           loading: () => const SizedBox(
-            height: 200,
-            child: Center(child: CircularProgressIndicator()),
-          ),
-          error: (e, _) => SizedBox(
-            height: 200,
+            height: 160,
             child: Center(
-              child: Text(AppErrorHandler.friendlyMessage(e), style: AppTypography.bodySmall),
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: AppColors.primary,
+                ),
+              ),
             ),
+          ),
+          error: (e, _) => EmptyState(
+            icon: Icons.error_outline,
+            title: 'Something went wrong',
+            subtitle: AppErrorHandler.friendlyMessage(e),
+            iconSize: 40,
           ),
           data: (materials) {
             if (materials.isEmpty) {
-              return SizedBox(
-                height: 200,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.description,
-                        size: 40,
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        'No materials yet',
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Use Capture to add study materials',
-                        style: AppTypography.caption.copyWith(
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              return const EmptyState(
+                icon: Icons.description_outlined,
+                title: 'No materials yet',
+                subtitle: 'Use Capture to add study materials',
+                iconSize: 40,
               );
             }
 

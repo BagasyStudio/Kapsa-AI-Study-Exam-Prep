@@ -349,6 +349,41 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
 
                   const SizedBox(height: AppSpacing.xxl),
 
+                  // Social proof stats bar
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 20,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _SocialStat(value: '50K+', label: 'Students'),
+                        Container(
+                          width: 1,
+                          height: 28,
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
+                        _SocialStat(value: '4.8', label: 'App Rating'),
+                        Container(
+                          width: 1,
+                          height: 28,
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
+                        _SocialStat(value: '2x', label: 'Faster Learning'),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: AppSpacing.xxl),
+
                   // Features list
                   const FeatureRow(
                     icon: Icons.psychology_alt,
@@ -368,6 +403,109 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
                   const FeatureRow(
                     icon: Icons.insights,
                     label: 'Advanced Analytics & Insights',
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  const FeatureRow(
+                    icon: Icons.headset,
+                    label: 'Audio Summaries & Image Occlusion',
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  const FeatureRow(
+                    icon: Icons.groups_rounded,
+                    label: 'Unlimited Study Groups',
+                  ),
+
+                  const SizedBox(height: AppSpacing.xxl),
+
+                  // Testimonial card
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white.withValues(alpha: 0.08),
+                          Colors.white.withValues(alpha: 0.03),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: List.generate(
+                            5,
+                            (_) => const Icon(
+                              Icons.star_rounded,
+                              size: 16,
+                              color: Color(0xFFFBBF24),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          '"Kapsa Pro helped me raise my GPA from 3.2 to 3.8 in one semester. The AI quiz generation is a game changer."',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: Colors.white.withValues(alpha: 0.75),
+                            fontStyle: FontStyle.italic,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF6467F2),
+                                    Color(0xFF4338CA),
+                                  ],
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'S',
+                                  style: AppTypography.labelLarge.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Sarah M.',
+                                  style: AppTypography.labelLarge.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  'Pre-Med Student',
+                                  style: AppTypography.caption.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.45),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
 
                   const SizedBox(height: AppSpacing.xxxl),
@@ -513,6 +651,44 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
                           decoration: TextDecoration.underline,
                           decorationColor: Colors.white.withValues(alpha: 0.3),
                         ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Money-back guarantee
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(100),
+                        border: Border.all(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.verified_user_rounded,
+                            size: 16,
+                            color: const Color(0xFF10B981).withValues(alpha: 0.8),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '7-Day Free Trial — Cancel Anytime',
+                            style: AppTypography.caption.copyWith(
+                              color: const Color(0xFF10B981),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -666,6 +842,40 @@ class _GlassCloseButton extends StatelessWidget {
           size: 20,
         ),
       ),
+    );
+  }
+}
+
+/// Social proof stat (value + label).
+class _SocialStat extends StatelessWidget {
+  final String value;
+  final String label;
+
+  const _SocialStat({required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: AppTypography.h4.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: AppTypography.caption.copyWith(
+            color: Colors.white.withValues(alpha: 0.45),
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }

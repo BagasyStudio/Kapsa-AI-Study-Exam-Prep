@@ -31,6 +31,8 @@ abstract final class AppLimits {
     'ocr': 1,
     'whisper': 1,
     'oracle': 1,
+    'snap_solve': 3,
+    'audio_summary': 1,
   };
 
   // ── Pro tier daily limits ──
@@ -45,5 +47,7 @@ abstract final class AppLimits {
     'ocr': 10,
     'whisper': 20,
     'oracle': 50,
+    'snap_solve': 30,
+    'audio_summary': 10,
   };
 }

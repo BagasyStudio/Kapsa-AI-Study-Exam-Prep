@@ -7,8 +7,9 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/widgets/gradient_text.dart';
 import '../../../../core/navigation/routes.dart';
+import '../../../../core/providers/theme_provider.dart';
 import '../widgets/course_tab_bar.dart';
-import '../widgets/ai_insight_banner.dart';
+import '../widgets/course_stats_banner.dart';
 import '../widgets/material_list_item.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/staggered_list.dart';
@@ -46,9 +47,9 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         margin: const EdgeInsets.only(top: 120),
-        decoration: const BoxDecoration(
-          color: Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        decoration: BoxDecoration(
+          color: context.isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Padding(
           padding: EdgeInsets.fromLTRB(
@@ -71,20 +72,24 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
               const SizedBox(height: AppSpacing.lg),
               Text(
                 'Edit Course',
-                style: AppTypography.h2.copyWith(fontWeight: FontWeight.w700),
+                style: AppTypography.h2.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimaryFor(Theme.of(ctx).brightness),
+                ),
               ),
               const SizedBox(height: AppSpacing.xxl),
               TextField(
                 controller: titleController,
                 autofocus: true,
+                style: TextStyle(color: AppColors.textPrimaryFor(Theme.of(ctx).brightness)),
                 decoration: InputDecoration(
                   labelText: 'Course Name',
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: context.isDark ? AppColors.cardDark : Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide(
-                      color: const Color(0xFF94A3B8).withValues(alpha: 0.2),
+                      color: AppColors.textMutedFor(Theme.of(ctx).brightness).withValues(alpha: 0.2),
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
@@ -96,14 +101,15 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
               const SizedBox(height: AppSpacing.md),
               TextField(
                 controller: subtitleController,
+                style: TextStyle(color: AppColors.textPrimaryFor(Theme.of(ctx).brightness)),
                 decoration: InputDecoration(
                   labelText: 'Subject (optional)',
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: context.isDark ? AppColors.cardDark : Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide(
-                      color: const Color(0xFF94A3B8).withValues(alpha: 0.2),
+                      color: AppColors.textMutedFor(Theme.of(ctx).brightness).withValues(alpha: 0.2),
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
@@ -161,18 +167,20 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFFF8FAFC),
+        backgroundColor: context.isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
         title: Text(
           'Delete Course',
-          style: AppTypography.h3.copyWith(color: const Color(0xFF0F172A)),
+          style: AppTypography.h3.copyWith(
+            color: AppColors.textPrimaryFor(Theme.of(context).brightness),
+          ),
         ),
         content: Text(
           'This will permanently delete this course and all its materials, flashcards, and quizzes. This action cannot be undone.',
           style: AppTypography.bodyMedium.copyWith(
-            color: const Color(0xFF64748B),
+            color: AppColors.textMutedFor(Theme.of(context).brightness),
           ),
         ),
         actions: [
@@ -181,7 +189,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
             child: Text(
               'Cancel',
               style: AppTypography.labelLarge.copyWith(
-                color: const Color(0xFF64748B),
+                color: AppColors.textMutedFor(Theme.of(context).brightness),
               ),
             ),
           ),
@@ -216,8 +224,11 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
     final courseAsync = ref.watch(courseProvider(widget.courseId));
     final materialsAsync = ref.watch(courseMaterialsProvider(widget.courseId));
 
+    final brightness = Theme.of(context).brightness;
+    final isDark = context.isDark;
+
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: AppColors.backgroundFor(brightness),
       body: Stack(
         children: [
           // Ethereal background gradients
@@ -229,7 +240,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
               height: 256,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: 0.15),
+                color: AppColors.primary.withValues(alpha: isDark ? 0.08 : 0.15),
               ),
             ),
           ),
@@ -241,7 +252,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
               height: 200,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFEC4899).withValues(alpha: 0.1),
+                color: const Color(0xFFEC4899).withValues(alpha: isDark ? 0.05 : 0.1),
               ),
             ),
           ),
@@ -253,7 +264,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
               height: 220,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: 0.1),
+                color: AppColors.primary.withValues(alpha: isDark ? 0.05 : 0.1),
               ),
             ),
           ),
@@ -356,7 +367,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
                                   course.title,
                                   style:
                                       AppTypography.h1.copyWith(fontSize: 30),
-                                  gradient: AppGradients.textDark,
+                                  gradient: AppGradients.textFor(brightness),
                                 ),
                               ),
                             ],
@@ -547,12 +558,10 @@ class _MaterialsTab extends ConsumerWidget {
     return StaggeredColumn(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // AI Insight Banner
-        AiInsightBanner(
-          weakTopic: 'Review Materials',
-          recommendation:
-              'Upload course materials to unlock AI-powered flashcards, quizzes, and study insights.',
-          onReviewTap: () => _generateFromBanner(context, ref),
+        // Course Stats Banner
+        CourseStatsBanner(
+          courseId: courseId,
+          onGenerateTap: () => _generateFromBanner(context, ref),
         ),
 
         const SizedBox(height: AppSpacing.xl),
@@ -561,7 +570,12 @@ class _MaterialsTab extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Materials', style: AppTypography.h4),
+            Text(
+              'Materials',
+              style: AppTypography.h4.copyWith(
+                color: AppColors.textPrimaryFor(Theme.of(context).brightness),
+              ),
+            ),
             TapScale(
               onTap: () => _openCapture(context),
               child: Container(
@@ -720,25 +734,165 @@ class _StudyToolsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final decksAsync = ref.watch(flashcardDecksProvider(courseId));
+    final dueCountAsync = ref.watch(dueCardsCountProvider(courseId));
+    final dueCount = dueCountAsync.whenOrNull(data: (c) => c) ?? 0;
 
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Generate buttons
-          _ToolButton(
-            icon: Icons.style,
-            label: 'Generate Flashcards',
-            subtitle: 'AI creates flashcards from your materials',
-            onTap: () => _generateFlashcards(context, ref),
+          // SRS Review button — prominent CTA when cards are due
+          dueCountAsync.when(
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+            data: (dueCount) {
+              if (dueCount == 0) return const SizedBox.shrink();
+              return Column(
+                children: [
+                  TapScale(
+                    onTap: () => context.push(Routes.srsReviewPath(courseId)),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary,
+                            AppColors.primaryLight,
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.replay_rounded,
+                                color: Colors.white, size: 26),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Review Due Cards',
+                                  style: AppTypography.labelLarge.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '$dueCount card${dueCount == 1 ? '' : 's'} ready for review',
+                                  style: AppTypography.caption.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(100),
+                            ),
+                            child: Text(
+                              '$dueCount',
+                              style: AppTypography.labelLarge.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
+              );
+            },
           ),
-          const SizedBox(height: AppSpacing.md),
-          _ToolButton(
-            icon: Icons.quiz,
-            label: 'Generate Quiz',
-            subtitle: 'Test your knowledge with AI-generated questions',
-            onTap: () => _generateQuiz(context, ref),
+
+          // Study Tools Grid (2x4)
+          GridView.count(
+            crossAxisCount: 2,
+            mainAxisSpacing: AppSpacing.md,
+            crossAxisSpacing: AppSpacing.md,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            childAspectRatio: 1.6,
+            children: [
+              _StudyToolGridItem(
+                icon: Icons.style,
+                label: 'Flashcards',
+                color: const Color(0xFF3B82F6),
+                onTap: () => _generateFlashcards(context, ref),
+              ),
+              _StudyToolGridItem(
+                icon: Icons.quiz,
+                label: 'Quiz',
+                color: const Color(0xFF10B981),
+                onTap: () => _generateQuiz(context, ref),
+              ),
+              _StudyToolGridItem(
+                icon: Icons.timer,
+                label: 'Practice Exam',
+                color: const Color(0xFFF97316),
+                onTap: () => context.push(Routes.practiceExam),
+              ),
+              _StudyToolGridItem(
+                icon: Icons.replay_rounded,
+                label: 'SRS Review',
+                color: const Color(0xFF8B5CF6),
+                badge: dueCount > 0 ? '$dueCount due' : null,
+                onTap: () => context.push(Routes.srsReviewPath(courseId)),
+              ),
+              _StudyToolGridItem(
+                icon: Icons.headphones,
+                label: 'Audio Summary',
+                color: const Color(0xFF14B8A6),
+                onTap: () => _openAudioSummary(context, ref),
+              ),
+              _StudyToolGridItem(
+                icon: Icons.grid_view_rounded,
+                label: 'Occlusion',
+                color: const Color(0xFFEC4899),
+                onTap: () => context.push(Routes.occlusionEditorPath(courseId)),
+              ),
+              _StudyToolGridItem(
+                icon: Icons.camera_alt_rounded,
+                label: 'Snap & Solve',
+                color: const Color(0xFFF59E0B),
+                onTap: () => context.push(Routes.snapSolve),
+              ),
+              _StudyToolGridItem(
+                icon: Icons.share_rounded,
+                label: 'Share Deck',
+                color: const Color(0xFF6366F1),
+                onTap: () => context.push(Routes.deckListPath(courseId)),
+              ),
+            ],
           ),
 
           const SizedBox(height: AppSpacing.xxl),
@@ -755,7 +909,12 @@ class _StudyToolsTab extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Past Decks', style: AppTypography.h4),
+                      Text(
+                        'Past Decks',
+                        style: AppTypography.h4.copyWith(
+                          color: AppColors.textPrimaryFor(Theme.of(context).brightness),
+                        ),
+                      ),
                       if (decks.length > 3)
                         TapScale(
                           onTap: () =>
@@ -784,6 +943,57 @@ class _StudyToolsTab extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  void _openAudioSummary(BuildContext context, WidgetRef ref) {
+    final materialsAsync = ref.read(courseMaterialsProvider(courseId));
+    materialsAsync.whenData((materials) {
+      if (materials.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Add study materials first to generate audio summaries')),
+        );
+        return;
+      }
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      final brightness = Theme.of(context).brightness;
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: AppSpacing.md),
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF94A3B8).withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text('Choose Material', style: AppTypography.h3.copyWith(
+                color: AppColors.textPrimaryFor(brightness),
+              )),
+              const SizedBox(height: AppSpacing.md),
+              ...materials.take(10).map((m) => ListTile(
+                leading: Icon(Icons.description_outlined, color: AppColors.primary),
+                title: Text(m.title, style: TextStyle(color: AppColors.textPrimaryFor(brightness))),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push(Routes.audioPlayerPath(m.id, courseId, m.title));
+                },
+              )),
+              SizedBox(height: MediaQuery.of(ctx).padding.bottom + AppSpacing.lg),
+            ],
+          ),
+        ),
+      );
+    });
   }
 
   Future<void> _generateFlashcards(BuildContext context, WidgetRef ref) async {
@@ -1094,14 +1304,22 @@ class _PastDeckItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDark;
+    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: () => context.push(Routes.flashcardSessionPath(deck.id)),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.10)
+              : Colors.white.withValues(alpha: 0.82),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.white.withValues(alpha: 0.5),
+          ),
         ),
         child: Row(
           children: [
@@ -1110,7 +1328,7 @@ class _PastDeckItem extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(Icons.style, size: 20, color: AppColors.primary),
             ),
@@ -1121,7 +1339,10 @@ class _PastDeckItem extends StatelessWidget {
                 children: [
                   Text(
                     deck.title,
-                    style: AppTypography.labelLarge.copyWith(fontSize: 13),
+                    style: AppTypography.labelLarge.copyWith(
+                      fontSize: 13,
+                      color: AppColors.textPrimaryFor(brightness),
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1129,7 +1350,7 @@ class _PastDeckItem extends StatelessWidget {
                   Text(
                     '${deck.cardCount} cards • ${_timeAgo(deck.createdAt)}',
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textMuted,
+                      color: AppColors.textMutedFor(brightness),
                       fontSize: 11,
                     ),
                   ),
@@ -1154,54 +1375,86 @@ class _PastDeckItem extends StatelessWidget {
   }
 }
 
-class _ToolButton extends StatelessWidget {
+/// Grid item for the Study Tools 2x4 grid with colored icon.
+class _StudyToolGridItem extends StatelessWidget {
   final IconData icon;
   final String label;
-  final String subtitle;
+  final Color color;
   final VoidCallback onTap;
+  final String? badge;
 
-  const _ToolButton({
+  const _StudyToolGridItem({
     required this.icon,
     required this.label,
-    required this.subtitle,
+    required this.color,
     required this.onTap,
+    this.badge,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDark;
+    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: onTap,
       child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.75),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.white.withValues(alpha: 0.8),
+          ),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: AppColors.primary),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: AppTypography.labelLarge),
-                  const SizedBox(height: 2),
-                  Text(subtitle, style: AppTypography.caption),
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+                if (badge != null) ...[
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: Text(
+                      badge!,
+                      style: AppTypography.caption.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
                 ],
-              ),
+              ],
             ),
-            Icon(Icons.chevron_right, color: AppColors.textMuted),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: AppTypography.labelLarge.copyWith(
+                color: AppColors.textPrimaryFor(brightness),
+                fontSize: 13,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),
@@ -1242,6 +1495,8 @@ class _EmptyMaterials extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDark;
+    final brightness = Theme.of(context).brightness;
     return Padding(
       padding: const EdgeInsets.only(top: 20),
       child: TapScale(
@@ -1253,7 +1508,9 @@ class _EmptyMaterials extends StatelessWidget {
             horizontal: AppSpacing.xl,
           ),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.4),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.06)
+                : Colors.white.withValues(alpha: 0.4),
             borderRadius: AppRadius.borderRadiusXxl,
             border: Border.all(
               color: AppColors.primary.withValues(alpha: 0.15),
@@ -1279,14 +1536,14 @@ class _EmptyMaterials extends StatelessWidget {
               Text(
                 'No materials yet',
                 style: AppTypography.labelLarge.copyWith(
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondaryFor(brightness),
                 ),
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
                 'Tap here to upload PDFs, scan pages, record audio, or paste notes',
                 style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textMuted,
+                  color: AppColors.textMutedFor(brightness),
                 ),
                 textAlign: TextAlign.center,
               ),

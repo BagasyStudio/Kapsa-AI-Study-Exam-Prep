@@ -25,6 +25,7 @@ class FeatureCarouselCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return Container(
       margin: const EdgeInsets.symmetric(
         horizontal: AppSpacing.xs,
@@ -62,11 +63,11 @@ class FeatureCarouselCard extends StatelessWidget {
                       width: 140,
                       height: 140,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const SizedBox(
+                      errorBuilder: (_, __, ___) => SizedBox(
                         width: 140,
                         height: 140,
                         child: Icon(Icons.image_not_supported_outlined,
-                            size: 48, color: AppColors.textMuted),
+                            size: 48, color: AppColors.textMutedFor(brightness)),
                       ),
                     ),
                   ),
@@ -74,7 +75,7 @@ class FeatureCarouselCard extends StatelessWidget {
                   Text(
                     title,
                     style: AppTypography.h3.copyWith(
-                      color: AppColors.textPrimary,
+                      color: AppColors.textPrimaryFor(brightness),
                       fontWeight: FontWeight.w700,
                     ),
                     textAlign: TextAlign.center,
@@ -83,7 +84,7 @@ class FeatureCarouselCard extends StatelessWidget {
                   Text(
                     description,
                     style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondaryFor(brightness),
                       height: 1.5,
                     ),
                     textAlign: TextAlign.center,

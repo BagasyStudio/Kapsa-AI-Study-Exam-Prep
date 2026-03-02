@@ -34,6 +34,8 @@ class WeekCalendarStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brightness = Theme.of(context).brightness;
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: BackdropFilter(
@@ -41,10 +43,14 @@ class WeekCalendarStrip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.7),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.10)
+                : Colors.white.withValues(alpha: 0.82),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.5),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.white.withValues(alpha: 0.5),
             ),
             boxShadow: [
               BoxShadow(
@@ -69,7 +75,7 @@ class WeekCalendarStrip extends StatelessWidget {
                         style: AppTypography.caption.copyWith(
                           color: isSelectedColumn
                               ? AppColors.primary
-                              : const Color(0xFF94A3B8), // slate-400
+                              : AppColors.textMutedFor(brightness),
                           fontWeight: isSelectedColumn
                               ? FontWeight.w700
                               : FontWeight.w500,
@@ -84,12 +90,12 @@ class WeekCalendarStrip extends StatelessWidget {
               const SizedBox(height: AppSpacing.md),
 
               // Row 1 of dates
-              _buildDateRow(_row1Dates, _row1IsPrevMonth, 0),
+              _buildDateRow(_row1Dates, _row1IsPrevMonth, 0, isDark: isDark, brightness: brightness),
 
               const SizedBox(height: AppSpacing.sm),
 
               // Row 2 of dates
-              _buildDateRow(_row2Dates, List.filled(7, false), 7),
+              _buildDateRow(_row2Dates, List.filled(7, false), 7, isDark: isDark, brightness: brightness),
 
               const SizedBox(height: AppSpacing.sm),
 
@@ -99,7 +105,9 @@ class WeekCalendarStrip extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0), // slate-200
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.15)
+                        : const Color(0xFFE2E8F0),
                     borderRadius: BorderRadius.circular(100),
                   ),
                 ),
@@ -127,8 +135,10 @@ class WeekCalendarStrip extends StatelessWidget {
   Widget _buildDateRow(
     List<int> dates,
     List<bool> isPrevMonth,
-    int baseIndex,
-  ) {
+    int baseIndex, {
+    required bool isDark,
+    required Brightness brightness,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: List.generate(7, (i) {
@@ -176,8 +186,8 @@ class WeekCalendarStrip extends StatelessWidget {
                         color: isSelected
                             ? Colors.white
                             : isPrev
-                                ? const Color(0xFFCBD5E1) // slate-300
-                                : const Color(0xFF475569), // slate-600
+                                ? (isDark ? Colors.white.withValues(alpha: 0.2) : const Color(0xFFCBD5E1))
+                                : AppColors.textSecondaryFor(brightness),
                         fontWeight: isSelected
                             ? FontWeight.w600
                             : FontWeight.w400,

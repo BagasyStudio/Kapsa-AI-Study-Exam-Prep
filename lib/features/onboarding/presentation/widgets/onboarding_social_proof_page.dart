@@ -55,6 +55,7 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
@@ -102,7 +103,7 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                       fontWeight: FontWeight.w700,
                       height: 1.2,
                       letterSpacing: -0.5,
-                      color: AppColors.textPrimary,
+                      color: AppColors.textPrimaryFor(brightness),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -113,7 +114,7 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                 // Animated counter
                 if (counterReady)
                   AnimatedCounter(
-                    value: 10000,
+                    value: 50000,
                     duration: const Duration(milliseconds: 1200),
                     suffix: '+',
                     style: AppTypography.h1.copyWith(
@@ -126,7 +127,7 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                   Text(
                     'active students',
                     style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.textMuted,
+                      color: AppColors.textMutedFor(brightness),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -183,7 +184,7 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                             '"Kapsa changed the way I study. My grades improved so much in just one month."',
                         animate: typewriterReady,
                         style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textPrimary,
+                          color: AppColors.textPrimaryFor(brightness),
                           fontStyle: FontStyle.italic,
                           height: 1.5,
                         ),
@@ -192,7 +193,7 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                       Text(
                         '— Sofia, Med Student',
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.textMuted,
+                          color: AppColors.textMutedFor(brightness),
                         ),
                       ),
                     ],
@@ -232,13 +233,13 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                               Text(
                                 'In 30 days',
                                 style: AppTypography.labelLarge.copyWith(
-                                  color: AppColors.textPrimary,
+                                  color: AppColors.textPrimaryFor(brightness),
                                 ),
                               ),
                               Text(
                                 'Average +40% grade improvement',
                                 style: AppTypography.bodySmall.copyWith(
-                                  color: AppColors.textSecondary,
+                                  color: AppColors.textSecondaryFor(brightness),
                                 ),
                               ),
                             ],

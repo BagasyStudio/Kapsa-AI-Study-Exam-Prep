@@ -37,7 +37,7 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
     '📅 I don\'t have time',
     '😴 I get bored studying',
     '📝 I can\'t organize my notes',
-    '😰 I stress during exams',
+    '😰 Exams are coming soon',
     '🤷 I don\'t know where to start',
   ];
 
@@ -70,6 +70,7 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
@@ -112,7 +113,7 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
                         fontWeight: FontWeight.w700,
                         height: 1.2,
                         letterSpacing: -0.5,
-                        color: AppColors.textPrimary,
+                        color: AppColors.textPrimaryFor(brightness),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -126,7 +127,7 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
                   child: Text(
                     "We'll figure out how to help you best.",
                     style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondaryFor(brightness),
                       height: 1.55,
                     ),
                     textAlign: TextAlign.center,
@@ -136,7 +137,7 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
                 const SizedBox(height: AppSpacing.lg),
 
                 // Challenge cards
-                ...List.generate(_challenges.length, _buildCard),
+                ...List.generate(_challenges.length, (i) => _buildCard(i, brightness)),
 
                 const SizedBox(height: AppSpacing.md),
               ],
@@ -147,7 +148,7 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
     );
   }
 
-  Widget _buildCard(int i) {
+  Widget _buildCard(int i, Brightness brightness) {
     final start = (0.25 + i * 0.08).clamp(0.0, 1.0);
     final end = (start + 0.35).clamp(0.0, 1.0);
     final progress = CurvedAnimation(
@@ -197,7 +198,7 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
                         style: AppTypography.bodyMedium.copyWith(
                           color: isSelected
                               ? AppColors.primary
-                              : AppColors.textSecondary,
+                              : AppColors.textSecondaryFor(brightness),
                           fontWeight:
                               isSelected ? FontWeight.w600 : FontWeight.w400,
                         ),

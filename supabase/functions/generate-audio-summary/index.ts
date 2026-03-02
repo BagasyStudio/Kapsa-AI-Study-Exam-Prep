@@ -1,0 +1,296 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "No authorization header" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const replicateApiToken = Deno.env.get("REPLICATE_API_TOKEN")!;
+
+    // Verify user
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const {
+      data: { user },
+      error: authError,
+    } = await userClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { materialId, courseId } = await req.json();
+    if (!materialId || !courseId) {
+      return new Response(
+        JSON.stringify({ error: "materialId and courseId are required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Fetch material content
+    const { data: material, error: materialError } = await adminClient
+      .from("course_materials")
+      .select("title, content, type")
+      .eq("id", materialId)
+      .single();
+
+    if (materialError || !material) {
+      return new Response(
+        JSON.stringify({ error: "Material not found" }),
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const content = material.content || "";
+    if (content.length < 50) {
+      return new Response(
+        JSON.stringify({
+          error: "Material content is too short for a summary",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Step 1: Generate summary using LLM
+    const truncatedContent = content.substring(0, 8000);
+    const summaryPrompt = `You are a study assistant. Create a concise spoken-word summary of the following study material.
+The summary should be clear, engaging, and suitable for audio listening (2-3 minutes when read aloud).
+Focus on key concepts, definitions, and important relationships.
+Write it as natural speech, not bullet points.
+Do NOT include any markdown formatting.
+
+Material title: ${material.title}
+
+Content:
+${truncatedContent}
+
+Summary:`;
+
+    // Call Replicate LLM for summary
+    const llmResponse = await fetch(
+      "https://api.replicate.com/v1/models/meta/meta-llama-3-8b-instruct/predictions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${replicateApiToken}`,
+          "Content-Type": "application/json",
+          Prefer: "wait",
+        },
+        body: JSON.stringify({
+          input: {
+            prompt: summaryPrompt,
+            max_tokens: 1024,
+            temperature: 0.6,
+            top_p: 0.9,
+          },
+        }),
+      }
+    );
+
+    const llmResult = await llmResponse.json();
+    if (llmResult.error) {
+      console.error("LLM error:", llmResult.error);
+      return new Response(
+        JSON.stringify({ error: "Failed to generate summary" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const summaryText = Array.isArray(llmResult.output)
+      ? llmResult.output.join("")
+      : String(llmResult.output || "");
+
+    if (!summaryText || summaryText.length < 20) {
+      return new Response(
+        JSON.stringify({ error: "Generated summary was too short" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Step 2: Generate TTS audio via Replicate
+    const ttsResponse = await fetch(
+      "https://api.replicate.com/v1/predictions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${replicateApiToken}`,
+          "Content-Type": "application/json",
+          Prefer: "wait",
+        },
+        body: JSON.stringify({
+          version:
+            "684bc3855b37866c0c65add2ff39c78f3dea3f4ff103a436465326e0f438d55e",
+          input: {
+            text: summaryText.substring(0, 3000),
+            language: "en",
+            speaker:
+              "https://replicate.delivery/pbxt/Jt79w0xsT64R1JsiJ0LQZI8st4O0xxGnHHEFRM2kQ4jbEbvT/male.wav",
+            cleanup_voice: false,
+          },
+        }),
+      }
+    );
+
+    const ttsResult = await ttsResponse.json();
+    if (ttsResult.error) {
+      console.error("TTS error:", ttsResult.error);
+      // Still save summary text even if TTS fails
+      const { data: record, error: insertError } = await adminClient
+        .from("audio_summaries")
+        .insert({
+          user_id: user.id,
+          material_id: materialId,
+          course_id: courseId,
+          title: `Summary: ${material.title}`,
+          audio_url: "",
+          summary_text: summaryText,
+          status: "text_only",
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        return new Response(
+          JSON.stringify({ error: "Failed to save summary" }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      return new Response(JSON.stringify(record), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Get audio URL from TTS result
+    const audioOutputUrl = ttsResult.output;
+    if (!audioOutputUrl) {
+      // Fallback: text_only
+      const { data: record } = await adminClient
+        .from("audio_summaries")
+        .insert({
+          user_id: user.id,
+          material_id: materialId,
+          course_id: courseId,
+          title: `Summary: ${material.title}`,
+          audio_url: "",
+          summary_text: summaryText,
+          status: "text_only",
+        })
+        .select()
+        .single();
+
+      return new Response(JSON.stringify(record), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Step 3: Download audio and upload to Supabase Storage
+    const audioResponse = await fetch(audioOutputUrl);
+    const audioBlob = await audioResponse.arrayBuffer();
+    const audioFileName = `audio-summaries/${user.id}/${materialId}-${Date.now()}.wav`;
+
+    const { error: uploadError } = await adminClient.storage
+      .from("user-uploads")
+      .upload(audioFileName, audioBlob, {
+        contentType: "audio/wav",
+        upsert: true,
+      });
+
+    let finalAudioUrl = audioOutputUrl; // fallback to replicate URL
+    if (!uploadError) {
+      const {
+        data: { publicUrl },
+      } = adminClient.storage.from("user-uploads").getPublicUrl(audioFileName);
+      finalAudioUrl = publicUrl;
+    }
+
+    // Estimate duration (~150 words per minute)
+    const wordCount = summaryText.split(/\s+/).length;
+    const estimatedDuration = Math.round((wordCount / 150) * 60);
+
+    // Step 4: Insert record
+    const { data: record, error: insertError } = await adminClient
+      .from("audio_summaries")
+      .insert({
+        user_id: user.id,
+        material_id: materialId,
+        course_id: courseId,
+        title: `Summary: ${material.title}`,
+        audio_url: finalAudioUrl,
+        duration_seconds: estimatedDuration,
+        summary_text: summaryText,
+        status: "ready",
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("Insert error:", insertError);
+      return new Response(
+        JSON.stringify({ error: "Failed to save audio summary" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    return new Response(JSON.stringify(record), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("generate-audio-summary error:", error);
+    return new Response(
+      JSON.stringify({ error: "An internal error occurred" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+});

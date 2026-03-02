@@ -252,6 +252,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 class _EmptyChatState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),
@@ -267,14 +268,14 @@ class _EmptyChatState extends StatelessWidget {
             Text(
               'Ask me anything about your course',
               style:
-                  AppTypography.h3.copyWith(color: AppColors.textSecondary),
+                  AppTypography.h3.copyWith(color: AppColors.textSecondaryFor(brightness)),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               'I can explain concepts, create quizzes, and help you study more effectively.',
               style: AppTypography.bodyMedium
-                  .copyWith(color: AppColors.textMuted),
+                  .copyWith(color: AppColors.textMutedFor(brightness)),
               textAlign: TextAlign.center,
             ),
           ],

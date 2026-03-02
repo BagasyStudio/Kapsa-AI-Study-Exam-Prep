@@ -5,6 +5,7 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
+import '../../../../core/providers/theme_provider.dart';
 
 /// A task/study item in the calendar timeline.
 ///
@@ -36,6 +37,8 @@ class TaskItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDark;
+    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: onTap,
       child: ClipRRect(
@@ -45,7 +48,9 @@ class TaskItem extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.4),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.10)
+                  : Colors.white.withValues(alpha: 0.82),
               borderRadius: AppRadius.borderRadiusLg,
               border: Border.all(
                 color: AppColors.primary.withValues(alpha: 0.2),
@@ -96,7 +101,7 @@ class TaskItem extends StatelessWidget {
                         border: Border.all(
                           color: isCompleted
                               ? AppColors.success
-                              : AppColors.textMuted,
+                              : AppColors.textMutedFor(brightness),
                           width: 2,
                         ),
                       ),
@@ -123,8 +128,8 @@ class TaskItem extends StatelessWidget {
                                 ? TextDecoration.lineThrough
                                 : null,
                             color: isCompleted
-                                ? AppColors.textMuted
-                                : const Color(0xFF1E293B), // slate-800
+                                ? AppColors.textMutedFor(brightness)
+                                : AppColors.textPrimaryFor(brightness),
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
@@ -134,7 +139,7 @@ class TaskItem extends StatelessWidget {
                           Text(
                             time,
                             style: AppTypography.caption.copyWith(
-                              color: const Color(0xFF64748B), // slate-500
+                              color: AppColors.textMutedFor(brightness),
                               fontSize: 12,
                             ),
                           ),
@@ -164,7 +169,7 @@ class TaskItem extends StatelessWidget {
                       child: Icon(
                         Icons.check_circle_outline,
                         size: 24,
-                        color: const Color(0xFF94A3B8), // slate-400
+                        color: AppColors.textMutedFor(brightness),
                       ),
                     ),
                 ],

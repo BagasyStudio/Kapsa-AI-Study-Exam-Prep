@@ -47,6 +47,8 @@ class FeatureGate extends ConsumerWidget {
           data: (remaining) {
             if (remaining > 0) return child;
 
+            final brightness = Theme.of(context).brightness;
+            final isDark = brightness == Brightness.dark;
             // Feature is locked
             return Stack(
               children: [
@@ -57,7 +59,9 @@ class FeatureGate extends ConsumerWidget {
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                       child: Container(
-                        color: Colors.white.withValues(alpha: 0.7),
+                        color: isDark
+                            ? Colors.black.withValues(alpha: 0.6)
+                            : Colors.white.withValues(alpha: 0.7),
                         child: Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -79,14 +83,14 @@ class FeatureGate extends ConsumerWidget {
                               Text(
                                 'Daily limit reached',
                                 style: AppTypography.labelLarge.copyWith(
-                                  color: AppColors.textPrimary,
+                                  color: AppColors.textPrimaryFor(brightness),
                                 ),
                               ),
                               const SizedBox(height: AppSpacing.xs),
                               Text(
                                 'Upgrade to Pro for unlimited access',
                                 style: AppTypography.caption.copyWith(
-                                  color: AppColors.textSecondary,
+                                  color: AppColors.textSecondaryFor(brightness),
                                 ),
                               ),
                               const SizedBox(height: AppSpacing.lg),

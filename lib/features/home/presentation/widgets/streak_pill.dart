@@ -12,6 +12,7 @@ class StreakPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return ClipRRect(
       borderRadius: AppRadius.borderRadiusPill,
       child: BackdropFilter(
@@ -31,7 +32,7 @@ class StreakPill extends StatelessWidget {
               Text(
                 '$days Days',
                 style: AppTypography.labelLarge.copyWith(
-                  color: AppColors.textPrimary,
+                  color: AppColors.textPrimaryFor(brightness),
                 ),
               ),
               const SizedBox(width: 6),

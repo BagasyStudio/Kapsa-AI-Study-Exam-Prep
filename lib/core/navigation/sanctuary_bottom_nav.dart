@@ -26,9 +26,13 @@ class KapsaBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Gradient fade color adapts to theme
+    final fadeColor = isDark ? AppColors.backgroundDark : Colors.white;
 
     return SizedBox(
-      height: 100 + bottomPadding,
+      height: 80 + bottomPadding,
       child: Stack(
         children: [
           // Bottom gradient fade for readability
@@ -40,8 +44,8 @@ class KapsaBottomNav extends StatelessWidget {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      Colors.white.withValues(alpha: 0.8),
-                      Colors.white.withValues(alpha: 0.0),
+                      fadeColor.withValues(alpha: 0.8),
+                      fadeColor.withValues(alpha: 0.0),
                     ],
                   ),
                 ),
@@ -53,7 +57,7 @@ class KapsaBottomNav extends StatelessWidget {
           Positioned(
             left: 0,
             right: 0,
-            bottom: bottomPadding + AppSpacing.lg,
+            bottom: bottomPadding + AppSpacing.md,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
@@ -121,20 +125,25 @@ class _NavIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return TapScale(
       onTap: onTap,
-      scaleDown: 0.85,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: AnimatedScale(
-          scale: isSelected ? 1.15 : 1.0,
-          duration: AppAnimations.durationMedium,
-          curve: AppAnimations.curveBounce,
-          child: AnimatedOpacity(
-            opacity: isSelected ? 1.0 : 0.5,
+      scaleDown: 0.88,
+      child: SizedBox(
+        width: 48,
+        height: 48,
+        child: Center(
+          child: AnimatedScale(
+            scale: isSelected ? 1.08 : 1.0,
             duration: AppAnimations.durationMedium,
-            child: Icon(
-              icon,
-              size: 28,
-              color: isSelected ? AppColors.primary : AppColors.textMuted,
+            curve: AppAnimations.curveBounce,
+            child: AnimatedOpacity(
+              opacity: isSelected ? 1.0 : 0.55,
+              duration: AppAnimations.durationMedium,
+              child: Icon(
+                icon,
+                size: 26,
+                color: isSelected
+                    ? AppColors.primary
+                    : AppColors.textMutedFor(Theme.of(context).brightness),
+              ),
             ),
           ),
         ),
@@ -154,6 +163,15 @@ class _CapturePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final pillFillColor = isDark
+        ? Colors.white.withValues(alpha: 0.12)
+        : Colors.white.withValues(alpha: 0.45);
+    final pillBorderColor = isDark
+        ? Colors.white.withValues(alpha: 0.18)
+        : Colors.white.withValues(alpha: 0.5);
+    final textColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimary;
+
     return TapScale(
       onTap: onTap,
       scaleDown: 0.95,
@@ -163,11 +181,11 @@ class _CapturePill extends StatelessWidget {
         children: [
           // Glow behind the pill
           Container(
-            width: 140,
-            height: 50,
+            width: 130,
+            height: 46,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(100),
-              color: AppColors.primary.withValues(alpha: 0.15),
+              color: AppColors.primary.withValues(alpha: 0.12),
             ),
           ),
 
@@ -178,18 +196,16 @@ class _CapturePill extends StatelessWidget {
               filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 14,
+                  horizontal: 20,
+                  vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.4),
+                  color: pillFillColor,
                   borderRadius: BorderRadius.circular(100),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.6),
-                  ),
+                  border: Border.all(color: pillBorderColor),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
+                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -226,7 +242,7 @@ class _CapturePill extends StatelessWidget {
                         fontFamily: 'Inter',
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: textColor,
                         letterSpacing: 0.3,
                       ),
                     ),

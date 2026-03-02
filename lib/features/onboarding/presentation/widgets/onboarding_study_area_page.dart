@@ -73,6 +73,7 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
@@ -116,7 +117,7 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
                         fontWeight: FontWeight.w700,
                         height: 1.2,
                         letterSpacing: -0.5,
-                        color: AppColors.textPrimary,
+                        color: AppColors.textPrimaryFor(brightness),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -130,7 +131,7 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
                   child: Text(
                     'Customize your experience by choosing\nyour study area.',
                     style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondaryFor(brightness),
                       height: 1.55,
                     ),
                     textAlign: TextAlign.center,
@@ -144,7 +145,7 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
                   spacing: AppSpacing.xs,
                   runSpacing: AppSpacing.xs,
                   alignment: WrapAlignment.center,
-                  children: List.generate(_areas.length, _buildChip),
+                  children: List.generate(_areas.length, (i) => _buildChip(i, brightness)),
                 ),
 
                 const SizedBox(height: AppSpacing.lg),
@@ -156,7 +157,7 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
     );
   }
 
-  Widget _buildChip(int i) {
+  Widget _buildChip(int i, Brightness brightness) {
     final interval = _chipInterval(i);
     final end = _chipEnd(i);
     final progress = CurvedAnimation(
@@ -209,7 +210,7 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
                 _areas[i],
                 style: AppTypography.labelMedium.copyWith(
                   color:
-                      isSelected ? AppColors.primary : AppColors.textSecondary,
+                      isSelected ? AppColors.primary : AppColors.textSecondaryFor(brightness),
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 ),
               ),

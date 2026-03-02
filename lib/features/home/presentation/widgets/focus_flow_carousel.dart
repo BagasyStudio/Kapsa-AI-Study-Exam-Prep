@@ -8,6 +8,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import 'focus_flow_card.dart';
 import '../../../courses/presentation/providers/course_provider.dart';
+import '../../../flashcards/presentation/providers/flashcard_provider.dart';
 import '../../../../core/utils/error_handler.dart';
 
 /// Horizontal scrollable carousel of Focus Flow cards.
@@ -45,6 +46,7 @@ class _FocusFlowCarouselState extends ConsumerState<FocusFlowCarousel> {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     final coursesAsync = ref.watch(coursesProvider);
 
     return Column(
@@ -80,7 +82,16 @@ class _FocusFlowCarouselState extends ConsumerState<FocusFlowCarousel> {
         SizedBox(
           height: 380,
           child: coursesAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
             error: (e, _) => Center(
               child: Text(AppErrorHandler.friendlyMessage(e), style: AppTypography.bodySmall),
             ),
@@ -100,14 +111,14 @@ class _FocusFlowCarouselState extends ConsumerState<FocusFlowCarousel> {
                         Text(
                           'No courses yet',
                           style: AppTypography.h3.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textSecondaryFor(brightness),
                           ),
                         ),
                         const SizedBox(height: AppSpacing.sm),
                         Text(
                           'Create your first course to get started!',
                           style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textMuted,
+                            color: AppColors.textMutedFor(brightness),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -139,32 +150,44 @@ class _FocusFlowCarouselState extends ConsumerState<FocusFlowCarousel> {
                       ? const Color(0xFFEA580C)
                       : AppColors.primary;
 
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xs,
-                      vertical: AppSpacing.xs,
-                    ),
-                    child: Opacity(
-                      opacity: opacity,
-                      child: Transform.scale(
-                        scale: scale,
-                        alignment: index < _currentPage
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: FocusFlowCard(
-                          tag: tag,
-                          tagColor: tagColor,
-                          tagTextColor: tagTextColor,
-                          title: course.title,
-                          subtitle: course.subtitle ?? '',
-                          progress: course.progress,
-                          ctaLabel: 'Continue',
-                          isSecondary: index > 0,
-                          onCtaTap: () => context
-                              .push(Routes.courseDetailPath(course.id)),
+                  return Consumer(
+                    builder: (context, cRef, _) {
+                      final dueCount = cRef
+                          .watch(dueCardsCountProvider(course.id))
+                          .whenOrNull(data: (c) => c) ?? 0;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xs,
+                          vertical: AppSpacing.xs,
                         ),
-                      ),
-                    ),
+                        child: Opacity(
+                          opacity: opacity,
+                          child: Transform.scale(
+                            scale: scale,
+                            alignment: index < _currentPage
+                                ? Alignment.centerRight
+                                : Alignment.centerLeft,
+                            child: FocusFlowCard(
+                              tag: tag,
+                              tagColor: tagColor,
+                              tagTextColor: tagTextColor,
+                              title: course.title,
+                              subtitle: course.subtitle ?? '',
+                              progress: course.progress,
+                              ctaLabel: 'Continue',
+                              isSecondary: index > 0,
+                              dueCount: dueCount,
+                              onCtaTap: () => context
+                                  .push(Routes.courseDetailPath(course.id)),
+                              onDueTap: dueCount > 0
+                                  ? () => context.push(
+                                      Routes.srsReviewPath(course.id))
+                                  : null,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               );

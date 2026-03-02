@@ -29,7 +29,7 @@ class TestQuestionModel {
       questionNumber: (json['question_number'] as num).toInt(),
       question: json['question'] as String,
       userAnswer: json['user_answer'] as String?,
-      correctAnswer: json['correct_answer'] as String,
+      correctAnswer: json['correct_answer'] as String? ?? '',
       aiInsight: json['ai_insight'] as String?,
       isCorrect: json['is_correct'] as bool? ?? false,
       createdAt: json['created_at'] != null

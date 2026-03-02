@@ -36,7 +36,7 @@ class OracleSmartCard extends ConsumerWidget {
     final insightAsync = ref.watch(assistantInsightProvider);
 
     return insightAsync.when(
-      loading: () => _buildShimmer(),
+      loading: () => _buildShimmer(context),
       error: (_, __) => const SizedBox.shrink(), // Hide on error
       data: (insight) {
         if (insight == null) return const SizedBox.shrink();
@@ -157,7 +157,8 @@ class OracleSmartCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildShimmer() {
+  Widget _buildShimmer(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       child: Container(
@@ -182,7 +183,7 @@ class OracleSmartCard extends ConsumerWidget {
               Text(
                 'The Oracle is thinking...',
                 style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textMuted,
+                  color: AppColors.textMutedFor(brightness),
                 ),
               ),
             ],

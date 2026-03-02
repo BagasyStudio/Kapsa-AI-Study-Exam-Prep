@@ -16,12 +16,22 @@ import '../../features/flashcards/presentation/screens/flashcard_session_screen.
 import '../../features/chat/presentation/screens/chat_screen.dart';
 import '../../features/test_results/presentation/screens/test_results_screen.dart';
 import '../../features/test_results/presentation/screens/quiz_session_screen.dart';
+import '../../features/test_results/presentation/screens/practice_exam_setup_screen.dart';
 import '../../features/flashcards/presentation/screens/deck_list_screen.dart';
+import '../../features/flashcards/presentation/screens/import_deck_screen.dart';
+import '../../features/flashcards/presentation/screens/srs_review_screen.dart';
 import '../../features/paywall/presentation/screens/paywall_screen.dart';
 import '../../features/assistant/presentation/screens/global_chat_screen.dart';
+import '../../features/snap_solve/presentation/screens/snap_solve_screen.dart';
 import '../../features/courses/presentation/screens/material_viewer_screen.dart';
 import '../../features/legal/presentation/screens/legal_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
+import '../../features/audio_summary/presentation/screens/audio_player_screen.dart';
+import '../../features/image_occlusion/presentation/screens/occlusion_editor_screen.dart';
+import '../../features/groups/presentation/screens/groups_list_screen.dart';
+import '../../features/groups/presentation/screens/group_detail_screen.dart';
+import '../../features/groups/presentation/screens/create_group_screen.dart';
+import '../../features/groups/presentation/screens/join_group_screen.dart';
 import '../theme/app_animations.dart';
 import 'routes.dart';
 import 'sanctuary_shell.dart';
@@ -259,6 +269,30 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(
+        path: Routes.importDeck,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _slideFromRight(
+          ImportDeckScreen(
+            courseId: state.pathParameters['courseId'] ?? '',
+          ),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.srsReview,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          child: SrsReviewScreen(
+            courseId: state.pathParameters['courseId'] ?? '',
+          ),
+          transitionDuration: AppAnimations.durationSlow,
+          reverseTransitionDuration: AppAnimations.durationSlow,
+          transitionsBuilder: (_, animation, __, child) =>
+              FadeTransition(opacity: animation, child: child),
+        ),
+      ),
+
+      GoRoute(
         path: Routes.chat,
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) => _slideFromRight(
@@ -271,15 +305,23 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.quizSession,
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => CustomTransitionPage(
-          child: QuizSessionScreen(
-            testId: state.pathParameters['testId'] ?? '',
-          ),
-          transitionDuration: AppAnimations.durationSlow,
-          reverseTransitionDuration: AppAnimations.durationSlow,
-          transitionsBuilder: (_, animation, __, child) =>
-              FadeTransition(opacity: animation, child: child),
-        ),
+        pageBuilder: (context, state) {
+          final timeLimit = state.uri.queryParameters['timeLimit'];
+          final isPracticeExam =
+              state.uri.queryParameters['isPracticeExam'] == 'true';
+          return CustomTransitionPage(
+            child: QuizSessionScreen(
+              testId: state.pathParameters['testId'] ?? '',
+              timeLimitMinutes:
+                  timeLimit != null ? int.tryParse(timeLimit) : null,
+              isPracticeExam: isPracticeExam,
+            ),
+            transitionDuration: AppAnimations.durationSlow,
+            reverseTransitionDuration: AppAnimations.durationSlow,
+            transitionsBuilder: (_, animation, __, child) =>
+                FadeTransition(opacity: animation, child: child),
+          );
+        },
       ),
 
       GoRoute(
@@ -299,6 +341,93 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           MaterialViewerScreen(
             courseId: state.pathParameters['courseId'] ?? '',
             materialId: state.pathParameters['materialId'] ?? '',
+          ),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.snapSolve,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          child: const SnapSolveScreen(),
+          transitionDuration: AppAnimations.durationSlow,
+          reverseTransitionDuration: AppAnimations.durationSlow,
+          transitionsBuilder: (_, animation, __, child) =>
+              SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 1),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: animation,
+                  curve: AppAnimations.curveStandard,
+                )),
+                child: child,
+              ),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.practiceExam,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _slideFromRight(
+          const PracticeExamSetupScreen(),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.audioPlayer,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final courseId = state.uri.queryParameters['courseId'] ?? '';
+          final title = state.uri.queryParameters['title'] ?? 'Material';
+          return _slideFromRight(
+            AudioPlayerScreen(
+              materialId: state.pathParameters['materialId'] ?? '',
+              courseId: courseId,
+              materialTitle: title,
+            ),
+          );
+        },
+      ),
+
+      GoRoute(
+        path: Routes.occlusionEditor,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _slideFromRight(
+          OcclusionEditorScreen(
+            courseId: state.pathParameters['courseId'] ?? '',
+          ),
+        ),
+      ),
+
+      // ── Study Groups routes ──
+      GoRoute(
+        path: Routes.groupsList,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _slideFromRight(
+          const GroupsListScreen(),
+        ),
+      ),
+      GoRoute(
+        path: Routes.createGroup,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _slideFromRight(
+          const CreateGroupScreen(),
+        ),
+      ),
+      GoRoute(
+        path: Routes.joinGroup,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _slideFromRight(
+          const JoinGroupScreen(),
+        ),
+      ),
+      GoRoute(
+        path: Routes.groupDetail,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _slideFromRight(
+          GroupDetailScreen(
+            groupId: state.pathParameters['groupId'] ?? '',
           ),
         ),
       ),

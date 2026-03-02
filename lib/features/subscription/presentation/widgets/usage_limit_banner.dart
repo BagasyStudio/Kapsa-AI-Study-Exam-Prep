@@ -32,12 +32,15 @@ class UsageLimitBanner extends ConsumerWidget {
           loading: () => const SizedBox.shrink(),
           error: (_, __) => const SizedBox.shrink(),
           data: (usage) {
+            final brightness = Theme.of(context).brightness;
             // Calculate total usage across features
             final totalUsed = usage.values.fold(0, (a, b) => a + b);
             final totalLimit = SubscriptionRepository.freeLimits.values
                 .fold(0, (a, b) => a + b);
 
-            if (totalUsed == 0) return const SizedBox.shrink();
+            if (totalUsed == 0 || totalLimit == 0) {
+              return const SizedBox.shrink();
+            }
 
             final progress = (totalUsed / totalLimit).clamp(0.0, 1.0);
             final progressColor = progress < 0.5
@@ -91,7 +94,7 @@ class UsageLimitBanner extends ConsumerWidget {
                                       ? 'Daily free limit reached'
                                       : '$totalUsed of $totalLimit free uses today',
                                   style: AppTypography.caption.copyWith(
-                                    color: AppColors.textPrimary,
+                                    color: AppColors.textPrimaryFor(brightness),
                                     fontWeight: FontWeight.w600,
                                     fontSize: 12,
                                   ),

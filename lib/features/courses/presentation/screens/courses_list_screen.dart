@@ -14,6 +14,8 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/course_provider.dart';
 import '../../data/models/course_model.dart';
 import '../../../../core/utils/error_handler.dart';
+import '../../../../core/providers/theme_provider.dart';
+import '../../../flashcards/presentation/providers/flashcard_provider.dart';
 
 /// Available icons for course creation (name → IconData).
 const _courseIconNames = <String>[
@@ -65,9 +67,10 @@ class CoursesListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final coursesAsync = ref.watch(coursesProvider);
+    final brightness = Theme.of(context).brightness;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: AppColors.backgroundFor(brightness),
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
@@ -92,7 +95,10 @@ class CoursesListScreen extends ConsumerWidget {
               children: [
                 Text(
                   'My Courses',
-                  style: AppTypography.h1.copyWith(fontFamily: 'Outfit'),
+                  style: AppTypography.h1.copyWith(
+                    fontFamily: 'Outfit',
+                    color: AppColors.textPrimaryFor(brightness),
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 coursesAsync.when(
@@ -240,11 +246,14 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDark;
+    final brightness = Theme.of(context).brightness;
+
     return Container(
       margin: const EdgeInsets.only(top: 80),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Padding(
         padding: EdgeInsets.fromLTRB(
@@ -277,6 +286,7 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
                   'New Course',
                   style: AppTypography.h2.copyWith(
                     fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimaryFor(brightness),
                   ),
                 ),
               ),
@@ -287,21 +297,22 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
                 controller: _titleController,
                 autofocus: true,
                 textCapitalization: TextCapitalization.words,
+                style: TextStyle(color: AppColors.textPrimaryFor(brightness)),
                 decoration: InputDecoration(
                   labelText: 'Course Name',
                   hintText: 'e.g. Biology 101',
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: isDark ? AppColors.cardDark : Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide(
-                      color: const Color(0xFF94A3B8).withValues(alpha: 0.2),
+                      color: AppColors.textMutedFor(brightness).withValues(alpha: 0.2),
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide(
-                      color: const Color(0xFF94A3B8).withValues(alpha: 0.2),
+                      color: AppColors.textMutedFor(brightness).withValues(alpha: 0.2),
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
@@ -316,21 +327,22 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
               TextField(
                 controller: _subtitleController,
                 textCapitalization: TextCapitalization.sentences,
+                style: TextStyle(color: AppColors.textPrimaryFor(brightness)),
                 decoration: InputDecoration(
                   labelText: 'Subject (optional)',
                   hintText: 'e.g. Cell Structure & Function',
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: isDark ? AppColors.cardDark : Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide(
-                      color: const Color(0xFF94A3B8).withValues(alpha: 0.2),
+                      color: AppColors.textMutedFor(brightness).withValues(alpha: 0.2),
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide(
-                      color: const Color(0xFF94A3B8).withValues(alpha: 0.2),
+                      color: AppColors.textMutedFor(brightness).withValues(alpha: 0.2),
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
@@ -362,12 +374,16 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
                         color: isSelected
                             ? _courseColors[_selectedColorIndex]
                                 .withValues(alpha: 0.15)
-                            : Colors.white,
+                            : isDark
+                                ? AppColors.cardDark
+                                : Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isSelected
                               ? _courseColors[_selectedColorIndex]
-                              : const Color(0xFFE2E8F0),
+                              : isDark
+                                  ? Colors.white.withValues(alpha: 0.1)
+                                  : const Color(0xFFE2E8F0),
                           width: isSelected ? 2 : 1,
                         ),
                       ),
@@ -376,7 +392,7 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
                         size: 22,
                         color: isSelected
                             ? _courseColors[_selectedColorIndex]
-                            : const Color(0xFF64748B),
+                            : AppColors.textMutedFor(brightness),
                       ),
                     ),
                   );
@@ -447,10 +463,10 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
                     vertical: 14,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? AppColors.cardDark : Colors.white,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: const Color(0xFF94A3B8).withValues(alpha: 0.2),
+                      color: AppColors.textMutedFor(brightness).withValues(alpha: 0.2),
                     ),
                   ),
                   child: Row(
@@ -460,7 +476,7 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
                         size: 20,
                         color: _examDate != null
                             ? AppColors.primary
-                            : const Color(0xFF94A3B8),
+                            : AppColors.textMutedFor(brightness),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -470,8 +486,8 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
                               : 'Select exam date',
                           style: AppTypography.bodyMedium.copyWith(
                             color: _examDate != null
-                                ? const Color(0xFF1E293B)
-                                : const Color(0xFF94A3B8),
+                                ? AppColors.textPrimaryFor(brightness)
+                                : AppColors.textMutedFor(brightness),
                           ),
                         ),
                       ),
@@ -481,7 +497,7 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
                           child: Icon(
                             Icons.close,
                             size: 18,
-                            color: const Color(0xFF94A3B8),
+                            color: AppColors.textMutedFor(brightness),
                           ),
                         ),
                     ],
@@ -562,6 +578,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return Center(
       child: Padding(
         padding: const EdgeInsets.only(top: 60),
@@ -573,14 +590,16 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             Text(
               'No courses yet',
-              style:
-                  AppTypography.h3.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.h3.copyWith(
+                color: AppColors.textSecondaryFor(brightness),
+              ),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               'Create your first course to start studying',
-              style: AppTypography.bodyMedium
-                  .copyWith(color: AppColors.textMuted),
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textMutedFor(brightness),
+              ),
             ),
             const SizedBox(height: AppSpacing.xl),
             TapScale(
@@ -603,7 +622,7 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _CourseCard extends StatelessWidget {
+class _CourseCard extends ConsumerWidget {
   final CourseModel course;
   final VoidCallback onTap;
 
@@ -613,7 +632,13 @@ class _CourseCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = context.isDark;
+    final brightness = Theme.of(context).brightness;
+    final dueCount = ref
+        .watch(dueCardsCountProvider(course.id))
+        .whenOrNull(data: (c) => c) ?? 0;
+
     return TapScale(
       onTap: onTap,
       child: ClipRRect(
@@ -623,10 +648,14 @@ class _CourseCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.55),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.10)
+                  : Colors.white.withValues(alpha: 0.82),
               borderRadius: AppRadius.borderRadiusXxl,
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.6),
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : Colors.black.withValues(alpha: 0.06),
               ),
               boxShadow: [
                 BoxShadow(
@@ -638,44 +667,128 @@ class _CourseCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Hero(
-                  tag: 'course-icon-${course.id}',
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: course.color.withValues(alpha: 0.1),
-                        borderRadius: AppRadius.borderRadiusLg,
+                // Icon with optional SRS badge
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Hero(
+                      tag: 'course-icon-${course.id}',
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: course.color.withValues(alpha: 0.1),
+                            borderRadius: AppRadius.borderRadiusLg,
+                          ),
+                          child: Icon(course.icon, color: course.color, size: 28),
+                        ),
                       ),
-                      child:
-                          Icon(course.icon, color: course.color, size: 28),
                     ),
-                  ),
+                    // SRS due badge
+                    if (dueCount > 0)
+                      Positioned(
+                        top: -6,
+                        right: -6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF59E0B),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            '$dueCount',
+                            style: AppTypography.caption.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(course.title, style: AppTypography.labelLarge),
+                      Text(
+                        course.title,
+                        style: AppTypography.labelLarge.copyWith(
+                          color: AppColors.textPrimaryFor(brightness),
+                        ),
+                      ),
                       if (course.subtitle != null) ...[
                         const SizedBox(height: 2),
-                        Text(course.subtitle!,
-                            style: AppTypography.caption),
+                        Text(
+                          course.subtitle!,
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.textMutedFor(brightness),
+                          ),
+                        ),
+                      ],
+                      // Exam urgency
+                      if (course.examDate != null) ...[
+                        const SizedBox(height: 4),
+                        _ExamUrgencyRow(examDate: course.examDate!, isDark: isDark),
+                      ],
+                      // Due cards info
+                      if (dueCount > 0) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(Icons.replay_rounded, size: 12,
+                                color: const Color(0xFFF59E0B)),
+                            const SizedBox(width: 4),
+                            Text(
+                              '$dueCount card${dueCount == 1 ? '' : 's'} due',
+                              style: AppTypography.caption.copyWith(
+                                color: const Color(0xFFF59E0B),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                       const SizedBox(height: 10),
-                      ClipRRect(
-                        borderRadius: AppRadius.borderRadiusPill,
-                        child: LinearProgressIndicator(
-                          value: course.progress,
-                          backgroundColor:
-                              course.color.withValues(alpha: 0.1),
-                          valueColor:
-                              AlwaysStoppedAnimation(course.color),
-                          minHeight: 4,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: AppRadius.borderRadiusPill,
+                              child: LinearProgressIndicator(
+                                value: course.progress,
+                                backgroundColor:
+                                    course.color.withValues(alpha: 0.1),
+                                valueColor:
+                                    AlwaysStoppedAnimation(course.color),
+                                minHeight: 5,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${(course.progress * 100).round()}%',
+                            style: AppTypography.caption.copyWith(
+                              color: _progressColor(course.progress),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -683,13 +796,72 @@ class _CourseCard extends StatelessWidget {
                 const SizedBox(width: AppSpacing.sm),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: AppColors.textMuted,
+                  color: AppColors.textMutedFor(brightness),
                 ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+Color _progressColor(double progress) {
+  if (progress >= 0.71) return const Color(0xFF10B981); // Green
+  if (progress >= 0.31) return const Color(0xFFF59E0B); // Amber
+  return const Color(0xFFEF4444); // Red
+}
+
+class _ExamUrgencyRow extends StatelessWidget {
+  final DateTime examDate;
+  final bool isDark;
+
+  const _ExamUrgencyRow({required this.examDate, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final diff = examDate.difference(now);
+    final days = diff.inDays;
+
+    if (days < 0) return const SizedBox.shrink(); // Past exam
+
+    final Color urgencyColor;
+    if (days < 3) {
+      urgencyColor = const Color(0xFFEF4444); // Red
+    } else if (days < 7) {
+      urgencyColor = const Color(0xFFF97316); // Orange
+    } else if (days < 14) {
+      urgencyColor = const Color(0xFFF59E0B); // Yellow/Amber
+    } else {
+      urgencyColor = isDark
+          ? Colors.white.withValues(alpha: 0.4)
+          : Colors.black.withValues(alpha: 0.4);
+    }
+
+    final String label;
+    if (days == 0) {
+      label = 'Exam today!';
+    } else if (days == 1) {
+      label = 'Exam tomorrow';
+    } else {
+      label = '$days days left';
+    }
+
+    return Row(
+      children: [
+        Icon(Icons.event, size: 12, color: urgencyColor),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: AppTypography.caption.copyWith(
+            color: urgencyColor,
+            fontWeight: days < 7 ? FontWeight.w600 : FontWeight.w400,
+            fontSize: 11,
+          ),
+        ),
+      ],
     );
   }
 }

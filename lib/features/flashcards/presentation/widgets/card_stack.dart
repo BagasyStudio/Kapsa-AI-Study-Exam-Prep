@@ -157,6 +157,8 @@ class _CardStackState extends State<CardStack>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ghostColor = isDark ? Colors.white : Colors.black;
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -172,10 +174,10 @@ class _CardStackState extends State<CardStack>
               width: double.infinity,
               height: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
+                color: ghostColor.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(32),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.05),
+                  color: ghostColor.withValues(alpha: 0.05),
                 ),
               ),
             ),
@@ -194,10 +196,10 @@ class _CardStackState extends State<CardStack>
               width: double.infinity,
               height: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
+                color: ghostColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(32),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: ghostColor.withValues(alpha: 0.1),
                 ),
               ),
             ),

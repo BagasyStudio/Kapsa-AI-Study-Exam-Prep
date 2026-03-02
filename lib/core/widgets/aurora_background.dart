@@ -5,6 +5,7 @@ import '../theme/app_colors.dart';
 ///
 /// Mimics the CSS: `background: linear-gradient(-45deg, ...); background-size: 400% 400%;`
 /// The oversized gradient slowly pans across, creating the aurora breathing effect.
+/// Automatically adapts to dark mode.
 class AuroraBackground extends StatefulWidget {
   final Widget child;
 
@@ -35,6 +36,8 @@ class _AuroraBackgroundState extends State<AuroraBackground>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
@@ -58,14 +61,23 @@ class _AuroraBackgroundState extends State<AuroraBackground>
                 t,
               )!,
               // Repeat the color stops to simulate the 400% oversized gradient
-              colors: const [
-                AppColors.auroraLavender,
-                AppColors.auroraBlue,
-                AppColors.auroraSky,
-                AppColors.auroraPink,
-                AppColors.auroraLavender,
-                AppColors.auroraBlue,
-              ],
+              colors: isDark
+                  ? const [
+                      AppColors.auroraDarkLavender,
+                      AppColors.auroraDarkBlue,
+                      AppColors.auroraDarkSky,
+                      AppColors.auroraDarkPink,
+                      AppColors.auroraDarkLavender,
+                      AppColors.auroraDarkBlue,
+                    ]
+                  : const [
+                      AppColors.auroraLavender,
+                      AppColors.auroraBlue,
+                      AppColors.auroraSky,
+                      AppColors.auroraPink,
+                      AppColors.auroraLavender,
+                      AppColors.auroraBlue,
+                    ],
               stops: const [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
             ),
           ),

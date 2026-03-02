@@ -9,6 +9,7 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/gradient_text.dart';
+import '../../../../core/widgets/math_text.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../data/models/material_model.dart';
 import '../providers/course_provider.dart';
@@ -74,8 +75,10 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
   Widget build(BuildContext context) {
     final materialsAsync = ref.watch(courseMaterialsProvider(widget.courseId));
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brightness = Theme.of(context).brightness;
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: AppColors.backgroundFor(brightness),
       body: Stack(
         children: [
           // Ethereal background gradients
@@ -87,7 +90,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
               height: 280,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: 0.12),
+                color: AppColors.primary.withValues(alpha: isDark ? 0.06 : 0.12),
               ),
             ),
           ),
@@ -99,7 +102,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
               height: 200,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFEC4899).withValues(alpha: 0.08),
+                color: const Color(0xFFEC4899).withValues(alpha: isDark ? 0.04 : 0.08),
               ),
             ),
           ),
@@ -111,7 +114,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
               height: 240,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: 0.06),
+                color: AppColors.primary.withValues(alpha: isDark ? 0.03 : 0.06),
               ),
             ),
           ),
@@ -125,7 +128,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.error_outline,
-                            size: 48, color: AppColors.textMuted),
+                            size: 48, color: AppColors.textMutedFor(brightness)),
                         const SizedBox(height: AppSpacing.md),
                         Text('Invalid material link',
                             style: AppTypography.bodyMedium),
@@ -147,7 +150,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.error_outline,
-                            size: 48, color: AppColors.textMuted),
+                            size: 48, color: AppColors.textMutedFor(brightness)),
                         const SizedBox(height: AppSpacing.md),
                         Text('Material not found',
                             style: AppTypography.bodyMedium),
@@ -169,6 +172,8 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
   }
 
   Widget _buildContent(BuildContext context, MaterialModel material) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brightness = Theme.of(context).brightness;
     final hasContent =
         material.content != null && material.content!.trim().isNotEmpty;
     final kind = _kindFromType(material.type);
@@ -194,7 +199,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.arrow_back, color: AppColors.textSecondary),
+                  child: Icon(Icons.arrow_back, color: AppColors.textSecondaryFor(brightness)),
                 ),
               ),
               const Spacer(),
@@ -211,12 +216,16 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
                     decoration: BoxDecoration(
                       color: _showCopied
                           ? AppColors.success.withValues(alpha: 0.1)
-                          : Colors.white.withValues(alpha: 0.5),
+                          : isDark
+                              ? Colors.white.withValues(alpha: 0.10)
+                              : Colors.white.withValues(alpha: 0.82),
                       borderRadius: AppRadius.borderRadiusPill,
                       border: Border.all(
                         color: _showCopied
                             ? AppColors.success.withValues(alpha: 0.3)
-                            : Colors.white.withValues(alpha: 0.6),
+                            : isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.white.withValues(alpha: 0.5),
                       ),
                     ),
                     child: Row(
@@ -229,7 +238,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
                           size: 16,
                           color: _showCopied
                               ? AppColors.success
-                              : AppColors.textSecondary,
+                              : AppColors.textSecondaryFor(brightness),
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -238,7 +247,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
                             fontWeight: FontWeight.w600,
                             color: _showCopied
                                 ? AppColors.success
-                                : AppColors.textSecondary,
+                                : AppColors.textSecondaryFor(brightness),
                           ),
                         ),
                       ],
@@ -314,7 +323,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
                         GradientText(
                           material.title,
                           style: AppTypography.h2.copyWith(fontSize: 22),
-                          gradient: AppGradients.textDark,
+                          gradient: AppGradients.textFor(brightness),
                         ),
                         const SizedBox(height: 4),
                         Row(
@@ -456,6 +465,8 @@ class _ContentReader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brightness = Theme.of(context).brightness;
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.fromLTRB(
@@ -472,10 +483,14 @@ class _ContentReader extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(AppSpacing.xl),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.55),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.10)
+                  : Colors.white.withValues(alpha: 0.82),
               borderRadius: AppRadius.borderRadiusXxl,
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.7),
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.white.withValues(alpha: 0.5),
               ),
               boxShadow: [
                 BoxShadow(
@@ -485,11 +500,11 @@ class _ContentReader extends StatelessWidget {
                 ),
               ],
             ),
-            child: SelectableText(
-              content,
+            child: MathText(
+              text: content,
               style: AppTypography.bodyMedium.copyWith(
                 height: 1.75,
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimaryFor(brightness),
               ),
             ),
           ),
@@ -508,6 +523,7 @@ class _EmptyContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -519,18 +535,18 @@ class _EmptyContent extends StatelessWidget {
               height: 80,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.textMuted.withValues(alpha: 0.08),
+                color: AppColors.textMutedFor(brightness).withValues(alpha: 0.08),
               ),
               child: Icon(
                 Icons.text_snippet_outlined,
                 size: 36,
-                color: AppColors.textMuted.withValues(alpha: 0.5),
+                color: AppColors.textMutedFor(brightness).withValues(alpha: 0.5),
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
               'No text content available',
-              style: AppTypography.h4.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.h4.copyWith(color: AppColors.textSecondaryFor(brightness)),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -541,7 +557,7 @@ class _EmptyContent extends StatelessWidget {
                       ? 'The audio transcription may still be processing.'
                       : 'This material has no text content yet.',
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textMuted,
+                color: AppColors.textMutedFor(brightness),
               ),
               textAlign: TextAlign.center,
             ),

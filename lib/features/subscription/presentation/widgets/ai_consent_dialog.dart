@@ -26,6 +26,7 @@ class AiConsentDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       backgroundColor: Colors.white,
@@ -61,7 +62,7 @@ class AiConsentDialog extends StatelessWidget {
                 child: Text(
                   'AI-Powered Study Tools',
                   style: AppTypography.h3.copyWith(
-                    color: AppColors.textPrimary,
+                    color: AppColors.textPrimaryFor(brightness),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -75,7 +76,7 @@ class AiConsentDialog extends StatelessWidget {
                 'like flashcard generation, quizzes, document scanning, or the '
                 'AI tutor, your study materials are processed by our AI partners.',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondaryFor(brightness),
                   height: 1.6,
                 ),
               ),
@@ -164,13 +165,13 @@ class AiConsentDialog extends StatelessWidget {
                 child: TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
+                    foregroundColor: AppColors.textSecondaryFor(brightness),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   child: Text(
                     'Decline',
                     style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondaryFor(brightness),
                     ),
                   ),
                 ),
@@ -196,6 +197,7 @@ class _InfoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -217,14 +219,14 @@ class _InfoSection extends StatelessWidget {
                 title,
                 style: AppTypography.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: AppColors.textPrimaryFor(brightness),
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 description,
                 style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondaryFor(brightness),
                   height: 1.5,
                 ),
               ),

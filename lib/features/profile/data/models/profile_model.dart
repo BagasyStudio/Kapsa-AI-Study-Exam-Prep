@@ -7,6 +7,8 @@ class ProfileModel {
   final int totalCourses;
   final String? averageGrade;
   final bool aiConsentAccepted;
+  final int xpTotal;
+  final int xpLevel;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -18,6 +20,8 @@ class ProfileModel {
     this.totalCourses = 0,
     this.averageGrade,
     this.aiConsentAccepted = false,
+    this.xpTotal = 0,
+    this.xpLevel = 1,
     this.createdAt,
     this.updatedAt,
   });
@@ -31,6 +35,8 @@ class ProfileModel {
       totalCourses: (json['total_courses'] as num?)?.toInt() ?? 0,
       averageGrade: json['average_grade'] as String?,
       aiConsentAccepted: json['ai_consent_accepted'] as bool? ?? false,
+      xpTotal: (json['xp_total'] as num?)?.toInt() ?? 0,
+      xpLevel: (json['xp_level'] as num?)?.toInt() ?? 1,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
@@ -49,6 +55,8 @@ class ProfileModel {
       'total_courses': totalCourses,
       'average_grade': averageGrade,
       'ai_consent_accepted': aiConsentAccepted,
+      'xp_total': xpTotal,
+      'xp_level': xpLevel,
     };
   }
 
@@ -59,6 +67,8 @@ class ProfileModel {
     int? totalCourses,
     String? averageGrade,
     bool? aiConsentAccepted,
+    int? xpTotal,
+    int? xpLevel,
   }) {
     return ProfileModel(
       id: id,
@@ -68,6 +78,8 @@ class ProfileModel {
       totalCourses: totalCourses ?? this.totalCourses,
       averageGrade: averageGrade ?? this.averageGrade,
       aiConsentAccepted: aiConsentAccepted ?? this.aiConsentAccepted,
+      xpTotal: xpTotal ?? this.xpTotal,
+      xpLevel: xpLevel ?? this.xpLevel,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );

@@ -116,8 +116,13 @@ class CourseRepository {
         .not('score', 'is', null);
 
     if ((tests as List).isNotEmpty) {
-      final scores = tests.map((t) => (t['score'] as num).toDouble()).toList();
-      quizProgress = scores.reduce((a, b) => a + b) / scores.length;
+      final scores = tests
+          .where((t) => t['score'] != null)
+          .map((t) => (t['score'] as num).toDouble())
+          .toList();
+      if (scores.isNotEmpty) {
+        quizProgress = scores.reduce((a, b) => a + b) / scores.length;
+      }
     }
 
     // ── Combine ────────────────────────────────────────────────────

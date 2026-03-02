@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../gamification/presentation/widgets/xp_level_badge.dart';
 import 'streak_pill.dart';
 
-/// Header row with greeting text and streak counter pill.
+/// Header row with greeting text, streak counter pill, and XP badge.
 class GreetingHeader extends StatelessWidget {
   final String userName;
   final int streakDays;
@@ -22,9 +24,9 @@ class GreetingHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
           child: Text(
@@ -32,11 +34,23 @@ class GreetingHeader extends StatelessWidget {
             style: AppTypography.h1.copyWith(
               fontFamily: 'Outfit',
               fontWeight: FontWeight.w600,
+              fontSize: 26,
               height: 1.2,
+              color: AppColors.textPrimaryFor(brightness),
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        StreakPill(days: streakDays),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            StreakPill(days: streakDays),
+            const SizedBox(height: 6),
+            const XpLevelBadge(),
+          ],
+        ),
       ],
     );
   }

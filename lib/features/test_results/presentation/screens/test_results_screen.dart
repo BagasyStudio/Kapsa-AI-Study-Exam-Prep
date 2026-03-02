@@ -13,6 +13,7 @@ import '../widgets/correction_card.dart';
 import '../widgets/collapsed_correction_card.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/staggered_list.dart';
+import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../core/utils/error_handler.dart';
 import '../providers/test_provider.dart';
 import '../../data/test_repository.dart';
@@ -46,8 +47,9 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
   Widget build(BuildContext context) {
     final resultsAsync = ref.watch(testResultsProvider(widget.testId));
 
+    final brightness = Theme.of(context).brightness;
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: AppColors.backgroundFor(brightness),
       body: Stack(
         children: [
           // Animated ambient orbs
@@ -59,7 +61,10 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
           SafeArea(
             bottom: false,
             child: resultsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const Padding(
+                padding: EdgeInsets.all(AppSpacing.xl),
+                child: ShimmerList(count: 4, itemHeight: 100),
+              ),
               error: (e, _) => Center(
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.xl),
@@ -68,7 +73,7 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
                     children: [
                       Icon(Icons.error_outline,
                           size: 48,
-                          color: AppColors.textMuted),
+                          color: AppColors.textMutedFor(brightness)),
                       const SizedBox(height: AppSpacing.md),
                       Text('Could not load results',
                           style: AppTypography.h3),
@@ -145,6 +150,8 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
   }
 
   Widget _buildResults(TestWithQuestions result) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brightness = Theme.of(context).brightness;
     final test = result.test;
     final questions = result.questions;
     final correctCount = test.correctCount;
@@ -221,7 +228,7 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
                       'Keep studying to improve your score!',
                   textAlign: TextAlign.center,
                   style: AppTypography.bodyMedium.copyWith(
-                    color: const Color(0xFF64748B),
+                    color: AppColors.textSecondaryFor(brightness),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -239,7 +246,7 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
                       Text(
                         'Detailed Breakdown',
                         style: AppTypography.h4.copyWith(
-                          color: const Color(0xFF1E293B),
+                          color: AppColors.textPrimaryFor(brightness),
                           fontSize: 18,
                         ),
                       ),
@@ -249,13 +256,15 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.5),
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.1)
+                              : Colors.white.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(100),
                         ),
                         child: Text(
                           '$mistakeCount Mistakes',
                           style: AppTypography.caption.copyWith(
-                            color: const Color(0xFF64748B),
+                            color: AppColors.textMutedFor(brightness),
                             fontWeight: FontWeight.w500,
                             fontSize: 11,
                           ),
@@ -325,6 +334,8 @@ class _GlassIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: onTap,
       scaleDown: 0.90,
@@ -333,9 +344,13 @@ class _GlassIconButton extends StatelessWidget {
         height: 40,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white.withValues(alpha: 0.45),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.white.withValues(alpha: 0.45),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.5),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.15)
+                : Colors.white.withValues(alpha: 0.5),
           ),
           boxShadow: [
             BoxShadow(
@@ -347,7 +362,7 @@ class _GlassIconButton extends StatelessWidget {
         ),
         child: Icon(
           icon,
-          color: const Color(0xFF475569), // slate-600
+          color: AppColors.textSecondaryFor(brightness),
           size: iconSize,
         ),
       ),

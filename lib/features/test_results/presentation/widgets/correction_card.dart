@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/math_text.dart';
 
 /// Expanded correction card showing the full question, user's answer,
 /// correct answer, and AI insight (light mode).
@@ -30,6 +31,8 @@ class CorrectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brightness = Theme.of(context).brightness;
     return ClipRRect(
       borderRadius: AppRadius.borderRadiusXl,
       child: BackdropFilter(
@@ -37,10 +40,14 @@ class CorrectionCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.45),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.white.withValues(alpha: 0.45),
             borderRadius: AppRadius.borderRadiusXl,
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.5),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.white.withValues(alpha: 0.5),
             ),
             boxShadow: [
               BoxShadow(
@@ -82,7 +89,7 @@ class CorrectionCard extends StatelessWidget {
                   ),
                   Icon(
                     Icons.bookmark_border,
-                    color: const Color(0xFFCBD5E1), // slate-300
+                    color: AppColors.textMutedFor(brightness),
                     size: 20,
                   ),
                 ],
@@ -91,10 +98,10 @@ class CorrectionCard extends StatelessWidget {
               const SizedBox(height: AppSpacing.md),
 
               // Question text
-              Text(
-                question,
+              MathText(
+                text: question,
                 style: AppTypography.bodyMedium.copyWith(
-                  color: const Color(0xFF64748B), // slate-500
+                  color: AppColors.textSecondaryFor(brightness),
                   fontWeight: FontWeight.w500,
                   height: 1.5,
                 ),
@@ -160,10 +167,10 @@ class CorrectionCard extends StatelessWidget {
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
-                      child: Text(
-                        aiInsight,
+                      child: MathText(
+                        text: aiInsight,
                         style: AppTypography.bodySmall.copyWith(
-                          color: const Color(0xFF475569), // slate-700 (light)
+                          color: AppColors.textSecondaryFor(brightness),
                           height: 1.5,
                         ),
                       ),
@@ -194,13 +201,15 @@ class _AnswerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brightness = Theme.of(context).brightness;
     final color = isCorrect ? const Color(0xFF22C55E) : const Color(0xFFF87171);
     final bgColor = isCorrect
-        ? const Color(0xFFF0FDF4).withValues(alpha: 0.5) // green-50/50
-        : const Color(0xFFFEF2F2).withValues(alpha: 0.5); // red-50/50
+        ? Color(0xFFF0FDF4).withValues(alpha: isDark ? 0.1 : 0.5)
+        : Color(0xFFFEF2F2).withValues(alpha: isDark ? 0.1 : 0.5);
     final borderColor = isCorrect
-        ? const Color(0xFFDCFCE7) // green-100
-        : const Color(0xFFFEE2E2); // red-100
+        ? Color(0xFFDCFCE7).withValues(alpha: isDark ? 0.3 : 1.0)
+        : Color(0xFFFEE2E2).withValues(alpha: isDark ? 0.3 : 1.0);
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.sm),
@@ -232,21 +241,24 @@ class _AnswerRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  answer,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: showStrikethrough
-                        ? const Color(0xFF475569)
-                        : const Color(0xFF1E293B),
-                    fontWeight: showStrikethrough
-                        ? FontWeight.w400
-                        : FontWeight.w500,
-                    decoration: showStrikethrough
-                        ? TextDecoration.lineThrough
-                        : TextDecoration.none,
-                    decorationColor: color.withValues(alpha: 0.5),
+                if (showStrikethrough)
+                  Text(
+                    answer,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondaryFor(brightness),
+                      fontWeight: FontWeight.w400,
+                      decoration: TextDecoration.lineThrough,
+                      decorationColor: color.withValues(alpha: 0.5),
+                    ),
+                  )
+                else
+                  MathText(
+                    text: answer,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textPrimaryFor(brightness),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
               ],
             ),
           ),

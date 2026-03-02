@@ -29,6 +29,7 @@ class StudyTimeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: onTap,
       child: AnimatedOpacity(
@@ -81,7 +82,7 @@ class StudyTimeCard extends StatelessWidget {
                 style: AppTypography.labelLarge.copyWith(
                   color: isSelected
                       ? AppColors.primary
-                      : AppColors.textPrimary,
+                      : AppColors.textPrimaryFor(brightness),
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                 ),
               ),
@@ -91,7 +92,7 @@ class StudyTimeCard extends StatelessWidget {
                 style: AppTypography.caption.copyWith(
                   color: isSelected
                       ? AppColors.primary.withValues(alpha: 0.7)
-                      : AppColors.textMuted,
+                      : AppColors.textMutedFor(brightness),
                 ),
                 textAlign: TextAlign.center,
               ),

@@ -90,6 +90,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: AuroraBackground(
@@ -132,7 +133,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     GradientText(
                       'Create Account',
                       style: AppTypography.h1.copyWith(fontSize: 28),
-                      gradient: AppGradients.textDark,
+                      gradient: AppGradients.textFor(brightness),
                     ),
 
                     const SizedBox(height: AppSpacing.xs),
@@ -140,7 +141,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     Text(
                       'Begin your journey to academic excellence',
                       style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondaryFor(brightness),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -198,7 +199,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           _obscurePassword
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
-                          color: AppColors.textMuted,
+                          color: AppColors.textMutedFor(brightness),
                           size: 20,
                         ),
                         onPressed: () =>
@@ -230,7 +231,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           _obscureConfirm
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
-                          color: AppColors.textMuted,
+                          color: AppColors.textMutedFor(brightness),
                           size: 20,
                         ),
                         onPressed: () =>
@@ -273,7 +274,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               Text(
                                 'I agree to the ',
                                 style: AppTypography.caption.copyWith(
-                                  color: AppColors.textSecondary,
+                                  color: AppColors.textSecondaryFor(brightness),
                                 ),
                               ),
                               TapScale(
@@ -289,7 +290,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               Text(
                                 ' and ',
                                 style: AppTypography.caption.copyWith(
-                                  color: AppColors.textSecondary,
+                                  color: AppColors.textSecondaryFor(brightness),
                                 ),
                               ),
                               TapScale(
@@ -335,7 +336,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         Text(
                           'Already have an account? ',
                           style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textSecondaryFor(brightness),
                           ),
                         ),
                         TapScale(

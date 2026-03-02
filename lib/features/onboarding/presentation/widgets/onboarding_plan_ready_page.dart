@@ -87,12 +87,14 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
 
   List<(String, String)> get _stats => [
         ('📚', 'Study area: ${widget.studyArea ?? 'Not set'}'),
-        ('⚡', 'Challenge: ${widget.challenge ?? 'Not set'}'),
+        ('⚡', 'Focus: ${widget.challenge ?? 'Not set'}'),
         ('⏰', 'Time: ${widget.studyTime} per day'),
+        ('🎯', 'AI tools tailored just for you'),
       ];
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return SingleChildScrollView(
       physics: const NeverScrollableScrollPhysics(),
       child: Padding(
@@ -109,7 +111,7 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
                 fontWeight: FontWeight.w700,
                 height: 1.2,
                 letterSpacing: -0.5,
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimaryFor(brightness),
               ),
               textAlign: TextAlign.center,
             ),
@@ -150,7 +152,7 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
                         child: Text(
                           'Personalized',
                           style: AppTypography.caption.copyWith(
-                            color: AppColors.textMuted,
+                            color: AppColors.textMutedFor(brightness),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -208,7 +210,7 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
                                   child: Text(
                                     stat.$2,
                                     style: AppTypography.bodyMedium.copyWith(
-                                      color: AppColors.textPrimary,
+                                      color: AppColors.textPrimaryFor(brightness),
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),

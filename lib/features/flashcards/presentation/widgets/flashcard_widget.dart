@@ -3,6 +3,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/math_text.dart';
 
 /// A single flashcard face (question or answer).
 ///
@@ -34,22 +35,25 @@ class FlashcardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFFFBFBFB),
-          borderRadius: BorderRadius.circular(32),
+          color: isDark ? const Color(0xFF1E1B2E) : const Color(0xFFFBFBFB),
+          borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 40,
-              offset: const Offset(0, 20),
+              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.12),
+              blurRadius: 32,
+              offset: const Offset(0, 16),
             ),
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              blurRadius: 20,
+              color: AppColors.primary.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -58,16 +62,16 @@ class FlashcardWidget extends StatelessWidget {
             // Paper grain texture overlay (subtle noise)
             Positioned.fill(
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(32),
+                borderRadius: BorderRadius.circular(28),
                 child: CustomPaint(
-                  painter: _PaperGrainPainter(),
+                  painter: _PaperGrainPainter(isDark: isDark),
                 ),
               ),
             ),
 
             // Card content
             Padding(
-              padding: const EdgeInsets.all(AppSpacing.xxl),
+              padding: const EdgeInsets.all(AppSpacing.xl),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -112,14 +116,18 @@ class FlashcardWidget extends StatelessWidget {
                       // Bookmark
                       GestureDetector(
                         onTap: onBookmark,
-                        child: Icon(
-                          isBookmarked
-                              ? Icons.bookmark
-                              : Icons.bookmark_border,
-                          color: isBookmarked
-                              ? AppColors.primary
-                              : AppColors.textMuted,
-                          size: 24,
+                        behavior: HitTestBehavior.opaque,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Icon(
+                            isBookmarked
+                                ? Icons.bookmark
+                                : Icons.bookmark_border,
+                            color: isBookmarked
+                                ? AppColors.primary
+                                : AppColors.textMutedFor(brightness),
+                            size: 24,
+                          ),
                         ),
                       ),
                     ],
@@ -143,23 +151,34 @@ class FlashcardWidget extends StatelessWidget {
 
                   // Bottom: hint
                   if (!isRevealed)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.touch_app,
-                          size: 16,
-                          color: AppColors.textMuted,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'TAP TO REVEAL',
-                          style: AppTypography.labelSmall.copyWith(
-                            letterSpacing: 2,
-                            color: AppColors.textMuted,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.touch_app_rounded,
+                            size: 15,
+                            color: AppColors.textSecondaryFor(brightness),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 6),
+                          Text(
+                            'TAP TO REVEAL',
+                            style: AppTypography.labelSmall.copyWith(
+                              letterSpacing: 1.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondaryFor(brightness),
+                            ),
+                          ),
+                        ],
+                      ),
                     )
                   else
                     const SizedBox(height: 20),
@@ -174,6 +193,7 @@ class FlashcardWidget extends StatelessWidget {
 }
 
 /// Question text with gradient highlighted keyword.
+/// Falls back to MathText if the question contains LaTeX.
 class _QuestionContent extends StatelessWidget {
   final String before;
   final String keyword;
@@ -185,44 +205,66 @@ class _QuestionContent extends StatelessWidget {
     required this.after,
   });
 
+  static bool _containsMath(String text) {
+    return text.contains('\$') &&
+        RegExp(
+          r'[\\^_{}]|frac|sqrt|sum|int|lim|alpha|beta|gamma|theta|pi|infty',
+        ).hasMatch(text);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fullQuestion = '$before$keyword$after';
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        RichText(
-          textAlign: TextAlign.center,
-          text: TextSpan(
+        if (_containsMath(fullQuestion))
+          MathText(
+            text: fullQuestion,
+            textAlign: TextAlign.center,
             style: AppTypography.h2.copyWith(
               fontSize: 26,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF111827),
+              color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF111827),
               height: 1.35,
             ),
-            children: [
-              TextSpan(text: before),
-              TextSpan(
-                text: keyword,
-                style: TextStyle(
-                  foreground: Paint()
-                    ..shader = const LinearGradient(
-                      colors: [AppColors.primary, Color(0xFF4F46E5)],
-                    ).createShader(
-                      const Rect.fromLTWH(0, 0, 200, 40),
-                    ),
-                ),
+          )
+        else
+          RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: AppTypography.h2.copyWith(
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF111827),
+                height: 1.35,
               ),
-              TextSpan(text: after),
-            ],
+              children: [
+                TextSpan(text: before),
+                TextSpan(
+                  text: keyword,
+                  style: TextStyle(
+                    foreground: Paint()
+                      ..shader = const LinearGradient(
+                        colors: [AppColors.primary, Color(0xFF4F46E5)],
+                      ).createShader(
+                        const Rect.fromLTWH(0, 0, 200, 40),
+                      ),
+                  ),
+                ),
+                TextSpan(text: after),
+              ],
+            ),
           ),
-        ),
         const SizedBox(height: 24),
         // Decorative divider
         Container(
           width: 48,
           height: 4,
           decoration: BoxDecoration(
-            color: const Color(0xFFE5E7EB),
+            color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE5E7EB),
             borderRadius: AppRadius.borderRadiusPill,
           ),
         ),
@@ -239,13 +281,14 @@ class _AnswerContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      answer,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return MathText(
+      text: answer,
       textAlign: TextAlign.center,
       style: AppTypography.bodyLarge.copyWith(
         fontSize: 18,
         height: 1.6,
-        color: const Color(0xFF374151),
+        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF374151),
       ),
     );
   }
@@ -253,11 +296,16 @@ class _AnswerContent extends StatelessWidget {
 
 /// Subtle paper grain texture using a CustomPainter.
 class _PaperGrainPainter extends CustomPainter {
+  final bool isDark;
+  _PaperGrainPainter({this.isDark = false});
+
   @override
   void paint(Canvas canvas, Size size) {
     // Very subtle noise dots
     final paint = Paint()
-      ..color = Colors.black.withValues(alpha: 0.02)
+      ..color = isDark
+          ? Colors.white.withValues(alpha: 0.02)
+          : Colors.black.withValues(alpha: 0.02)
       ..strokeWidth = 0.5;
 
     // Simple deterministic "grain" pattern

@@ -18,6 +18,8 @@ class MaterialListItem extends StatelessWidget {
   final String typeLabel;
   final CourseMaterialKind kind;
   final bool isReviewed;
+  final int cardCount;
+  final int quizCount;
   final VoidCallback? onTap;
   final VoidCallback? onGenerateQuiz;
   final VoidCallback? onDelete;
@@ -29,6 +31,8 @@ class MaterialListItem extends StatelessWidget {
     required this.typeLabel,
     required this.kind,
     this.isReviewed = false,
+    this.cardCount = 0,
+    this.quizCount = 0,
     this.onTap,
     this.onGenerateQuiz,
     this.onDelete,
@@ -36,6 +40,7 @@ class MaterialListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     final card = TapScale(
       onTap: onTap,
       child: ClipRRect(
@@ -45,10 +50,14 @@ class MaterialListItem extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.4),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white.withValues(alpha: 0.10)
+                  : Colors.white.withValues(alpha: 0.82),
               borderRadius: AppRadius.borderRadiusLg,
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.6),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : Colors.black.withValues(alpha: 0.06),
               ),
             ),
             child: Opacity(
@@ -83,57 +92,43 @@ class MaterialListItem extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 4),
-                            Row(
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
                               children: [
-                                // Time/status
-                                if (isReviewed)
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.check_circle,
-                                        size: 12,
-                                        color: AppColors.success,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Reviewed',
-                                        style: AppTypography.caption.copyWith(
-                                          color: AppColors.success,
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                else
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.schedule,
-                                        size: 12,
-                                        color: AppColors.textMuted,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        timeLabel,
-                                        style: AppTypography.caption,
-                                      ),
-                                    ],
-                                  ),
-
-                                // Separator dot
-                                Container(
-                                  width: 4,
-                                  height: 4,
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: const Color(0xFFD1D5DB),
-                                  ),
+                                // Status chip
+                                _StatusChip(
+                                  icon: isReviewed
+                                      ? Icons.check_circle
+                                      : Icons.schedule,
+                                  label: isReviewed ? 'Reviewed' : timeLabel,
+                                  color: isReviewed
+                                      ? AppColors.success
+                                      : AppColors.textMutedFor(brightness),
                                 ),
 
-                                // Type label
-                                Text(typeLabel, style: AppTypography.caption),
+                                // Type chip
+                                _StatusChip(
+                                  icon: _icon,
+                                  label: typeLabel,
+                                  color: _iconColor,
+                                ),
+
+                                // Flashcard count chip
+                                if (cardCount > 0)
+                                  _StatusChip(
+                                    icon: Icons.style_rounded,
+                                    label: '$cardCount cards',
+                                    color: const Color(0xFF3B82F6),
+                                  ),
+
+                                // Quiz count chip
+                                if (quizCount > 0)
+                                  _StatusChip(
+                                    icon: Icons.quiz_rounded,
+                                    label: '$quizCount quiz${quizCount > 1 ? 'zes' : ''}',
+                                    color: const Color(0xFF10B981),
+                                  ),
                               ],
                             ),
                           ],
@@ -251,4 +246,43 @@ class MaterialListItem extends StatelessWidget {
         CourseMaterialKind.audio => Icons.headset,
         CourseMaterialKind.notes => Icons.edit_note,
       };
+}
+
+/// Compact status chip for material metadata.
+class _StatusChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _StatusChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: color),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: AppTypography.caption.copyWith(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

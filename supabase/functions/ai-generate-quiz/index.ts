@@ -266,6 +266,8 @@ Generate exactly ${count} quiz questions in JSON format. Each question must have
 Make questions that test understanding, not just memorization.
 Vary difficulty: mix easy, medium, and hard questions.
 
+For math/science questions, use LaTeX notation: $...$ for inline math, $$...$$ for display math.
+
 IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation.`;
 
       const prompt = `Based on this course material, generate ${count} quiz questions in the SAME LANGUAGE as the material:\n\n${materialContent}\n\nOutput the JSON array now:`;

@@ -40,6 +40,8 @@ class _AuthTextFieldState extends State<AuthTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
     return Focus(
       onFocusChange: (focused) => setState(() => _isFocused = focused),
       child: AnimatedContainer(
@@ -69,12 +71,12 @@ class _AuthTextFieldState extends State<AuthTextField> {
               validator: widget.validator,
               onFieldSubmitted: widget.onFieldSubmitted,
               style: AppTypography.bodyLarge.copyWith(
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimaryFor(brightness),
               ),
               decoration: InputDecoration(
                 hintText: widget.hintText,
                 hintStyle: AppTypography.bodyLarge.copyWith(
-                  color: AppColors.textMuted,
+                  color: AppColors.textMutedFor(brightness),
                 ),
                 prefixIcon: widget.prefixIcon != null
                     ? AnimatedSwitcher(
@@ -84,14 +86,14 @@ class _AuthTextFieldState extends State<AuthTextField> {
                           key: ValueKey(_isFocused),
                           color: _isFocused
                               ? AppColors.primary
-                              : AppColors.textMuted,
+                              : AppColors.textMutedFor(brightness),
                           size: 20,
                         ),
                       )
                     : null,
                 suffixIcon: widget.suffixIcon,
                 filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.5),
+                fillColor: isDark ? Colors.white.withValues(alpha: 0.10) : Colors.white.withValues(alpha: 0.82),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 20,
                   vertical: 18,
@@ -99,13 +101,13 @@ class _AuthTextFieldState extends State<AuthTextField> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.4),
+                    color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.5),
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.4),
+                    color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.5),
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(

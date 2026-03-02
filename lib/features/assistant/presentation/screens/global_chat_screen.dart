@@ -254,6 +254,7 @@ class _GlobalChatScreenState extends ConsumerState<GlobalChatScreen> {
 class _EmptyGlobalChatState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),
@@ -282,14 +283,14 @@ class _EmptyGlobalChatState extends StatelessWidget {
             Text(
               'The Oracle knows you',
               style:
-                  AppTypography.h3.copyWith(color: AppColors.textSecondary),
+                  AppTypography.h3.copyWith(color: AppColors.textSecondaryFor(brightness)),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               'I know your courses, scores, weak areas, and upcoming exams. Ask me anything about your studies!',
               style: AppTypography.bodyMedium
-                  .copyWith(color: AppColors.textMuted),
+                  .copyWith(color: AppColors.textMutedFor(brightness)),
               textAlign: TextAlign.center,
             ),
           ],

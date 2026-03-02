@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/sound_service.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/error_handler.dart';
@@ -12,7 +11,9 @@ import '../widgets/flashcard_widget.dart';
 import '../widgets/card_stack.dart';
 import '../widgets/swipe_indicator.dart';
 import '../widgets/floating_toolbar.dart';
+import '../widgets/share_deck_dialog.dart';
 import '../providers/flashcard_provider.dart';
+import '../../data/fsrs.dart';
 import '../../data/models/flashcard_model.dart';
 import '../../../courses/presentation/providers/course_provider.dart';
 
@@ -28,6 +29,8 @@ class FlashcardSessionScreen extends ConsumerStatefulWidget {
 
 class _FlashcardSessionScreenState
     extends ConsumerState<FlashcardSessionScreen> {
+  final FSRS _fsrs = FSRS();
+
   int _currentIndex = 0;
   bool _isRevealed = false;
   bool _hasCompletedOnce = false;
@@ -42,8 +45,13 @@ class _FlashcardSessionScreenState
     if (cards.isEmpty) return;
 
     final card = cards[_currentIndex % cards.length];
-    final newMastery =
-        direction == SwipeDirection.right ? 'mastered' : 'learning';
+
+    // Map swipe to FSRS rating: left = Again, right = Good
+    final rating =
+        direction == SwipeDirection.right ? Rating.good : Rating.again;
+    final fsrsCard = card.toFsrsCard();
+    final result = _fsrs.repeat(fsrsCard, rating);
+    final updatedCard = card.applyFsrsResult(result.card);
 
     // Play appropriate sound
     if (direction == SwipeDirection.right) {
@@ -52,10 +60,10 @@ class _FlashcardSessionScreenState
       SoundService.playWrongAnswer();
     }
 
-    // Update mastery in background (catch errors silently — non-critical)
+    // Persist SRS update in background (catch errors silently — non-critical)
     ref
         .read(flashcardRepositoryProvider)
-        .updateMastery(card.id, newMastery)
+        .updateCardAfterReview(updatedCard, result.log)
         .catchError((_) {/* silent — mastery sync is best-effort */});
 
     final nextIndex = _currentIndex + 1;
@@ -97,87 +105,87 @@ class _FlashcardSessionScreenState
   @override
   Widget build(BuildContext context) {
     final cardsAsync = ref.watch(flashcardsProvider(widget.sessionId));
+    final brightness = Theme.of(context).brightness;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppGradients.darkImmersive),
-        child: cardsAsync.when(
-          loading: () => const Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
-          ),
-          error: (e, _) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error_outline,
-                      size: 48, color: Colors.white.withValues(alpha: 0.6)),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    'Could not load flashcards',
-                    style: AppTypography.h3.copyWith(color: Colors.white),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    AppErrorHandler.friendlyMessage(e),
-                    style: AppTypography.bodySmall.copyWith(
-                      color: Colors.white.withValues(alpha: 0.6),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Go Back'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          data: (cards) {
-            if (cards.isEmpty) {
-              return SafeArea(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.xl),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.style,
-                            size: 48,
-                            color:
-                                Colors.white.withValues(alpha: 0.4)),
-                        const SizedBox(height: AppSpacing.md),
-                        Text(
-                          'No flashcards yet',
-                          style:
-                              AppTypography.h3.copyWith(color: Colors.white),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          'Generate flashcards from your course materials first.',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: Colors.white.withValues(alpha: 0.6),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Go Back'),
-                        ),
-                      ],
-                    ),
+      backgroundColor: AppColors.backgroundFor(brightness),
+      body: cardsAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline,
+                    size: 48, color: AppColors.textMutedFor(brightness)),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'Could not load flashcards',
+                  style: AppTypography.h3.copyWith(
+                    color: AppColors.textPrimaryFor(brightness),
                   ),
                 ),
-              );
-            }
-
-            return _buildCardSession(cards);
-          },
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  AppErrorHandler.friendlyMessage(e),
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textMutedFor(brightness),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Go Back'),
+                ),
+              ],
+            ),
+          ),
         ),
+        data: (cards) {
+          if (cards.isEmpty) {
+            return SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.style,
+                          size: 48,
+                          color: AppColors.textMutedFor(brightness)),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        'No flashcards yet',
+                        style: AppTypography.h3.copyWith(
+                          color: AppColors.textPrimaryFor(brightness),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        'Generate flashcards from your course materials first.',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.textMutedFor(brightness),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Go Back'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+
+          return _buildCardSession(cards);
+        },
       ),
     );
   }
@@ -358,10 +366,24 @@ class _FlashcardSessionScreenState
                   const SnackBar(content: Text('Edit cards coming soon')),
                 );
               },
-              onShare: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Share deck coming soon')),
-                );
+              onShare: () async {
+                try {
+                  final code = await ref
+                      .read(flashcardRepositoryProvider)
+                      .shareDeck(widget.sessionId);
+                  if (!mounted) return;
+                  showDialog(
+                    context: context,
+                    builder: (_) => ShareDeckDialog(shareCode: code),
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(AppErrorHandler.friendlyMessage(e)),
+                    ),
+                  );
+                }
               },
             ),
           ),

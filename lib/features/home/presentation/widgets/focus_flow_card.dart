@@ -21,8 +21,10 @@ class FocusFlowCard extends StatelessWidget {
   final String ctaLabel;
   final IconData? placeholderIcon;
   final bool isSecondary;
+  final int dueCount;
   final VoidCallback? onCtaTap;
   final VoidCallback? onMoreTap;
+  final VoidCallback? onDueTap;
 
   const FocusFlowCard({
     super.key,
@@ -35,12 +37,16 @@ class FocusFlowCard extends StatelessWidget {
     required this.ctaLabel,
     this.placeholderIcon,
     this.isSecondary = false,
+    this.dueCount = 0,
     this.onCtaTap,
     this.onMoreTap,
+    this.onDueTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brightness = Theme.of(context).brightness;
     return ClipRRect(
       borderRadius: AppRadius.borderRadiusXxl,
       child: BackdropFilter(
@@ -48,10 +54,14 @@ class FocusFlowCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.xl),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.45),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.white.withValues(alpha: 0.45),
             borderRadius: AppRadius.borderRadiusXxl,
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.6),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.white.withValues(alpha: 0.6),
             ),
             boxShadow: [
               BoxShadow(
@@ -100,10 +110,59 @@ class FocusFlowCard extends StatelessWidget {
                           title,
                           style: AppTypography.h2.copyWith(
                             fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimaryFor(brightness),
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(subtitle, style: AppTypography.bodySmall),
+                        Text(
+                          subtitle,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textMutedFor(brightness),
+                          ),
+                        ),
+                        // Due cards badge
+                        if (dueCount > 0) ...[
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: onDueTap,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF3C7).withValues(alpha: isDark ? 0.15 : 0.6),
+                                borderRadius: AppRadius.borderRadiusPill,
+                                border: Border.all(
+                                  color: const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.3 : 0.4),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.schedule,
+                                    size: 12,
+                                    color: isDark
+                                        ? const Color(0xFFFBBF24)
+                                        : const Color(0xFFD97706),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$dueCount card${dueCount == 1 ? '' : 's'} due',
+                                    style: AppTypography.caption.copyWith(
+                                      color: isDark
+                                          ? const Color(0xFFFBBF24)
+                                          : const Color(0xFFD97706),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -115,11 +174,13 @@ class FocusFlowCard extends StatelessWidget {
                         height: 40,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: 0.5),
+                          color: isDark
+                            ? Colors.white.withValues(alpha: 0.12)
+                            : Colors.white.withValues(alpha: 0.5),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.more_horiz,
-                          color: AppColors.textMuted,
+                          color: AppColors.textMutedFor(brightness),
                           size: 20,
                         ),
                       ),
@@ -160,13 +221,13 @@ class FocusFlowCard extends StatelessWidget {
                             Icon(
                               placeholderIcon ?? Icons.edit_note,
                               size: 56,
-                              color: AppColors.textMuted.withValues(alpha: 0.5),
+                              color: AppColors.textMutedFor(brightness).withValues(alpha: 0.5),
                             ),
                             const SizedBox(height: 8),
                             Text(
                               'Not started',
                               style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.textMuted,
+                                color: AppColors.textMutedFor(brightness),
                               ),
                             ),
                           ],
@@ -182,7 +243,9 @@ class FocusFlowCard extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.5),
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.12)
+                          : Colors.white.withValues(alpha: 0.5),
                       borderRadius: AppRadius.borderRadiusPill,
                     ),
                     child: Center(

@@ -103,12 +103,14 @@ Future<bool> checkFeatureAccess({
       .read(subscriptionRepositoryProvider)
       .checkCanUseFeature(user.id, feature);
 
-  if (!canUse && context.mounted) {
-    context.push(Routes.paywall);
+  if (!canUse) {
+    if (context.mounted) {
+      context.push(Routes.paywall);
+    }
     return false;
   }
 
-  return true;
+  return canUse;
 }
 
 /// Record feature usage after a successful action.

@@ -75,6 +75,7 @@ class _OnboardingStudyTimePageState extends State<OnboardingStudyTimePage>
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
@@ -117,7 +118,7 @@ class _OnboardingStudyTimePageState extends State<OnboardingStudyTimePage>
                         fontWeight: FontWeight.w700,
                         height: 1.2,
                         letterSpacing: -0.5,
-                        color: AppColors.textPrimary,
+                        color: AppColors.textPrimaryFor(brightness),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -154,7 +155,7 @@ class _OnboardingStudyTimePageState extends State<OnboardingStudyTimePage>
                             "We'll adapt your plan to your routine.",
                             key: const ValueKey('subtitle'),
                             style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.textSecondary,
+                              color: AppColors.textSecondaryFor(brightness),
                               height: 1.55,
                             ),
                           ),

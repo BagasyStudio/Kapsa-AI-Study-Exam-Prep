@@ -12,6 +12,7 @@ import 'core/providers/revenue_cat_provider.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/revenue_cat_service.dart';
 import 'core/services/sound_service.dart';
+import 'core/providers/theme_provider.dart';
 import 'core/utils/error_handler.dart';
 
 void main() {
@@ -44,22 +45,17 @@ void main() {
       }
     }
 
-    // Check onboarding flag
+    // Check onboarding flag + theme preference
     final prefs = await SharedPreferences.getInstance();
     final hasSeenOnboarding = prefs.getBool('has_seen_onboarding') ?? false;
+    final savedThemeMode = prefs.getString('kapsa_theme_mode');
 
     // Force portrait orientation for iOS
     await SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
     ]);
 
-    // Light status bar icons
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarBrightness: Brightness.light,
-        statusBarIconBrightness: Brightness.dark,
-      ),
-    );
+    // Status bar style is now handled by ThemeData (light/dark appBarTheme)
 
     runApp(
       ProviderScope(
@@ -68,6 +64,12 @@ void main() {
           hasSeenOnboardingProvider.overrideWith(
             (ref) => hasSeenOnboarding,
           ),
+          // Initialize theme mode from saved preference
+          themeModeProvider.overrideWith((ref) {
+            final notifier = ThemeModeNotifier();
+            notifier.initialize(savedThemeMode);
+            return notifier;
+          }),
           // Share the pre-initialized RevenueCat instance with all providers
           if (revenueCat != null)
             revenueCatServiceProvider.overrideWithValue(revenueCat),

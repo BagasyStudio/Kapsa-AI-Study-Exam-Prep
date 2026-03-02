@@ -9,6 +9,9 @@ enum GlassTier { subtle, medium, strong }
 ///
 /// Uses [BackdropFilter] with [ClipRRect] for performance.
 /// Three tiers: subtle (backgrounds), medium (cards/nav), strong (active buttons).
+///
+/// Automatically adapts to dark mode — uses lighter tints in light mode
+/// and slightly transparent fills in dark mode.
 class GlassPanel extends StatelessWidget {
   final Widget child;
   final GlassTier tier;
@@ -29,8 +32,11 @@ class GlassPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final config = _configFor(tier);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final config = _configFor(tier, isDark);
     final radius = borderRadius ?? AppRadius.borderRadiusXl;
+
+    final baseTint = tintColor ?? (isDark ? Colors.white : Colors.white);
 
     return ClipRRect(
       borderRadius: radius,
@@ -42,8 +48,7 @@ class GlassPanel extends StatelessWidget {
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
-            color:
-                (tintColor ?? Colors.white).withValues(alpha: config.fillOpacity),
+            color: baseTint.withValues(alpha: config.fillOpacity),
             borderRadius: radius,
             border: border ??
                 Border.all(
@@ -57,23 +62,44 @@ class GlassPanel extends StatelessWidget {
     );
   }
 
-  _GlassConfig _configFor(GlassTier tier) => switch (tier) {
+  _GlassConfig _configFor(GlassTier tier, bool isDark) {
+    if (isDark) {
+      return switch (tier) {
         GlassTier.subtle => (
-            fillOpacity: 0.35,
+            fillOpacity: 0.10,
             blurSigma: 8.0,
-            borderOpacity: 0.10
+            borderOpacity: 0.08
           ),
         GlassTier.medium => (
-            fillOpacity: 0.50,
+            fillOpacity: 0.12,
             blurSigma: 12.0,
-            borderOpacity: 0.15
+            borderOpacity: 0.10
           ),
         GlassTier.strong => (
-            fillOpacity: 0.65,
+            fillOpacity: 0.18,
             blurSigma: 16.0,
-            borderOpacity: 0.20
+            borderOpacity: 0.14
           ),
       };
+    }
+    return switch (tier) {
+      GlassTier.subtle => (
+          fillOpacity: 0.50,
+          blurSigma: 8.0,
+          borderOpacity: 0.12
+        ),
+      GlassTier.medium => (
+          fillOpacity: 0.72,
+          blurSigma: 12.0,
+          borderOpacity: 0.18
+        ),
+      GlassTier.strong => (
+          fillOpacity: 0.82,
+          blurSigma: 16.0,
+          borderOpacity: 0.25
+        ),
+    };
+  }
 }
 
 typedef _GlassConfig = ({

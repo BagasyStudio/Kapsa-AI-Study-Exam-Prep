@@ -52,7 +52,10 @@ Deno.serve(async (req: Request) => {
     }
     await adminClient.from("chat_sessions").delete().eq("user_id", userId);
 
-    // 2. Flashcards (via deck ids)
+    // 2. Shared decks (before flashcard_decks due to FK)
+    await adminClient.from("shared_decks").delete().eq("user_id", userId);
+
+    // 3. Flashcards (via deck ids)
     const { data: decks } = await adminClient
       .from("flashcard_decks")
       .select("id")
@@ -74,14 +77,27 @@ Deno.serve(async (req: Request) => {
     }
     await adminClient.from("tests").delete().eq("user_id", userId);
 
-    // 4. Course materials & courses
+    // 4. Snap solutions (before courses due to optional FK)
+    await adminClient.from("snap_solutions").delete().eq("user_id", userId);
+
+    // 5. Course materials & courses
     await adminClient.from("course_materials").delete().eq("user_id", userId);
     await adminClient.from("courses").delete().eq("user_id", userId);
 
     // 5. Calendar events
     await adminClient.from("calendar_events").delete().eq("user_id", userId);
 
-    // 6. Usage tracking
+    // 6. Audio summaries
+    await adminClient.from("audio_summaries").delete().eq("user_id", userId);
+
+    // 6b. Group data (activities, memberships)
+    await adminClient.from("group_activities").delete().eq("user_id", userId);
+    await adminClient.from("group_members").delete().eq("user_id", userId);
+
+    // 7. XP events
+    await adminClient.from("xp_events").delete().eq("user_id", userId);
+
+    // 7. Usage tracking
     await adminClient.from("usage_tracking").delete().eq("user_id", userId);
 
     // 7. Profile

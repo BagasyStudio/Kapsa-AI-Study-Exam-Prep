@@ -6,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/providers/revenue_cat_provider.dart';
+import '../../../../core/providers/theme_provider.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/sound_service.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -19,28 +20,37 @@ import '../../../courses/presentation/providers/course_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
 import '../../../subscription/presentation/widgets/ai_consent_dialog.dart';
 import '../providers/profile_provider.dart';
+import '../../../gamification/presentation/providers/xp_provider.dart';
+import '../../../../core/constants/xp_config.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
-  void _showSignOutDialog(BuildContext context, WidgetRef ref) {
+  @override
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+
+  void _showSignOutDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFFF8FAFC),
+        backgroundColor: isDark ? AppColors.cardDark : const Color(0xFFF8FAFC),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
         title: Text(
           'Sign Out',
           style: AppTypography.h3.copyWith(
-            color: const Color(0xFF0F172A),
+            color: AppColors.textPrimaryFor(Theme.of(ctx).brightness),
           ),
         ),
         content: Text(
           'Are you sure you want to sign out?',
           style: AppTypography.bodyMedium.copyWith(
-            color: const Color(0xFF64748B),
+            color: AppColors.textSecondaryFor(Theme.of(ctx).brightness),
           ),
         ),
         actions: [
@@ -49,7 +59,7 @@ class ProfileScreen extends ConsumerWidget {
             child: Text(
               'Cancel',
               style: AppTypography.labelLarge.copyWith(
-                color: const Color(0xFF64748B),
+                color: AppColors.textSecondaryFor(Theme.of(ctx).brightness),
               ),
             ),
           ),
@@ -75,12 +85,16 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
     final currentUser = ref.watch(currentUserProvider);
+    final xpTotal = ref.watch(xpTotalProvider).valueOrNull ?? 0;
+    final xpLevel = XpConfig.levelFromXp(xpTotal);
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: AppColors.backgroundFor(brightness),
       body: Stack(
         children: [
           // Ethereal mesh gradients (matches calendar style)
@@ -91,7 +105,8 @@ class ProfileScreen extends ConsumerWidget {
                   center: const Alignment(-1.0, -1.0),
                   radius: 1.2,
                   colors: [
-                    const Color(0xFFE4E0ED).withValues(alpha: 0.8),
+                    (isDark ? const Color(0xFF1E1A2E) : const Color(0xFFE4E0ED))
+                        .withValues(alpha: isDark ? 0.6 : 0.8),
                     Colors.transparent,
                   ],
                 ),
@@ -105,7 +120,8 @@ class ProfileScreen extends ConsumerWidget {
                   center: const Alignment(0.0, -1.0),
                   radius: 1.0,
                   colors: [
-                    const Color(0xFFCED6EA).withValues(alpha: 0.6),
+                    (isDark ? const Color(0xFF1A1E30) : const Color(0xFFCED6EA))
+                        .withValues(alpha: isDark ? 0.4 : 0.6),
                     Colors.transparent,
                   ],
                 ),
@@ -119,7 +135,8 @@ class ProfileScreen extends ConsumerWidget {
                   center: const Alignment(1.0, -1.0),
                   radius: 1.0,
                   colors: [
-                    const Color(0xFFEDD6DD).withValues(alpha: 0.5),
+                    (isDark ? const Color(0xFF2A1A22) : const Color(0xFFEDD6DD))
+                        .withValues(alpha: isDark ? 0.3 : 0.5),
                     Colors.transparent,
                   ],
                 ),
@@ -149,7 +166,7 @@ class ProfileScreen extends ConsumerWidget {
                     child: Text(
                       'Error loading profile',
                       style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondaryFor(brightness),
                       ),
                     ),
                   ),
@@ -174,7 +191,7 @@ class ProfileScreen extends ConsumerWidget {
                           shape: BoxShape.circle,
                           gradient: AppGradients.primaryToIndigo,
                           border: Border.all(
-                            color: Colors.white,
+                            color: isDark ? AppColors.cardDark : Colors.white,
                             width: 3,
                           ),
                           boxShadow: [
@@ -203,7 +220,7 @@ class ProfileScreen extends ConsumerWidget {
                       Text(
                         displayName,
                         style: AppTypography.h2.copyWith(
-                          color: const Color(0xFF0F172A),
+                          color: AppColors.textPrimaryFor(brightness),
                           fontSize: 22,
                         ),
                       ),
@@ -211,7 +228,65 @@ class ProfileScreen extends ConsumerWidget {
                       Text(
                         displayEmail,
                         style: AppTypography.bodySmall.copyWith(
-                          color: const Color(0xFF64748B),
+                          color: AppColors.textSecondaryFor(brightness),
+                        ),
+                      ),
+
+                      const SizedBox(height: AppSpacing.md),
+
+                      // XP Level badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                              const Color(0xFFF97316).withValues(alpha: 0.08),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(100),
+                          border: Border.all(
+                            color: const Color(0xFFF59E0B).withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.bolt,
+                              size: 14,
+                              color: Color(0xFFF59E0B),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Level $xpLevel',
+                              style: AppTypography.labelLarge.copyWith(
+                                color: const Color(0xFFF59E0B),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Container(
+                              width: 3,
+                              height: 3,
+                              margin: const EdgeInsets.symmetric(horizontal: 6),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
+                              ),
+                            ),
+                            Text(
+                              '${_formatNumber(xpTotal)} XP',
+                              style: AppTypography.caption.copyWith(
+                                color: const Color(0xFFF59E0B).withValues(alpha: 0.8),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
 
@@ -269,15 +344,7 @@ class ProfileScreen extends ConsumerWidget {
                             _NotificationToggleTile(),
                             _SoundToggleTile(),
                             _AiDataToggleTile(),
-                            _SettingsTile(
-                              icon: Icons.palette_outlined,
-                              label: 'Appearance',
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Appearance settings coming soon')),
-                                );
-                              },
-                            ),
+                            _ThemeToggleTile(),
                             _SettingsTile(
                               icon: Icons.download_outlined,
                               label: 'Downloads',
@@ -292,7 +359,7 @@ class ProfileScreen extends ConsumerWidget {
                             Padding(
                               padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                               child: Divider(
-                                color: const Color(0xFF94A3B8).withValues(alpha: 0.35),
+                                color: AppColors.textMutedFor(brightness).withValues(alpha: 0.35),
                               ),
                             ),
 
@@ -318,11 +385,11 @@ class ProfileScreen extends ConsumerWidget {
                             // Sign Out with confirmation
                             Center(
                               child: TapScale(
-                                onTap: () => _showSignOutDialog(context, ref),
+                                onTap: () => _showSignOutDialog(context),
                                 child: Text(
                                   'Sign Out',
                                   style: AppTypography.labelLarge.copyWith(
-                                    color: const Color(0xFF64748B),
+                                    color: AppColors.textSecondaryFor(brightness),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -358,7 +425,7 @@ class ProfileScreen extends ConsumerWidget {
                                   return Text(
                                     'Version $version${build.isNotEmpty ? ' ($build)' : ''}',
                                     style: AppTypography.caption.copyWith(
-                                      color: const Color(0xFF94A3B8).withValues(alpha: 0.6),
+                                      color: AppColors.textMutedFor(brightness).withValues(alpha: 0.6),
                                       fontSize: 11,
                                     ),
                                   );
@@ -377,6 +444,11 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  String _formatNumber(int n) {
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
+    return n.toString();
   }
 }
 
@@ -405,6 +477,7 @@ class _SubscriptionSection extends ConsumerWidget {
   }
 
   Widget _buildProBadge(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: BackdropFilter(
@@ -449,7 +522,7 @@ class _SubscriptionSection extends ConsumerWidget {
                     Text(
                       'Kapsa Pro Active',
                       style: AppTypography.labelLarge.copyWith(
-                        color: const Color(0xFF1E293B),
+                        color: AppColors.textPrimaryFor(brightness),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -457,7 +530,7 @@ class _SubscriptionSection extends ConsumerWidget {
                     Text(
                       'All features unlocked',
                       style: AppTypography.caption.copyWith(
-                        color: const Color(0xFF64748B),
+                        color: AppColors.textSecondaryFor(brightness),
                       ),
                     ),
                   ],
@@ -476,6 +549,7 @@ class _SubscriptionSection extends ConsumerWidget {
   }
 
   Widget _buildUpgradeCard(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: () => context.push(Routes.paywall),
       child: ClipRRect(
@@ -520,7 +594,7 @@ class _SubscriptionSection extends ConsumerWidget {
                       Text(
                         'Upgrade to Pro',
                         style: AppTypography.labelLarge.copyWith(
-                          color: const Color(0xFF1E293B),
+                          color: AppColors.textPrimaryFor(brightness),
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -528,7 +602,7 @@ class _SubscriptionSection extends ConsumerWidget {
                       Text(
                         'Unlock AI Oracle & Smart Study Plans',
                         style: AppTypography.caption.copyWith(
-                          color: const Color(0xFF64748B),
+                          color: AppColors.textSecondaryFor(brightness),
                         ),
                       ),
                     ],
@@ -548,6 +622,7 @@ class _SubscriptionSection extends ConsumerWidget {
   }
 
   Widget _buildRestoreButton(BuildContext context, WidgetRef ref) {
+    final brightness = Theme.of(context).brightness;
     return Center(
       child: TapScale(
         onTap: () async {
@@ -569,11 +644,11 @@ class _SubscriptionSection extends ConsumerWidget {
         child: Text(
           'Restore Purchases',
           style: AppTypography.bodySmall.copyWith(
-            color: const Color(0xFF64748B),
+            color: AppColors.textSecondaryFor(brightness),
             fontWeight: FontWeight.w500,
             fontSize: 13,
             decoration: TextDecoration.underline,
-            decorationColor: const Color(0xFF94A3B8).withValues(alpha: 0.5),
+            decorationColor: AppColors.textMutedFor(brightness).withValues(alpha: 0.5),
           ),
         ),
       ),
@@ -597,6 +672,8 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: BackdropFilter(
@@ -604,40 +681,57 @@ class _StatCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(
             vertical: AppSpacing.md,
-            horizontal: AppSpacing.sm,
+            horizontal: AppSpacing.xs,
           ),
+          constraints: const BoxConstraints(minHeight: 100),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.85),
-            borderRadius: BorderRadius.circular(16),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.white.withValues(alpha: 0.85),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.9),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.black.withValues(alpha: 0.04),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 12,
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
+                blurRadius: 16,
                 offset: const Offset(0, 4),
               ),
             ],
           ),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: iconColor, size: 22),
-              const SizedBox(height: 6),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: iconColor.withValues(alpha: 0.1),
+                ),
+                child: Icon(icon, color: iconColor, size: 18),
+              ),
+              const SizedBox(height: 8),
               Text(
                 value,
                 style: AppTypography.h3.copyWith(
-                  color: const Color(0xFF0F172A),
+                  color: AppColors.textPrimaryFor(brightness),
                   fontSize: 20,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 label,
                 style: AppTypography.caption.copyWith(
-                  color: const Color(0xFF64748B),
+                  color: AppColors.textSecondaryFor(brightness),
                   fontSize: 11,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -720,6 +814,7 @@ class _NotificationToggleTileState
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: () => _toggle(!_enabled),
       child: Padding(
@@ -743,7 +838,7 @@ class _NotificationToggleTileState
                 size: 18,
                 color: _enabled
                     ? AppColors.primary
-                    : const Color(0xFF475569),
+                    : AppColors.textSecondaryFor(brightness),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -754,14 +849,14 @@ class _NotificationToggleTileState
                   Text(
                     'Study Reminders',
                     style: AppTypography.labelLarge.copyWith(
-                      color: const Color(0xFF1E293B),
+                      color: AppColors.textPrimaryFor(brightness),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
                     _enabled ? 'On — daily at 8:00 PM' : 'Off',
                     style: AppTypography.caption.copyWith(
-                      color: const Color(0xFF94A3B8),
+                      color: AppColors.textMutedFor(brightness),
                     ),
                   ),
                 ],
@@ -802,6 +897,7 @@ class _SoundToggleTileState extends State<_SoundToggleTile> {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: () => _toggle(!_enabled),
       child: Padding(
@@ -823,7 +919,7 @@ class _SoundToggleTileState extends State<_SoundToggleTile> {
                 size: 18,
                 color: _enabled
                     ? AppColors.primary
-                    : const Color(0xFF475569),
+                    : AppColors.textSecondaryFor(brightness),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -834,14 +930,14 @@ class _SoundToggleTileState extends State<_SoundToggleTile> {
                   Text(
                     'Sound Effects',
                     style: AppTypography.labelLarge.copyWith(
-                      color: const Color(0xFF1E293B),
+                      color: AppColors.textPrimaryFor(brightness),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
                     _enabled ? 'On' : 'Off',
                     style: AppTypography.caption.copyWith(
-                      color: const Color(0xFF94A3B8),
+                      color: AppColors.textMutedFor(brightness),
                     ),
                   ),
                 ],
@@ -920,6 +1016,7 @@ class _AiDataToggleTileState extends ConsumerState<_AiDataToggleTile> {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: () => _toggle(!_enabled),
       child: Padding(
@@ -941,7 +1038,7 @@ class _AiDataToggleTileState extends ConsumerState<_AiDataToggleTile> {
                 size: 18,
                 color: _enabled
                     ? AppColors.primary
-                    : const Color(0xFF475569),
+                    : AppColors.textSecondaryFor(brightness),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -952,14 +1049,14 @@ class _AiDataToggleTileState extends ConsumerState<_AiDataToggleTile> {
                   Text(
                     'AI Data Processing',
                     style: AppTypography.labelLarge.copyWith(
-                      color: const Color(0xFF1E293B),
+                      color: AppColors.textPrimaryFor(brightness),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
                     _enabled ? 'Allowed' : 'Not allowed',
                     style: AppTypography.caption.copyWith(
-                      color: const Color(0xFF94A3B8),
+                      color: AppColors.textMutedFor(brightness),
                     ),
                   ),
                 ],
@@ -984,6 +1081,216 @@ class _AiDataToggleTileState extends ConsumerState<_AiDataToggleTile> {
   }
 }
 
+/// Theme / Appearance toggle tile — System / Light / Dark.
+class _ThemeToggleTile extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final brightness = Theme.of(context).brightness;
+    final themeMode = ref.watch(themeModeProvider);
+
+    final label = switch (themeMode) {
+      ThemeMode.system => 'System',
+      ThemeMode.light => 'Light',
+      ThemeMode.dark => 'Dark',
+    };
+
+    final icon = switch (themeMode) {
+      ThemeMode.system => Icons.brightness_auto,
+      ThemeMode.light => Icons.light_mode,
+      ThemeMode.dark => Icons.dark_mode,
+    };
+
+    return TapScale(
+      onTap: () => _showThemePicker(context, ref, themeMode),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primary.withValues(alpha: 0.08),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                ),
+              ),
+              child: Icon(
+                icon,
+                size: 18,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Appearance',
+                    style: AppTypography.labelLarge.copyWith(
+                      color: AppColors.textPrimaryFor(brightness),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    label,
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.textMutedFor(brightness),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: AppColors.textMutedFor(brightness),
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showThemePicker(BuildContext context, WidgetRef ref, ThemeMode current) {
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Appearance',
+                style: AppTypography.h3.copyWith(
+                  color: AppColors.textPrimaryFor(brightness),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              _ThemeOption(
+                icon: Icons.brightness_auto,
+                label: 'System',
+                subtitle: 'Match device settings',
+                isSelected: current == ThemeMode.system,
+                onTap: () {
+                  ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.system);
+                  Navigator.of(ctx).pop();
+                },
+              ),
+              _ThemeOption(
+                icon: Icons.light_mode,
+                label: 'Light',
+                subtitle: 'Always use light theme',
+                isSelected: current == ThemeMode.light,
+                onTap: () {
+                  ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.light);
+                  Navigator.of(ctx).pop();
+                },
+              ),
+              _ThemeOption(
+                icon: Icons.dark_mode,
+                label: 'Dark',
+                subtitle: 'Always use dark theme',
+                isSelected: current == ThemeMode.dark,
+                onTap: () {
+                  ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.dark);
+                  Navigator.of(ctx).pop();
+                },
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Individual theme option in the bottom sheet picker.
+class _ThemeOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _ThemeOption({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    return TapScale(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : Colors.transparent,
+          border: isSelected
+              ? Border.all(color: AppColors.primary.withValues(alpha: 0.3))
+              : null,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 22,
+              color: isSelected
+                  ? AppColors.primary
+                  : AppColors.textSecondaryFor(brightness),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: AppTypography.labelLarge.copyWith(
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.textPrimaryFor(brightness),
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.textMutedFor(brightness),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(Icons.check_circle, color: AppColors.primary, size: 22),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Settings list tile with glass style.
 class _SettingsTile extends StatelessWidget {
   final IconData icon;
@@ -998,6 +1305,7 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: onTap,
       child: Padding(
@@ -1017,7 +1325,7 @@ class _SettingsTile extends StatelessWidget {
               child: Icon(
                 icon,
                 size: 18,
-                color: const Color(0xFF475569),
+                color: AppColors.textSecondaryFor(brightness),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -1025,14 +1333,14 @@ class _SettingsTile extends StatelessWidget {
               child: Text(
                 label,
                 style: AppTypography.labelLarge.copyWith(
-                  color: const Color(0xFF1E293B),
+                  color: AppColors.textPrimaryFor(brightness),
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ),
             Icon(
               Icons.chevron_right,
-              color: const Color(0xFF94A3B8),
+              color: AppColors.textMutedFor(brightness),
               size: 20,
             ),
           ],

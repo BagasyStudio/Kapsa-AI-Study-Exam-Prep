@@ -265,6 +265,8 @@ Example (if material is in Spanish):
 Example (if material is in English):
 {"topic":"Cell Structure","question_before":"What is the primary function of the ","keyword":"mitochondria","question_after":"?","answer":"Generate most of the chemical energy needed to power the cell's biochemical reactions through ATP production."}
 
+For math/science flashcards, use LaTeX notation in answers: $...$ for inline math. Example: an answer containing $\\frac{1}{2}mv^2$.
+
 IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation, just the JSON array.${sanitizedTopic ? `\nFocus on the topic: ${sanitizedTopic}` : ""}`;
 
     const prompt = `Based on this course material, generate ${count} flashcards in the SAME LANGUAGE as the material:\n\n${materialContent}\n\nOutput the JSON array now:`;

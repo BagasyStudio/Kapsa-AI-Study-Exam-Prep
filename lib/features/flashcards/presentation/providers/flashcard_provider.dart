@@ -23,3 +23,21 @@ final flashcardsProvider = FutureProvider.autoDispose
     .family<List<FlashcardModel>, String>((ref, deckId) async {
   return ref.watch(flashcardRepositoryProvider).getCards(deckId);
 });
+
+/// Fetches all cards due for review in a course.
+final dueCardsProvider = FutureProvider.autoDispose
+    .family<List<FlashcardModel>, String>((ref, courseId) async {
+  return ref.watch(flashcardRepositoryProvider).getDueCards(courseId);
+});
+
+/// Counts cards due for review in a course (for badges/indicators).
+final dueCardsCountProvider = FutureProvider.autoDispose
+    .family<int, String>((ref, courseId) async {
+  return ref.watch(flashcardRepositoryProvider).getDueCardsCount(courseId);
+});
+
+/// Counts cards due for review in a specific deck.
+final dueCardsCountForDeckProvider = FutureProvider.autoDispose
+    .family<int, String>((ref, deckId) async {
+  return ref.watch(flashcardRepositoryProvider).getDueCardsCountForDeck(deckId);
+});

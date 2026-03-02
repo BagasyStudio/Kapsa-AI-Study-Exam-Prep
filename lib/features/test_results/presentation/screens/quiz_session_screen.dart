@@ -8,21 +8,36 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/math_text.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../providers/test_provider.dart';
 import '../../data/models/test_question_model.dart';
 import '../../../../core/utils/error_handler.dart';
 import '../../../courses/presentation/providers/course_provider.dart';
+import '../widgets/exam_timer_widget.dart';
+import '../../../gamification/presentation/providers/xp_provider.dart';
+import '../../../gamification/presentation/widgets/xp_popup.dart';
+import '../../../../core/constants/xp_config.dart';
+import '../../../../core/widgets/celebration_overlay.dart';
 
 /// Full-screen quiz session where users answer AI-generated questions.
 ///
 /// Displays one question at a time with a text input field.
 /// After answering all questions, submits to the AI for evaluation
 /// and navigates to the results screen.
+///
+/// Supports optional [timeLimitMinutes] for practice exam mode.
 class QuizSessionScreen extends ConsumerStatefulWidget {
   final String testId;
+  final int? timeLimitMinutes;
+  final bool isPracticeExam;
 
-  const QuizSessionScreen({super.key, required this.testId});
+  const QuizSessionScreen({
+    super.key,
+    required this.testId,
+    this.timeLimitMinutes,
+    this.isPracticeExam = false,
+  });
 
   @override
   ConsumerState<QuizSessionScreen> createState() => _QuizSessionScreenState();
@@ -147,11 +162,21 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
     }
   }
 
-  Future<void> _submitQuiz(List<TestQuestionModel> questions) async {
+  Future<void> _submitQuiz(List<TestQuestionModel> questions, {bool force = false}) async {
+    if (_isSubmitting) return;
+
     // Save current answer
     final answer = _answerController.text.trim();
     if (answer.isNotEmpty) {
       _answers[_currentIndex] = answer;
+    }
+
+    // For forced submissions (time up), fill unanswered with placeholder
+    if (force) {
+      for (int i = 0; i < questions.length; i++) {
+        _answers.putIfAbsent(i, () => '(no answer)');
+        if (_answers[i]!.trim().isEmpty) _answers[i] = '(no answer)';
+      }
     }
 
     // Check that all questions are answered
@@ -162,7 +187,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
       }
     }
 
-    if (unanswered.isNotEmpty) {
+    if (unanswered.isNotEmpty && !force) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -202,6 +227,23 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
           .recalculateProgress(result.test.courseId)
           .then((_) => ref.invalidate(coursesProvider))
           .catchError((_) {/* best-effort */});
+
+      // Award XP for quiz completion
+      _awardQuizXp(result.test.score);
+
+      if (!mounted) return;
+
+      // Show celebration for perfect score
+      if ((result.test.score ?? 0) >= 100) {
+        CelebrationOverlay.show(
+          context,
+          title: 'Perfect Score! 🎉',
+          subtitle: 'You nailed every question!',
+          icon: Icons.emoji_events,
+          color: const Color(0xFFF59E0B),
+        );
+        await Future.delayed(const Duration(milliseconds: 1500));
+      }
 
       if (!mounted) return;
       // Navigate to results, replacing this screen
@@ -288,28 +330,28 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
 
     return Stack(
       children: [
-        // Decorative orb
+        // Decorative orb — kept small to avoid overlap on short devices
         Positioned(
-          top: -100,
-          right: -60,
+          top: -80,
+          right: -50,
           child: Container(
-            width: 300,
-            height: 300,
+            width: 220,
+            height: 220,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.primary.withValues(alpha: 0.12),
+              color: AppColors.primary.withValues(alpha: 0.10),
             ),
           ),
         ),
         Positioned(
-          bottom: 100,
-          left: -80,
+          bottom: 80,
+          left: -60,
           child: Container(
-            width: 200,
-            height: 200,
+            width: 160,
+            height: 160,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF8B5CF6).withValues(alpha: 0.08),
+              color: const Color(0xFF8B5CF6).withValues(alpha: 0.06),
             ),
           ),
         ),
@@ -331,15 +373,15 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                         TapScale(
                           onTap: () => _showExitDialog(),
                           child: Container(
-                            width: 36,
-                            height: 36,
+                            width: 44,
+                            height: 44,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: Colors.white.withValues(alpha: 0.1),
                             ),
                             child: Icon(Icons.close,
                                 color: Colors.white.withValues(alpha: 0.7),
-                                size: 18),
+                                size: 20),
                           ),
                         ),
                         const SizedBox(width: AppSpacing.md),
@@ -378,6 +420,15 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                         ),
                       ],
                     ),
+                    // Timer for practice exams
+                    if (widget.timeLimitMinutes != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: AppSpacing.sm),
+                        child: ExamTimerWidget(
+                          totalMinutes: widget.timeLimitMinutes!,
+                          onTimeUp: () => _submitQuiz(questions, force: true),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -421,8 +472,8 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                         const SizedBox(height: AppSpacing.xl),
 
                         // Question text
-                        Text(
-                          question.question,
+                        MathText(
+                          text: question.question,
                           style: AppTypography.h2.copyWith(
                             color: Colors.white,
                             fontSize: 22,
@@ -455,7 +506,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                             decoration: InputDecoration(
                               hintText: 'Type your answer here...',
                               hintStyle: AppTypography.bodyMedium.copyWith(
-                                color: Colors.white.withValues(alpha: 0.3),
+                                color: Colors.white.withValues(alpha: 0.45),
                               ),
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.all(AppSpacing.lg),
@@ -470,7 +521,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                         Text(
                           'Answer in your own words. The AI will evaluate your understanding.',
                           style: AppTypography.bodySmall.copyWith(
-                            color: Colors.white.withValues(alpha: 0.35),
+                            color: Colors.white.withValues(alpha: 0.5),
                             fontSize: 12,
                           ),
                         ),
@@ -593,13 +644,17 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        isLast ? 'Submit Quiz' : 'Next',
+                                        isLast
+                                            ? (widget.isPracticeExam
+                                                ? 'Submit Exam'
+                                                : 'Submit Quiz')
+                                            : 'Next',
                                         style:
                                             AppTypography.labelLarge.copyWith(
                                           color: hasAnswer
                                               ? Colors.white
                                               : Colors.white
-                                                  .withValues(alpha: 0.4),
+                                                  .withValues(alpha: 0.5),
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
@@ -612,7 +667,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                                         color: hasAnswer
                                             ? Colors.white
                                             : Colors.white
-                                                .withValues(alpha: 0.4),
+                                                .withValues(alpha: 0.5),
                                       ),
                                     ],
                                   ),
@@ -630,6 +685,42 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
     );
   }
 
+  void _awardQuizXp(double? score) {
+    final xpRepo = ref.read(xpRepositoryProvider);
+    final scorePercent = score ?? 0;
+    final baseXp = XpConfig.quizComplete;
+    final bonus = XpConfig.quizScoreBonus(scorePercent);
+    final totalXp = baseXp + bonus;
+
+    xpRepo
+        .awardXp(
+          action: 'quiz_complete',
+          amount: totalXp,
+          metadata: {'test_id': widget.testId, 'score': scorePercent},
+        )
+        .then((_) => ref.invalidate(xpTotalProvider))
+        .catchError((_) {/* silent */});
+
+    // Bonus for perfect score
+    if (scorePercent >= 100) {
+      xpRepo
+          .awardXp(
+            action: 'perfect_quiz',
+            amount: XpConfig.perfectQuiz,
+            metadata: {'test_id': widget.testId},
+          )
+          .then((_) => ref.invalidate(xpTotalProvider))
+          .catchError((_) {/* silent */});
+    }
+
+    if (mounted) {
+      final displayXp = scorePercent >= 100
+          ? totalXp + XpConfig.perfectQuiz
+          : totalXp;
+      XpPopup.show(context, xp: displayXp, label: 'Quiz Complete');
+    }
+  }
+
   void _showExitDialog() {
     showDialog(
       context: context,
@@ -639,7 +730,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
           borderRadius: BorderRadius.circular(20),
         ),
         title: Text(
-          'Leave Quiz?',
+          widget.isPracticeExam ? 'Leave Exam?' : 'Leave Quiz?',
           style: AppTypography.h3.copyWith(color: Colors.white),
         ),
         content: Text(

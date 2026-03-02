@@ -13,6 +13,8 @@ import '../../data/models/calendar_event_model.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../assistant/presentation/providers/assistant_provider.dart';
 import '../../../../core/utils/error_handler.dart';
+import '../../../../core/providers/theme_provider.dart';
+import '../../../../core/widgets/shimmer_loading.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
@@ -101,8 +103,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         ? fullName.substring(0, 1).toUpperCase()
         : 'U';
 
+    final brightness = Theme.of(context).brightness;
+    final isDark = context.isDark;
+
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: AppColors.backgroundFor(brightness),
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 100),
         child: FloatingActionButton.extended(
@@ -134,12 +139,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: AppColors.backgroundLight,
+                color: AppColors.backgroundFor(brightness),
                 gradient: RadialGradient(
                   center: const Alignment(-1.0, -1.0),
                   radius: 1.2,
                   colors: [
-                    const Color(0xFFE4E0ED).withValues(alpha: 0.8),
+                    (isDark ? const Color(0xFF1A1533) : const Color(0xFFE4E0ED))
+                        .withValues(alpha: isDark ? 0.5 : 0.8),
                     Colors.transparent,
                   ],
                 ),
@@ -153,7 +159,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   center: const Alignment(0.0, -1.0),
                   radius: 1.0,
                   colors: [
-                    const Color(0xFFCED6EA).withValues(alpha: 0.6),
+                    (isDark ? const Color(0xFF131A2B) : const Color(0xFFCED6EA))
+                        .withValues(alpha: isDark ? 0.4 : 0.6),
                     Colors.transparent,
                   ],
                 ),
@@ -167,7 +174,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   center: const Alignment(1.0, -1.0),
                   radius: 1.0,
                   colors: [
-                    const Color(0xFFEDD6DD).withValues(alpha: 0.5),
+                    (isDark ? const Color(0xFF1A1228) : const Color(0xFFEDD6DD))
+                        .withValues(alpha: isDark ? 0.3 : 0.5),
                     Colors.transparent,
                   ],
                 ),
@@ -218,7 +226,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                 Text(
                                   _monthYearLabel,
                                   style: AppTypography.h2.copyWith(
-                                    color: const Color(0xFF0F172A),
+                                    color: AppColors.textPrimaryFor(brightness),
                                     fontSize: 24,
                                   ),
                                 ),
@@ -301,8 +309,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     ),
                     child: eventsAsync.when(
                       loading: () => const Padding(
-                        padding: EdgeInsets.only(top: 60),
-                        child: Center(child: CircularProgressIndicator()),
+                        padding: EdgeInsets.only(top: 20),
+                        child: ShimmerList(count: 3, itemHeight: 72),
                       ),
                       error: (e, _) => Padding(
                         padding: const EdgeInsets.only(top: 60),
@@ -330,14 +338,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                   Text(
                                     'No events for this day',
                                     style: AppTypography.h3.copyWith(
-                                      color: AppColors.textSecondary,
+                                      color: AppColors.textSecondaryFor(brightness),
                                     ),
                                   ),
                                   const SizedBox(height: AppSpacing.sm),
                                   Text(
                                     'Your schedule is clear!',
                                     style: AppTypography.bodySmall.copyWith(
-                                      color: AppColors.textMuted,
+                                      color: AppColors.textMutedFor(brightness),
                                     ),
                                   ),
                                 ],
@@ -345,7 +353,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                             ),
                           );
                         }
-                        return _buildTimeline(events);
+                        return _buildTimeline(events, isDark: isDark);
                       },
                     ),
                   ),
@@ -359,7 +367,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _buildTimeline(List<CalendarEventModel> events) {
+  Widget _buildTimeline(List<CalendarEventModel> events, {required bool isDark}) {
     // Sort events by start time
     final sorted = [...events]
       ..sort((a, b) => a.startTime.compareTo(b.startTime));
@@ -429,7 +437,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             time: event.description ?? '',
             subtitle: '',
             icon: Icons.assignment,
-            iconBgColor: const Color(0xFFE0E7FF),
+            iconBgColor: isDark
+                ? const Color(0xFF6366F1).withValues(alpha: 0.15)
+                : const Color(0xFFE0E7FF),
             iconColor: const Color(0xFF6366F1),
             trailingText: event.endTime != null
                 ? '${event.endTime!.difference(event.startTime).inMinutes}m'

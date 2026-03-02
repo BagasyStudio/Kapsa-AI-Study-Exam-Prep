@@ -48,7 +48,8 @@ class SessionProgressBar extends StatelessWidget {
                   Text(
                     courseLabel.toUpperCase(),
                     style: AppTypography.labelSmall.copyWith(
-                      color: Colors.white.withValues(alpha: 0.6),
+                      color: AppColors.textMutedFor(
+                          Theme.of(context).brightness),
                       letterSpacing: 1.5,
                       fontSize: 9,
                     ),
@@ -56,7 +57,8 @@ class SessionProgressBar extends StatelessWidget {
                   Text(
                     '$current / $total',
                     style: AppTypography.labelSmall.copyWith(
-                      color: Colors.white.withValues(alpha: 0.6),
+                      color: AppColors.textMutedFor(
+                          Theme.of(context).brightness),
                       letterSpacing: 1.5,
                       fontSize: 9,
                     ),
@@ -67,11 +69,15 @@ class SessionProgressBar extends StatelessWidget {
               // Progress bar (animated fill)
               LayoutBuilder(
                 builder: (context, constraints) {
+                  final isDark =
+                      Theme.of(context).brightness == Brightness.dark;
                   return Container(
                     height: 4,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.1),
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Colors.black.withValues(alpha: 0.08),
                       borderRadius: AppRadius.borderRadiusPill,
                     ),
                     child: Align(
@@ -85,7 +91,8 @@ class SessionProgressBar extends StatelessWidget {
                           borderRadius: AppRadius.borderRadiusPill,
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.8),
+                              color:
+                                  AppColors.primary.withValues(alpha: 0.8),
                               blurRadius: 10,
                             ),
                           ],
@@ -119,6 +126,8 @@ class _GlassCircleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brightness = Theme.of(context).brightness;
     return GestureDetector(
       onTap: onTap,
       child: ClipOval(
@@ -129,15 +138,19 @@ class _GlassCircleButton extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.1),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.white.withValues(alpha: 0.45),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.15),
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.15)
+                    : Colors.white.withValues(alpha: 0.6),
               ),
             ),
             child: Icon(
               icon,
               size: 20,
-              color: Colors.white.withValues(alpha: 0.8),
+              color: AppColors.textSecondaryFor(brightness),
             ),
           ),
         ),

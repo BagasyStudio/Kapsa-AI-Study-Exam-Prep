@@ -1,7 +1,7 @@
 name: kapsa_app
 description: "Kapsa - AI-powered study companion"
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: ^3.6.0
@@ -27,6 +27,8 @@ dependencies:
 
   # Text & Content
   flutter_markdown: ^0.7.6
+  flutter_math_fork: ^0.7.0
+  markdown: ^7.3.0
 
   # Date
   intl: ^0.19.0
@@ -71,6 +73,7 @@ dependencies:
 
   # Utilities
   uuid: ^4.5.1
+  confetti: ^0.8.0
 
 dev_dependencies:
   flutter_test:

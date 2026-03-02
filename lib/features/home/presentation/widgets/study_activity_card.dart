@@ -6,6 +6,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
+import '../../../../core/widgets/empty_state.dart';
+import '../../../../core/providers/theme_provider.dart';
 import '../../../test_results/data/models/test_model.dart';
 import '../../../flashcards/data/models/deck_model.dart';
 import '../providers/study_activity_provider.dart';
@@ -25,7 +27,34 @@ class StudyActivityCard extends ConsumerWidget {
       error: (_, __) => const SizedBox.shrink(),
       data: (activity) {
         if (activity.decks.isEmpty && activity.tests.isEmpty) {
-          return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.school,
+                        size: 18,
+                        color: AppColors.primary.withValues(alpha: 0.7)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Study Activity',
+                      style: AppTypography.h4.copyWith(
+                        color: AppColors.textPrimaryFor(Theme.of(context).brightness),
+                        fontSize: 17,
+                      ),
+                    ),
+                  ],
+                ),
+                const EmptyState(
+                  icon: Icons.school,
+                  title: 'No activity yet',
+                  subtitle: 'Complete a quiz or review flashcards to see your activity here.',
+                ),
+              ],
+            ),
+          );
         }
 
         return Padding(
@@ -43,7 +72,7 @@ class StudyActivityCard extends ConsumerWidget {
                   Text(
                     'Study Activity',
                     style: AppTypography.h4.copyWith(
-                      color: const Color(0xFF1E293B),
+                      color: AppColors.textPrimaryFor(Theme.of(context).brightness),
                       fontSize: 17,
                     ),
                   ),
@@ -84,6 +113,8 @@ class _QuizActivityItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDark;
+    final brightness = Theme.of(context).brightness;
     final score = test.percentage;
     final color = score >= 80
         ? const Color(0xFF22C55E)
@@ -96,21 +127,33 @@ class _QuizActivityItem extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(16),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.10)
+              : Colors.white.withValues(alpha: 0.82),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.6),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.white.withValues(alpha: 0.5),
           ),
+          boxShadow: [
+            if (!isDark)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+          ],
         ),
         child: Row(
           children: [
             // Score badge
             Container(
-              width: 42,
-              height: 42,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: Center(
                 child: Text(
@@ -133,6 +176,7 @@ class _QuizActivityItem extends StatelessWidget {
                     test.title ?? 'Quiz',
                     style: AppTypography.labelLarge.copyWith(
                       fontSize: 13,
+                      color: AppColors.textPrimaryFor(brightness),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -141,7 +185,7 @@ class _QuizActivityItem extends StatelessWidget {
                   Text(
                     '${test.correctCount}/${test.totalCount} correct • ${_timeAgo(test.createdAt)}',
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textMuted,
+                      color: AppColors.textMutedFor(brightness),
                       fontSize: 11,
                     ),
                   ),
@@ -194,23 +238,37 @@ class _DeckActivityItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDark;
+    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: () => context.push(Routes.flashcardSessionPath(deck.id)),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(16),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.10)
+              : Colors.white.withValues(alpha: 0.82),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.6),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.white.withValues(alpha: 0.5),
           ),
+          boxShadow: [
+            if (!isDark)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+          ],
         ),
         child: Row(
           children: [
             // Icon
             Container(
-              width: 42,
-              height: 42,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
@@ -218,7 +276,7 @@ class _DeckActivityItem extends StatelessWidget {
                     const Color(0xFF8B5CF6).withValues(alpha: 0.15),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: const Icon(Icons.style, size: 20, color: Color(0xFF6467F2)),
             ),
@@ -232,6 +290,7 @@ class _DeckActivityItem extends StatelessWidget {
                     deck.title,
                     style: AppTypography.labelLarge.copyWith(
                       fontSize: 13,
+                      color: AppColors.textPrimaryFor(brightness),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -240,7 +299,7 @@ class _DeckActivityItem extends StatelessWidget {
                   Text(
                     '${deck.cardCount} cards • ${_timeAgo(deck.createdAt)}',
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textMuted,
+                      color: AppColors.textMutedFor(brightness),
                       fontSize: 11,
                     ),
                   ),

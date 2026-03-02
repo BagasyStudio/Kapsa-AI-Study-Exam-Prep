@@ -485,16 +485,22 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         minChildSize: _isProcessing ? 0.92 : 0.5,
         maxChildSize: 0.92,
         builder: (context, scrollController) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final brightness = Theme.of(context).brightness;
           return ClipRRect(
           borderRadius: AppRadius.borderRadiusSheet,
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.65),
+                color: isDark
+                    ? AppColors.surfaceDark.withValues(alpha: 0.95)
+                    : Colors.white.withValues(alpha: 0.88),
                 borderRadius: AppRadius.borderRadiusSheet,
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.white.withValues(alpha: 0.5),
                 ),
               ),
               child: Column(
@@ -532,15 +538,19 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                               Center(
                                 child: Text(
                                   'New Capture',
-                                  style: AppTypography.h2
-                                      .copyWith(fontWeight: FontWeight.w700),
+                                  style: AppTypography.h2.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimaryFor(brightness),
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Center(
                                 child: Text(
                                   'Choose how you want to add materials',
-                                  style: AppTypography.bodySmall,
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: AppColors.textSecondaryFor(brightness),
+                                  ),
                                 ),
                               ),
 
@@ -561,28 +571,33 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                   mainAxisSpacing: AppSpacing.lg,
                                   crossAxisSpacing: AppSpacing.lg,
                                   shrinkWrap: true,
+                                  childAspectRatio: 0.85,
                                   physics:
                                       const NeverScrollableScrollPhysics(),
                                   children: [
                                     _CaptureAction(
                                       icon: Icons.photo_camera_rounded,
                                       label: 'Scan Pages',
+                                      subtitle: 'Photos to text in seconds',
                                       onTap: () => _scanPages(courses),
                                     ),
                                     _CaptureAction(
                                       icon: Icons.graphic_eq_rounded,
                                       label: 'Record &\nTranscribe',
+                                      subtitle: 'Voice to study notes',
                                       onTap: () =>
                                           _recordAndTranscribe(courses),
                                     ),
                                     _CaptureAction(
                                       icon: Icons.picture_as_pdf_rounded,
                                       label: 'Upload PDF',
+                                      subtitle: 'Extract summaries & cards',
                                       onTap: () => _uploadPdf(courses),
                                     ),
                                     _CaptureAction(
                                       icon: Icons.content_paste_rounded,
                                       label: 'Quick Paste',
+                                      subtitle: 'Paste text from anywhere',
                                       onTap: () => _quickPaste(courses),
                                     ),
                                   ],
@@ -598,7 +613,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                 children: [
                                   Text(
                                     'RECENT',
-                                    style: AppTypography.sectionHeader,
+                                    style: AppTypography.sectionHeader.copyWith(
+                                      color: AppColors.textMutedFor(brightness),
+                                    ),
                                   ),
                                   Text(
                                     'View All',
@@ -669,7 +686,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                       'Cancel',
                                       style:
                                           AppTypography.labelLarge.copyWith(
-                                        color: AppColors.textSecondary,
+                                        color: AppColors.textSecondaryFor(brightness),
                                       ),
                                     ),
                                   ),
@@ -709,16 +726,20 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 class _CaptureAction extends StatelessWidget {
   final IconData icon;
   final String label;
+  final String? subtitle;
   final VoidCallback onTap;
 
   const _CaptureAction({
     required this.icon,
     required this.label,
+    this.subtitle,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brightness = Theme.of(context).brightness;
     return GlassButton(
       onTap: onTap,
       borderRadius: BorderRadius.circular(32),
@@ -729,7 +750,9 @@ class _CaptureAction extends StatelessWidget {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
@@ -741,14 +764,27 @@ class _CaptureAction extends StatelessWidget {
             ),
             child: Icon(icon, size: 28, color: AppColors.primary),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Text(
             label,
             style: AppTypography.labelLarge.copyWith(
-              color: AppColors.textPrimary,
+              color: AppColors.textPrimaryFor(brightness),
             ),
             textAlign: TextAlign.center,
           ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle!,
+              style: AppTypography.caption.copyWith(
+                color: AppColors.textMutedFor(brightness),
+                fontSize: 10,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ],
       ),
     );
@@ -768,12 +804,20 @@ class _RecentItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brightness = Theme.of(context).brightness;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.4),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.06)
+            : Colors.white.withValues(alpha: 0.4),
         borderRadius: AppRadius.borderRadiusLg,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.white.withValues(alpha: 0.5),
+        ),
       ),
       child: Row(
         children: [
@@ -791,15 +835,25 @@ class _RecentItem extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTypography.labelLarge),
-                Text(subtitle, style: AppTypography.caption),
+                Text(
+                  title,
+                  style: AppTypography.labelLarge.copyWith(
+                    color: AppColors.textPrimaryFor(brightness),
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textMutedFor(brightness),
+                  ),
+                ),
               ],
             ),
           ),
           Icon(
             Icons.chevron_right_rounded,
             size: 16,
-            color: AppColors.textMuted,
+            color: AppColors.textMutedFor(brightness),
           ),
         ],
       ),
@@ -905,7 +959,7 @@ class _UploadProgressView extends StatelessWidget {
                     : 'Our AI is working its magic...',
                 key: ValueKey(step),
                 style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textMuted,
+                  color: AppColors.textMutedFor(Theme.of(context).brightness),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -961,11 +1015,12 @@ class _StepDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     final color = isComplete
         ? AppColors.success
         : isActive
             ? AppColors.primary
-            : AppColors.textMuted.withValues(alpha: 0.4);
+            : AppColors.textMutedFor(brightness).withValues(alpha: 0.4);
 
     return Column(
       children: [
@@ -992,7 +1047,7 @@ class _StepDot extends StatelessWidget {
         Text(
           label,
           style: AppTypography.caption.copyWith(
-            color: isActive ? AppColors.primary : AppColors.textMuted,
+            color: isActive ? AppColors.primary : AppColors.textMutedFor(brightness),
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
@@ -1017,7 +1072,7 @@ class _StepConnector extends StatelessWidget {
         decoration: BoxDecoration(
           color: isComplete
               ? AppColors.success.withValues(alpha: 0.5)
-              : AppColors.textMuted.withValues(alpha: 0.15),
+              : AppColors.textMutedFor(Theme.of(context).brightness).withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(1),
         ),
       ),
@@ -1290,7 +1345,7 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
             Text(
               'Max ${_maxDurationSeconds ~/ 60} min',
               style: AppTypography.caption.copyWith(
-                color: AppColors.textMuted,
+                color: AppColors.textMutedFor(Theme.of(context).brightness),
               ),
             ),
           ],
@@ -1320,9 +1375,9 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
                   icon: const Icon(Icons.refresh, size: 18),
                   label: const Text('Re-record'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
+                    foregroundColor: AppColors.textSecondaryFor(Theme.of(context).brightness),
                     side: BorderSide(
-                      color: AppColors.textMuted.withValues(alpha: 0.3),
+                      color: AppColors.textMutedFor(Theme.of(context).brightness).withValues(alpha: 0.3),
                     ),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -1356,7 +1411,7 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
                   onPressed: _cancelRecording,
                   child: Text(
                     'Cancel',
-                    style: TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(color: AppColors.textSecondaryFor(Theme.of(context).brightness)),
                   ),
                 ),
                 const SizedBox(width: 16),

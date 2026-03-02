@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -25,6 +26,8 @@ class CollapsedCorrectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brightness = Theme.of(context).brightness;
     return GestureDetector(
       onTap: onTap,
       child: ClipRRect(
@@ -34,10 +37,14 @@ class CollapsedCorrectionCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.45),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.white.withValues(alpha: 0.45),
               borderRadius: AppRadius.borderRadiusLg,
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.5),
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.white.withValues(alpha: 0.5),
               ),
               boxShadow: [
                 BoxShadow(
@@ -78,7 +85,7 @@ class CollapsedCorrectionCard extends StatelessWidget {
                     ),
                     Icon(
                       Icons.bookmark_border,
-                      color: const Color(0xFFCBD5E1),
+                      color: AppColors.textMutedFor(brightness),
                       size: 20,
                     ),
                   ],
@@ -90,7 +97,7 @@ class CollapsedCorrectionCard extends StatelessWidget {
                 Text(
                   question,
                   style: AppTypography.bodySmall.copyWith(
-                    color: const Color(0xFF64748B), // slate-500
+                    color: AppColors.textSecondaryFor(brightness),
                     fontWeight: FontWeight.w500,
                   ),
                   maxLines: 1,
@@ -113,7 +120,7 @@ class CollapsedCorrectionCard extends StatelessWidget {
                       Icon(
                         Icons.arrow_forward,
                         size: 10,
-                        color: const Color(0xFFCBD5E1),
+                        color: AppColors.textMutedFor(brightness),
                       ),
                       const SizedBox(width: 4),
                       Text(

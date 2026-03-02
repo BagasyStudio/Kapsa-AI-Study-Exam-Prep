@@ -20,6 +20,7 @@ class EmptySlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -30,7 +31,7 @@ class EmptySlot extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: AppRadius.borderRadiusLg,
           border: Border.all(
-            color: AppColors.textMuted.withValues(alpha: 0.2),
+            color: AppColors.textMutedFor(brightness).withValues(alpha: 0.2),
             // Dashed border effect simulated with dotted style
           ),
         ),
@@ -43,13 +44,13 @@ class EmptySlot extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: AppColors.textMuted.withValues(alpha: 0.3),
+                  color: AppColors.textMutedFor(brightness).withValues(alpha: 0.3),
                 ),
               ),
               child: Icon(
                 Icons.add,
                 size: 14,
-                color: AppColors.textMuted.withValues(alpha: 0.5),
+                color: AppColors.textMutedFor(brightness).withValues(alpha: 0.5),
               ),
             ),
 
@@ -59,7 +60,7 @@ class EmptySlot extends StatelessWidget {
             Text(
               'Free Time',
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textMuted.withValues(alpha: 0.5),
+                color: AppColors.textMutedFor(brightness).withValues(alpha: 0.5),
               ),
             ),
 
@@ -69,7 +70,7 @@ class EmptySlot extends StatelessWidget {
             Text(
               time,
               style: AppTypography.caption.copyWith(
-                color: AppColors.textMuted.withValues(alpha: 0.4),
+                color: AppColors.textMutedFor(brightness).withValues(alpha: 0.4),
               ),
             ),
           ],

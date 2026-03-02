@@ -22,6 +22,8 @@ class AiInsightBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
     return ClipRRect(
       borderRadius: AppRadius.borderRadiusLg,
       child: BackdropFilter(
@@ -29,10 +31,14 @@ class AiInsightBanner extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.65),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.10)
+                : Colors.white.withValues(alpha: 0.82),
             borderRadius: AppRadius.borderRadiusLg,
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.5),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.white.withValues(alpha: 0.5),
             ),
             boxShadow: [
               BoxShadow(
@@ -114,7 +120,7 @@ class AiInsightBanner extends StatelessWidget {
                     recommendation,
                     style: AppTypography.bodySmall.copyWith(
                       height: 1.6,
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondaryFor(brightness),
                     ),
                   ),
 

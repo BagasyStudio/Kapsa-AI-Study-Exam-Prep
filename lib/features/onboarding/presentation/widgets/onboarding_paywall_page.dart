@@ -27,6 +27,8 @@ class OnboardingPaywallPage extends StatelessWidget {
     (icon: Icons.style_outlined, text: 'Unlimited Flashcards & Quizzes'),
     (icon: Icons.calendar_today_outlined, text: 'Smart Study Plans'),
     (icon: Icons.insights_outlined, text: 'Advanced Analytics & Insights'),
+    (icon: Icons.headset_outlined, text: 'Audio Summaries & Occlusion'),
+    (icon: Icons.groups_outlined, text: 'Unlimited Study Groups'),
   ];
 
   @override
@@ -135,6 +137,55 @@ class OnboardingPaywallPage extends StatelessWidget {
               );
             }),
 
+            const SizedBox(height: AppSpacing.md),
+
+            // Social proof bar
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.08),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Text(
+                    '50K+ students',
+                    style: AppTypography.caption.copyWith(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 11,
+                    ),
+                  ),
+                  Text(
+                    '·',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.star_rounded,
+                          size: 12, color: Color(0xFFFBBF24)),
+                      const SizedBox(width: 3),
+                      Text(
+                        '4.8 rating',
+                        style: AppTypography.caption.copyWith(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontWeight: FontWeight.w500,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
             const SizedBox(height: AppSpacing.xl),
 
             // CTA
@@ -150,7 +201,7 @@ class OnboardingPaywallPage extends StatelessWidget {
                   ),
                   child: Center(
                     child: Text(
-                      'Try Pro Free',
+                      'Start 7-Day Free Trial',
                       style: AppTypography.button.copyWith(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
@@ -184,7 +235,7 @@ class OnboardingPaywallPage extends StatelessWidget {
 
             // Trial note
             Text(
-              '7-day free trial · Cancel anytime',
+              '7-day free trial · Cancel anytime · No charge today',
               style: AppTypography.caption.copyWith(
                 color: Colors.white.withValues(alpha: 0.35),
               ),

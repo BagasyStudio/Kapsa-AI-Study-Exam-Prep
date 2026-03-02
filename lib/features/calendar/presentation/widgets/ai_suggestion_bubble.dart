@@ -22,6 +22,7 @@ class AiSuggestionBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -64,7 +65,7 @@ class AiSuggestionBubble extends StatelessWidget {
                 Text(
                   text,
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondaryFor(brightness),
                     height: 1.5,
                   ),
                 ),

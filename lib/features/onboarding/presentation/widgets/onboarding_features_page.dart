@@ -39,9 +39,9 @@ class _OnboardingFeaturesPageState extends State<OnboardingFeaturesPage>
     ),
     (
       image: 'assets/images/onboarding/onboarding_flashcards.png',
-      title: 'AI Flashcards',
+      title: 'AI Flashcards & SRS',
       description:
-          'Generate flashcards automatically from any material.\nStudy the smart way.',
+          'Generate flashcards automatically from any material.\nSpaced repetition so you never forget.',
       icon: Icons.style_outlined,
     ),
     (
@@ -53,10 +53,24 @@ class _OnboardingFeaturesPageState extends State<OnboardingFeaturesPage>
     ),
     (
       image: 'assets/images/onboarding/onboarding_chat.png',
-      title: 'Study Assistant',
+      title: 'AI Study Oracle',
       description:
-          'Chat with AI about your materials.\nAsk anything you need.',
+          'Chat with AI about your materials.\nGet explanations & study plans instantly.',
       icon: Icons.chat_bubble_outline,
+    ),
+    (
+      image: 'assets/images/onboarding/onboarding_capture.png',
+      title: 'Audio Summaries',
+      description:
+          'Listen to AI-generated summaries.\nStudy on the go, hands-free.',
+      icon: Icons.headset_outlined,
+    ),
+    (
+      image: 'assets/images/onboarding/onboarding_social_proof.png',
+      title: 'Study Groups',
+      description:
+          'Join or create study groups.\nLearn together, compete on leaderboards.',
+      icon: Icons.groups_outlined,
     ),
   ];
 

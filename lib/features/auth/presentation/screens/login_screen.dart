@@ -97,6 +97,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: AuroraBackground(
@@ -139,7 +140,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     GradientText(
                       'Kapsa',
                       style: AppTypography.h1.copyWith(fontSize: 32),
-                      gradient: AppGradients.textDark,
+                      gradient: AppGradients.textFor(brightness),
                     ),
 
                     const SizedBox(height: AppSpacing.xs),
@@ -147,7 +148,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Text(
                       'Welcome back, scholar',
                       style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondaryFor(brightness),
                       ),
                     ),
 
@@ -186,7 +187,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           _obscurePassword
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
-                          color: AppColors.textMuted,
+                          color: AppColors.textMutedFor(brightness),
                           size: 20,
                         ),
                         onPressed: () =>
@@ -258,7 +259,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: Text(
                             'or',
                             style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.textMuted,
+                              color: AppColors.textMutedFor(brightness),
                             ),
                           ),
                         ),
@@ -320,7 +321,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Text(
                           "Don't have an account? ",
                           style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textSecondaryFor(brightness),
                           ),
                         ),
                         TapScale(
@@ -347,7 +348,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: Text(
                             'Terms of Service',
                             style: AppTypography.caption.copyWith(
-                              color: AppColors.textMuted,
+                              color: AppColors.textMutedFor(brightness),
                               fontSize: 11,
                             ),
                           ),
@@ -357,7 +358,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: Text(
                             '|',
                             style: AppTypography.caption.copyWith(
-                              color: AppColors.textMuted.withValues(alpha: 0.5),
+                              color: AppColors.textMutedFor(brightness).withValues(alpha: 0.5),
                               fontSize: 11,
                             ),
                           ),
@@ -367,7 +368,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: Text(
                             'Privacy Policy',
                             style: AppTypography.caption.copyWith(
-                              color: AppColors.textMuted,
+                              color: AppColors.textMutedFor(brightness),
                               fontSize: 11,
                             ),
                           ),
