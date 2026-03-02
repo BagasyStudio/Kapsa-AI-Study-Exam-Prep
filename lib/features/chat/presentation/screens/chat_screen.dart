@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/navigation/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -9,6 +11,7 @@ import '../widgets/user_message_bubble.dart';
 import '../widgets/citation_chip.dart';
 import '../widgets/suggestion_chips_row.dart';
 import '../widgets/chat_input_bar.dart';
+import '../widgets/action_card_parser.dart';
 import '../../../../core/widgets/staggered_list.dart';
 import '../../../../core/widgets/typing_indicator.dart';
 import '../../../../core/widgets/message_bubble_entrance.dart';
@@ -17,9 +20,11 @@ import '../providers/chat_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
 
 const _defaultSuggestions = [
-  'Explain the key concepts',
-  'Quiz me on this',
-  'Summarize the material',
+  SuggestionItem(icon: Icons.menu_book, label: 'What should I study today?'),
+  SuggestionItem(icon: Icons.bar_chart, label: 'How am I doing overall?'),
+  SuggestionItem(icon: Icons.psychology, label: 'Explain my weakest topic'),
+  SuggestionItem(icon: Icons.quiz, label: 'Quiz me on this'),
+  SuggestionItem(icon: Icons.summarize, label: 'Summarize the material'),
 ];
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -72,6 +77,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     // Record usage after successful send
     await recordFeatureUsage(ref: ref, feature: 'chat');
+  }
+
+  void _handleActionTap(BuildContext context, ActionType actionType) {
+    switch (actionType) {
+      case ActionType.flashcards:
+        context.push(Routes.srsReviewPath(widget.courseId));
+        break;
+      case ActionType.practice:
+        context.push(Routes.practiceExam);
+        break;
+      case ActionType.upload:
+        context.push(Routes.courseDetailPath(widget.courseId));
+        break;
+      case ActionType.results:
+        context.push(Routes.courseDetailPath(widget.courseId));
+        break;
+    }
   }
 
   @override
@@ -186,6 +208,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         : AiMessageBubble(
                                             text: msg.content,
                                             timestamp: msg.timestamp,
+                                            actionCards:
+                                                ActionCardsFromMessage(
+                                              messageText: msg.content,
+                                              onActionTap: (actionType) =>
+                                                  _handleActionTap(
+                                                      context, actionType),
+                                            ),
                                             trailing:
                                                 msg.citations.isNotEmpty
                                                     ? Wrap(
@@ -221,7 +250,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
                 // Suggestion chips
                 SuggestionChipsRow(
-                  suggestions: _defaultSuggestions,
+                  items: _defaultSuggestions,
                   onTap: (suggestion) {
                     _textController.text = suggestion;
                   },

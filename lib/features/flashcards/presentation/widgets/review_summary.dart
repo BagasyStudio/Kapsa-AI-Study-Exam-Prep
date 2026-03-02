@@ -13,6 +13,7 @@ class ReviewSummary extends StatelessWidget {
   final int easyCount;
   final int xpEarned;
   final VoidCallback onDone;
+  final VoidCallback? onShare;
 
   const ReviewSummary({
     super.key,
@@ -23,6 +24,7 @@ class ReviewSummary extends StatelessWidget {
     required this.easyCount,
     this.xpEarned = 0,
     required this.onDone,
+    this.onShare,
   });
 
   @override
@@ -216,6 +218,46 @@ class ReviewSummary extends StatelessWidget {
               ),
             ),
           ),
+
+          // Share button
+          if (onShare != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            TapScale(
+              onTap: onShare,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: isDark ? 0.08 : 0.5),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color:
+                        Colors.white.withValues(alpha: isDark ? 0.12 : 0.6),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.ios_share,
+                      color: AppColors.textSecondaryFor(brightness),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Share Results',
+                      textAlign: TextAlign.center,
+                      style: AppTypography.labelLarge.copyWith(
+                        color: AppColors.textSecondaryFor(brightness),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -32,26 +32,71 @@ import '../../features/groups/presentation/screens/groups_list_screen.dart';
 import '../../features/groups/presentation/screens/group_detail_screen.dart';
 import '../../features/groups/presentation/screens/create_group_screen.dart';
 import '../../features/groups/presentation/screens/join_group_screen.dart';
+import '../../features/sharing/presentation/screens/knowledge_score_screen.dart';
+import '../../features/sharing/presentation/screens/month_review_screen.dart';
 import '../theme/app_animations.dart';
 import 'routes.dart';
 import 'sanctuary_shell.dart';
 
-/// iOS-style slide-from-right page transition.
+/// iOS-style slide-from-right page transition with parallax.
+///
+/// Mirrors native CupertinoPageRoute behaviour:
+/// - New page slides in from the right edge
+/// - Previous page shifts ~1/3 to the left (parallax)
+/// - A vertical shadow decorates the leading edge of the incoming page
+/// - Uses the same decelerate curve Apple employs (easeOut)
 CustomTransitionPage<void> _slideFromRight(Widget child) {
   return CustomTransitionPage<void>(
     child: child,
-    transitionDuration: AppAnimations.durationSlow,
-    reverseTransitionDuration: AppAnimations.durationSlow,
-    transitionsBuilder: (_, animation, __, child) {
+    transitionDuration: const Duration(milliseconds: 400),
+    reverseTransitionDuration: const Duration(milliseconds: 350),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      // Incoming page: slides from right (1.0 -> 0.0)
+      final incomingSlide = Tween<Offset>(
+        begin: const Offset(1, 0),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      ));
+
+      // Previous page: parallax shift left (0.0 -> -0.33)
+      final outgoingSlide = Tween<Offset>(
+        begin: Offset.zero,
+        end: const Offset(-0.33, 0),
+      ).animate(CurvedAnimation(
+        parent: secondaryAnimation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      ));
+
+      // Edge shadow that fades with the transition
+      final shadowOpacity = animation.drive(
+        Tween<double>(begin: 0, end: 1)
+            .chain(CurveTween(curve: Curves.easeOut)),
+      );
+
       return SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(1, 0),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: animation,
-          curve: AppAnimations.curveStandard,
-        )),
-        child: child,
+        position: outgoingSlide,
+        child: SlideTransition(
+          position: incomingSlide,
+          child: DecoratedBoxTransition(
+            decoration: DecorationTween(
+              begin: const BoxDecoration(),
+              end: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 16,
+                    offset: const Offset(-4, 0),
+                  ),
+                ],
+              ),
+            ).animate(shadowOpacity),
+            child: child,
+          ),
+        ),
       );
     },
   );
@@ -429,6 +474,22 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           GroupDetailScreen(
             groupId: state.pathParameters['groupId'] ?? '',
           ),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.knowledgeScore,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _slideFromRight(
+          const KnowledgeScoreScreen(),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.monthReview,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _slideFromRight(
+          const MonthReviewScreen(),
         ),
       ),
 

@@ -2,11 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/constants/xp_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
+import '../../../../core/widgets/shimmer_loading.dart';
+import '../../../../core/widgets/staggered_list.dart';
 import '../../../../core/providers/theme_provider.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
+import '../../../gamification/presentation/providers/xp_provider.dart';
+import '../../../sharing/data/milestone_service.dart';
+import '../../../sharing/presentation/widgets/share_preview_sheet.dart';
+import '../../../sharing/presentation/widgets/micro_cards/leaderboard_position_card.dart';
+import '../../data/models/group_member_model.dart';
 import '../providers/groups_provider.dart';
 import '../widgets/activity_feed_item.dart';
 import '../widgets/leaderboard_row.dart';
@@ -59,7 +68,10 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
       backgroundColor: AppColors.backgroundFor(brightness),
       body: SafeArea(
         child: groupAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Padding(
+            padding: EdgeInsets.all(AppSpacing.xl),
+            child: ShimmerList(count: 4, itemHeight: 70),
+          ),
           error: (e, _) => Center(child: Text('Error: $e')),
           data: (group) {
             if (group == null) {
@@ -208,7 +220,10 @@ class _FeedTab extends ConsumerWidget {
     final brightness = Theme.of(context).brightness;
 
     return activitiesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Padding(
+        padding: EdgeInsets.all(AppSpacing.xl),
+        child: ShimmerList(count: 5, itemHeight: 72),
+      ),
       error: (e, _) => Center(child: Text('Error: $e')),
       data: (activities) {
         if (activities.isEmpty) {
@@ -225,12 +240,56 @@ class _FeedTab extends ConsumerWidget {
         return ListView.builder(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
           itemCount: activities.length,
-          itemBuilder: (context, index) =>
-              ActivityFeedItem(activity: activities[index]),
+          itemBuilder: (context, index) => EntranceAnimation(
+            index: index,
+            child: ActivityFeedItem(activity: activities[index]),
+          ),
         );
       },
     );
   }
+}
+
+void _maybeShowLeaderboardShare(
+  BuildContext context,
+  WidgetRef ref,
+  GroupMemberModel topMember,
+  String groupId,
+) {
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    try {
+      final milestone =
+          await MilestoneService.checkMilestone('leaderboard_1', groupId);
+      if (milestone == null) return;
+      if (!context.mounted) return;
+
+      await MilestoneService.markShown('leaderboard_1', groupId);
+
+      final profile =
+          ref.read(profileProvider).whenOrNull(data: (p) => p);
+      final totalXp =
+          ref.read(xpTotalProvider).whenOrNull(data: (v) => v) ?? 0;
+      final xpLevel = XpConfig.levelFromXp(totalXp);
+
+      final group = ref
+          .read(groupDetailProvider(groupId))
+          .whenOrNull(data: (g) => g);
+
+      if (!context.mounted) return;
+      SharePreviewSheet.show(
+        context,
+        shareCard: LeaderboardPositionCard(
+          position: 1,
+          groupName: group?.name ?? 'Study Group',
+          totalXp: topMember.xpTotal ?? totalXp,
+          userName: profile?.firstName ?? 'Student',
+          xpLevel: xpLevel,
+        ),
+        shareType: 'leaderboard_position',
+        referenceId: groupId,
+      );
+    } catch (_) {}
+  });
 }
 
 class _LeaderboardTab extends ConsumerWidget {
@@ -247,16 +306,27 @@ class _LeaderboardTab extends ConsumerWidget {
     final leaderboardAsync = ref.watch(groupLeaderboardProvider(groupId));
 
     return leaderboardAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Padding(
+        padding: EdgeInsets.all(AppSpacing.xl),
+        child: ShimmerList(count: 5, itemHeight: 56),
+      ),
       error: (e, _) => Center(child: Text('Error: $e')),
       data: (members) {
+        // Check if current user is #1 and prompt share
+        if (members.isNotEmpty && members[0].userId == currentUserId) {
+          _maybeShowLeaderboardShare(context, ref, members[0], groupId);
+        }
+
         return ListView.builder(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
           itemCount: members.length,
-          itemBuilder: (context, index) => LeaderboardRow(
-            member: members[index],
-            rank: index + 1,
-            isCurrentUser: members[index].userId == currentUserId,
+          itemBuilder: (context, index) => EntranceAnimation(
+            index: index,
+            child: LeaderboardRow(
+              member: members[index],
+              rank: index + 1,
+              isCurrentUser: members[index].userId == currentUserId,
+            ),
           ),
         );
       },
@@ -276,7 +346,10 @@ class _MembersTab extends ConsumerWidget {
     final brightness = Theme.of(context).brightness;
 
     return membersAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Padding(
+        padding: EdgeInsets.all(AppSpacing.xl),
+        child: ShimmerList(count: 4, itemHeight: 56),
+      ),
       error: (e, _) => Center(child: Text('Error: $e')),
       data: (members) {
         return ListView.builder(
@@ -284,7 +357,9 @@ class _MembersTab extends ConsumerWidget {
           itemCount: members.length,
           itemBuilder: (context, index) {
             final member = members[index];
-            return Container(
+            return EntranceAnimation(
+              index: index,
+              child: Container(
               padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.md, vertical: AppSpacing.sm),
               margin: const EdgeInsets.only(bottom: 6),
@@ -330,6 +405,7 @@ class _MembersTab extends ConsumerWidget {
                   ),
                 ],
               ),
+            ),
             );
           },
         );

@@ -147,7 +147,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { mode, message, history } = await req.json();
+    const { mode, message, history, metrics } = await req.json();
 
     // ═══════════════════════════════════════════
     // Gather ALL user data for context
@@ -361,6 +361,50 @@ Prioritize:
       }
 
       return new Response(JSON.stringify({ suggestions: createdEvents }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (mode === "knowledge_analysis") {
+      // metrics is an object like: { overall: 72, retention: 85, accuracy: 70, consistency: 60, speed: 50, depth: 45, mastery: 80, examReadiness: 65, dedication: 55, rank: "Expert" }
+
+      const analysisPrompt = responseLang === "Spanish"
+        ? `Analiza el perfil académico del estudiante basado en estas métricas de Knowledge Score:
+Score general: ${metrics?.overall || 0}/100 (Rank: ${metrics?.rank || 'Beginner'})
+- Retención: ${metrics?.retention || 0}%
+- Precisión: ${metrics?.accuracy || 0}%
+- Consistencia: ${metrics?.consistency || 0}%
+- Velocidad: ${metrics?.speed || 0}%
+- Profundidad: ${metrics?.depth || 0}%
+- Maestría: ${metrics?.mastery || 0}%
+- Preparación exámenes: ${metrics?.examReadiness || 0}%
+- Dedicación: ${metrics?.dedication || 0}%
+
+Escribe un análisis breve (2-3 oraciones) que:
+1. Destaque la métrica más fuerte del estudiante
+2. Sugiera UNA área específica para mejorar
+3. Sea motivador y personalizado
+Responde SOLO con el texto del análisis, sin JSON ni formato especial.`
+        : `Analyze this student's academic profile based on their Knowledge Score metrics:
+Overall score: ${metrics?.overall || 0}/100 (Rank: ${metrics?.rank || 'Beginner'})
+- Retention: ${metrics?.retention || 0}%
+- Accuracy: ${metrics?.accuracy || 0}%
+- Consistency: ${metrics?.consistency || 0}%
+- Speed: ${metrics?.speed || 0}%
+- Depth: ${metrics?.depth || 0}%
+- Mastery: ${metrics?.mastery || 0}%
+- Exam Readiness: ${metrics?.examReadiness || 0}%
+- Dedication: ${metrics?.dedication || 0}%
+
+Write a brief analysis (2-3 sentences) that:
+1. Highlights the student's strongest metric
+2. Suggests ONE specific area to improve
+3. Is motivating and personalized
+Respond ONLY with the analysis text, no JSON or special formatting.`;
+
+      const aiResponse = await callReplicate(replicateKey, systemPrompt, analysisPrompt, 256);
+
+      return new Response(JSON.stringify({ analysis: aiResponse.trim() }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

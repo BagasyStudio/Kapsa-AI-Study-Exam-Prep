@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -23,6 +24,9 @@ class MaterialListItem extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onGenerateQuiz;
   final VoidCallback? onDelete;
+  final VoidCallback? onGenerateFlashcards;
+  final VoidCallback? onAudioSummary;
+  final VoidCallback? onPracticeQuiz;
 
   const MaterialListItem({
     super.key,
@@ -36,12 +40,182 @@ class MaterialListItem extends StatelessWidget {
     this.onTap,
     this.onGenerateQuiz,
     this.onDelete,
+    this.onGenerateFlashcards,
+    this.onAudioSummary,
+    this.onPracticeQuiz,
   });
+
+  void _showContextMenu(BuildContext context) {
+    HapticFeedback.mediumImpact();
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E1F3B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              // Drag handle
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: (isDark ? Colors.white : Colors.black)
+                      .withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Material title
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  title,
+                  style: AppTypography.labelLarge.copyWith(
+                    color: AppColors.textPrimaryFor(brightness),
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Divider(
+                color: (isDark ? Colors.white : Colors.black)
+                    .withValues(alpha: 0.08),
+                height: 1,
+              ),
+              // Action items
+              if (onGenerateFlashcards != null)
+                _ContextMenuItem(
+                  icon: Icons.style_rounded,
+                  label: 'Generate Flashcards',
+                  color: const Color(0xFF3B82F6),
+                  isDark: isDark,
+                  brightness: brightness,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    onGenerateFlashcards?.call();
+                  },
+                ),
+              if (onAudioSummary != null)
+                _ContextMenuItem(
+                  icon: Icons.headphones_rounded,
+                  label: 'Audio Summary',
+                  color: const Color(0xFF14B8A6),
+                  isDark: isDark,
+                  brightness: brightness,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    onAudioSummary?.call();
+                  },
+                ),
+              if (onPracticeQuiz != null)
+                _ContextMenuItem(
+                  icon: Icons.quiz_rounded,
+                  label: 'Practice Quiz',
+                  color: const Color(0xFF10B981),
+                  isDark: isDark,
+                  brightness: brightness,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    onPracticeQuiz?.call();
+                  },
+                ),
+              if (onDelete != null) ...[
+                Divider(
+                  color: (isDark ? Colors.white : Colors.black)
+                      .withValues(alpha: 0.08),
+                  height: 1,
+                ),
+                _ContextMenuItem(
+                  icon: Icons.delete_outline_rounded,
+                  label: 'Delete',
+                  color: AppColors.error,
+                  isDark: isDark,
+                  brightness: brightness,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _confirmDelete(context);
+                  },
+                ),
+              ],
+              const SizedBox(height: 8),
+              // Cancel button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: (isDark ? Colors.white : Colors.black)
+                          .withValues(alpha: 0.06),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: AppTypography.labelLarge.copyWith(
+                        color: AppColors.textSecondaryFor(brightness),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Material'),
+        content: Text('Are you sure you want to delete "$title"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              onDelete?.call();
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
-    final card = TapScale(
+    final card = GestureDetector(
+      onLongPress: () => _showContextMenu(context),
+      child: TapScale(
       onTap: onTap,
       child: ClipRRect(
         borderRadius: AppRadius.borderRadiusLg,
@@ -182,6 +356,7 @@ class MaterialListItem extends StatelessWidget {
           ),
         ),
       ),
+      ),
     );
 
     if (onDelete == null) return card;
@@ -281,6 +456,63 @@ class _StatusChip extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Action item row for the long-press context menu bottom sheet.
+class _ContextMenuItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final bool isDark;
+  final Brightness brightness;
+  final VoidCallback onTap;
+
+  const _ContextMenuItem({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.isDark,
+    required this.brightness,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                label,
+                style: AppTypography.labelLarge.copyWith(
+                  color: AppColors.textPrimaryFor(brightness),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textMutedFor(brightness),
+              size: 20,
+            ),
+          ],
+        ),
       ),
     );
   }

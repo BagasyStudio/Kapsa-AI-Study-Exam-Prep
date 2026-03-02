@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/navigation/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -13,13 +15,16 @@ import '../../../chat/presentation/widgets/user_message_bubble.dart';
 import '../../../chat/presentation/widgets/citation_chip.dart';
 import '../../../chat/presentation/widgets/suggestion_chips_row.dart';
 import '../../../chat/presentation/widgets/chat_input_bar.dart';
+import '../../../chat/presentation/widgets/action_card_parser.dart';
 import '../providers/assistant_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
 
 const _globalSuggestions = [
-  'What should I study today?',
-  'How am I doing overall?',
-  'Plan my week',
+  SuggestionItem(icon: Icons.menu_book, label: 'What should I study today?'),
+  SuggestionItem(icon: Icons.bar_chart, label: 'How am I doing overall?'),
+  SuggestionItem(icon: Icons.psychology, label: 'Explain my weakest topic'),
+  SuggestionItem(icon: Icons.quiz, label: 'Quiz me on this'),
+  SuggestionItem(icon: Icons.summarize, label: 'Summarize the material'),
 ];
 
 /// Full-screen chat with The Oracle (global AI assistant).
@@ -74,6 +79,25 @@ class _GlobalChatScreenState extends ConsumerState<GlobalChatScreen> {
 
     // Record usage after successful send
     await recordFeatureUsage(ref: ref, feature: 'oracle');
+  }
+
+  void _handleActionTap(BuildContext context, ActionType actionType) {
+    switch (actionType) {
+      case ActionType.flashcards:
+        // Global chat has no courseId — navigate to courses list
+        // so user can pick a course to review flashcards
+        context.push(Routes.courses);
+        break;
+      case ActionType.practice:
+        context.push(Routes.practiceExam);
+        break;
+      case ActionType.upload:
+        context.push(Routes.courses);
+        break;
+      case ActionType.results:
+        context.push(Routes.home);
+        break;
+    }
   }
 
   @override
@@ -188,6 +212,13 @@ class _GlobalChatScreenState extends ConsumerState<GlobalChatScreen> {
                                         : AiMessageBubble(
                                             text: msg.content,
                                             timestamp: msg.timestamp,
+                                            actionCards:
+                                                ActionCardsFromMessage(
+                                              messageText: msg.content,
+                                              onActionTap: (actionType) =>
+                                                  _handleActionTap(
+                                                      context, actionType),
+                                            ),
                                             trailing:
                                                 msg.citations.isNotEmpty
                                                     ? Wrap(
@@ -223,7 +254,7 @@ class _GlobalChatScreenState extends ConsumerState<GlobalChatScreen> {
 
                 // Suggestion chips
                 SuggestionChipsRow(
-                  suggestions: _globalSuggestions,
+                  items: _globalSuggestions,
                   onTap: (suggestion) {
                     _textController.text = suggestion;
                   },

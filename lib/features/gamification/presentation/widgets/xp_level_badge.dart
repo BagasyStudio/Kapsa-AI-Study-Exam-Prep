@@ -1,9 +1,13 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/xp_config.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../providers/xp_provider.dart';
 
-/// Compact badge showing "Lvl X | 1,240 XP".
+/// Compact badge showing "Lvl X | 1,240 XP" with a circular progress ring
+/// around the bolt icon indicating progress towards the next level.
 class XpLevelBadge extends ConsumerWidget {
   const XpLevelBadge({super.key});
 
@@ -13,6 +17,7 @@ class XpLevelBadge extends ConsumerWidget {
     final level = ref.watch(xpLevelProvider);
     final brightness = Theme.of(context).brightness;
     final isDark = brightness == Brightness.dark;
+    final progress = XpConfig.progressToNextLevel(xp);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -23,7 +28,8 @@ class XpLevelBadge extends ConsumerWidget {
         borderRadius: BorderRadius.circular(100),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.3 : 0.2),
+            color: const Color(0xFFF59E0B)
+                .withValues(alpha: isDark ? 0.3 : 0.2),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -32,8 +38,37 @@ class XpLevelBadge extends ConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.bolt, color: Colors.white, size: 14),
-          const SizedBox(width: 3),
+          // Circular progress ring around the bolt icon
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Background track
+                CustomPaint(
+                  size: const Size(18, 18),
+                  painter: _RingPainter(
+                    progress: 1.0,
+                    color: Colors.white.withValues(alpha: 0.3),
+                    strokeWidth: 2,
+                  ),
+                ),
+                // Progress arc
+                CustomPaint(
+                  size: const Size(18, 18),
+                  painter: _RingPainter(
+                    progress: progress,
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                ),
+                // Bolt icon centered inside the ring
+                const Icon(Icons.bolt, color: Colors.white, size: 11),
+              ],
+            ),
+          ),
+          const SizedBox(width: 4),
           Text(
             'Lvl $level',
             style: AppTypography.caption.copyWith(
@@ -68,4 +103,44 @@ class XpLevelBadge extends ConsumerWidget {
     }
     return '$xp XP';
   }
+}
+
+/// Paints a circular arc (progress ring) used around the bolt icon.
+class _RingPainter extends CustomPainter {
+  const _RingPainter({
+    required this.progress,
+    required this.color,
+    required this.strokeWidth,
+  });
+
+  final double progress;
+  final Color color;
+  final double strokeWidth;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - strokeWidth) / 2;
+
+    // Start from the top (-pi/2) and sweep clockwise
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -pi / 2,
+      2 * pi * progress,
+      false,
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter oldDelegate) =>
+      oldDelegate.progress != progress ||
+      oldDelegate.color != color ||
+      oldDelegate.strokeWidth != strokeWidth;
 }

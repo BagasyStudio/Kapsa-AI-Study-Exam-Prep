@@ -41,3 +41,30 @@ final dueCardsCountForDeckProvider = FutureProvider.autoDispose
     .family<int, String>((ref, deckId) async {
   return ref.watch(flashcardRepositoryProvider).getDueCardsCountForDeck(deckId);
 });
+
+/// Total due cards across ALL user courses (for home screen badge).
+final totalDueCardsProvider = FutureProvider.autoDispose<int>((ref) async {
+  final client = ref.watch(supabaseClientProvider);
+  final userId = client.auth.currentUser?.id;
+  if (userId == null) return 0;
+
+  final now = DateTime.now().toUtc().toIso8601String();
+
+  // Get all deck IDs for all of the user's courses
+  final decks = await client
+      .from('flashcard_decks')
+      .select('id')
+      .eq('user_id', userId);
+
+  if ((decks as List).isEmpty) return 0;
+
+  final deckIds = decks.map((d) => d['id'] as String).toList();
+
+  final response = await client
+      .from('flashcards')
+      .select('id')
+      .inFilter('deck_id', deckIds)
+      .lte('due', now);
+
+  return (response as List).length;
+});

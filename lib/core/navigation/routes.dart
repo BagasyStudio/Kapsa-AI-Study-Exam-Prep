@@ -30,6 +30,8 @@ abstract final class Routes {
   static const groupDetail = '/groups/:groupId';
   static const createGroup = '/groups/create';
   static const joinGroup = '/groups/join';
+  static const knowledgeScore = '/knowledge-score';
+  static const monthReview = '/month-review';
 
   // ── Legal & Compliance ──
   static const terms = '/terms';

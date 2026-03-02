@@ -9,6 +9,7 @@ abstract final class XpConfig {
   static const int shareDeck = 20;
   static const int materialUpload = 10;
   static const int perfectQuiz = 50;
+  static const int shareResult = 25;
 
   /// Bonus XP based on quiz score percentage: `(score% × 0.2)` rounded.
   static int quizScoreBonus(double scorePercent) =>
@@ -39,6 +40,7 @@ abstract final class XpConfig {
       'share_deck' => 'Shared Deck',
       'material_upload' => 'Material Upload',
       'perfect_quiz' => 'Perfect Score',
+      'share_result' => 'Shared Result',
       _ => action,
     };
   }

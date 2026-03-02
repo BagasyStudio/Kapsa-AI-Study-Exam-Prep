@@ -22,6 +22,7 @@ class TestRepository {
   Future<TestWithQuestions> generateQuiz({
     required String courseId,
     int count = 5,
+    bool isPracticeExam = false,
   }) async {
     final response = await _functions.invoke(
       'ai-generate-quiz',
@@ -29,6 +30,7 @@ class TestRepository {
         'action': 'generate',
         'courseId': courseId,
         'count': count,
+        'isPracticeExam': isPracticeExam,
       },
     );
 

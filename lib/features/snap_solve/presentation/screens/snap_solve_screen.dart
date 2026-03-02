@@ -9,6 +9,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/aurora_background.dart';
 import '../../../../core/widgets/tap_scale.dart';
+import '../../../../core/widgets/staggered_list.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../../core/services/sound_service.dart';
 import '../../../../core/utils/error_handler.dart';
@@ -426,15 +427,18 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
                               itemCount: solutions.length,
                               itemBuilder: (_, i) {
                                 final sol = solutions[i];
-                                return _HistoryItem(
-                                  solution: sol,
-                                  onTap: () {
-                                    Navigator.of(ctx).pop();
-                                    setState(() {
-                                      _solution = sol;
-                                      _state = _ScreenState.result;
-                                    });
-                                  },
+                                return EntranceAnimation(
+                                  index: i,
+                                  child: _HistoryItem(
+                                    solution: sol,
+                                    onTap: () {
+                                      Navigator.of(ctx).pop();
+                                      setState(() {
+                                        _solution = sol;
+                                        _state = _ScreenState.result;
+                                      });
+                                    },
+                                  ),
                                 );
                               },
                             );

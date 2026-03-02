@@ -6,6 +6,7 @@ import '../../../profile/data/models/profile_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/aurora_background.dart';
+import '../../../../core/widgets/kapsa_refresh_indicator.dart';
 import '../../../../core/widgets/staggered_list.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -31,6 +32,12 @@ import '../../../groups/presentation/providers/groups_provider.dart';
 import '../../../groups/presentation/widgets/group_card.dart';
 import '../widgets/weekly_stats_card.dart';
 import '../widgets/quick_actions_row.dart';
+import '../../../flashcards/presentation/providers/flashcard_provider.dart';
+import '../../../sharing/data/milestone_service.dart';
+import '../../../sharing/presentation/widgets/share_preview_sheet.dart';
+import '../../../sharing/presentation/widgets/micro_cards/streak_milestone_card.dart';
+import '../../../sharing/presentation/widgets/micro_cards/exam_day_card.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -71,6 +78,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (_streakMilestones.contains(days)) {
           SoundService.playStreakMilestone();
         }
+        // Check if this streak is a shareable milestone
+        _checkStreakMilestone(days);
+        // Check if today is an exam day for any course
+        _checkExamDay();
         // Award streak XP once per day
         _awardStreakXp();
       });
@@ -96,6 +107,104 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  Future<void> _checkStreakMilestone(int days) async {
+    try {
+      final milestone = await MilestoneService.checkStreakMilestone(days);
+      if (milestone == null || !mounted) return;
+
+      final profile = ref.read(profileProvider).whenOrNull(data: (p) => p);
+      final userName = profile?.firstName ?? 'Student';
+      final totalXp = ref.read(xpTotalProvider).whenOrNull(data: (v) => v) ?? 0;
+      final xpLevel = XpConfig.levelFromXp(totalXp);
+
+      await MilestoneService.markShown('streak', '$milestone');
+
+      if (!mounted) return;
+      SharePreviewSheet.show(
+        context,
+        shareCard: StreakMilestoneCard(
+          streakDays: milestone,
+          totalXp: totalXp,
+          userName: userName,
+          xpLevel: xpLevel,
+        ),
+        shareType: 'streak_milestone',
+      );
+    } catch (_) {
+      // Best-effort — don't interrupt the user
+    }
+  }
+
+  Future<void> _checkExamDay() async {
+    try {
+      final courses =
+          ref.read(coursesProvider).whenOrNull(data: (c) => c) ?? [];
+      final today = DateTime.now();
+
+      for (final course in courses) {
+        if (course.examDate == null) continue;
+        final examDate = course.examDate!;
+        if (examDate.year == today.year &&
+            examDate.month == today.month &&
+            examDate.day == today.day) {
+          final milestone =
+              await MilestoneService.checkMilestone('exam_day', course.id);
+          if (milestone == null || !mounted) return;
+
+          await MilestoneService.markShown('exam_day', course.id);
+
+          final profile =
+              ref.read(profileProvider).whenOrNull(data: (p) => p);
+          final totalXp =
+              ref.read(xpTotalProvider).whenOrNull(data: (v) => v) ?? 0;
+          final xpLevel = XpConfig.levelFromXp(totalXp);
+
+          // Get prep stats
+          int cardsReviewed = 0;
+          double practiceScore = 0;
+          try {
+            // Count flashcard decks for this course
+            final decks = await Supabase.instance.client
+                .from('flashcard_decks')
+                .select('id')
+                .eq('course_id', course.id);
+            cardsReviewed = (decks as List).length * 10; // rough estimate
+
+            // Get latest test score
+            final tests = await Supabase.instance.client
+                .from('tests')
+                .select('score')
+                .eq('course_id', course.id)
+                .not('score', 'is', null)
+                .order('created_at', ascending: false)
+                .limit(1);
+            if ((tests as List).isNotEmpty) {
+              practiceScore =
+                  ((tests[0]['score'] as num?) ?? 0) * 100;
+            }
+          } catch (_) {}
+
+          if (!mounted) return;
+          SharePreviewSheet.show(
+            context,
+            shareCard: ExamDayCard(
+              courseName: course.title,
+              cardsReviewed: cardsReviewed,
+              practiceScore: practiceScore,
+              userName: profile?.firstName ?? 'Student',
+              xpLevel: xpLevel,
+            ),
+            shareType: 'exam_day',
+            referenceId: course.id,
+          );
+          return; // Only show one exam day card at a time
+        }
+      }
+    } catch (_) {
+      // Best-effort — don't interrupt the user
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Selective watches: only rebuild when the specific field changes
@@ -106,6 +215,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final streakDays = ref.watch(profileProvider.select(
           (async) => async.whenOrNull(data: (p) => p?.streakDays),
         )) ??
+        0;
+
+    // Total due flashcards across all courses (for Exam badge)
+    final totalDueCards = ref.watch(totalDueCardsProvider).whenOrNull(
+          data: (c) => c,
+        ) ??
         0;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -142,14 +257,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           // Main content
           SafeArea(
             bottom: false,
-            child: RefreshIndicator(
-              color: AppColors.primary,
+            child: KapsaRefreshIndicator(
               onRefresh: () async {
                 ref.invalidate(coursesProvider);
                 ref.invalidate(profileProvider);
                 ref.invalidate(studyPlanProvider);
                 ref.invalidate(heatmapDataProvider);
                 ref.invalidate(xpTotalProvider);
+                ref.invalidate(totalDueCardsProvider);
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(
@@ -174,7 +289,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
 
                   // Quick Actions Row
-                  const QuickActionsRow(),
+                  QuickActionsRow(
+                    badges: totalDueCards > 0
+                        ? {3: totalDueCards}
+                        : null,
+                  ),
                   const SizedBox(height: AppSpacing.md),
 
                   // Usage Limit Banner (freemium)

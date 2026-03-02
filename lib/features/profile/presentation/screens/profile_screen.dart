@@ -329,6 +329,151 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                       const SizedBox(height: AppSpacing.xxl),
 
+                      // Knowledge Score banner
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                        child: TapScale(
+                          onTap: () => context.push(Routes.knowledgeScore),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(AppSpacing.lg),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  const Color(0xFF6467F2).withValues(alpha: isDark ? 0.15 : 0.08),
+                                  const Color(0xFF8B5CF6).withValues(alpha: isDark ? 0.1 : 0.05),
+                                  const Color(0xFFEC4899).withValues(alpha: isDark ? 0.08 : 0.04),
+                                ],
+                              ),
+                              border: Border.all(
+                                color: isDark
+                                    ? const Color(0xFF6467F2).withValues(alpha: 0.2)
+                                    : const Color(0xFF6467F2).withValues(alpha: 0.15),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFF6467F2), Color(0xFF8B5CF6)],
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.insights,
+                                    color: Colors.white,
+                                    size: 22,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.md),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Knowledge Score',
+                                        style: AppTypography.labelLarge.copyWith(
+                                          color: AppColors.textPrimaryFor(brightness),
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'See your academic profile & share it',
+                                        style: AppTypography.caption.copyWith(
+                                          color: AppColors.textSecondaryFor(brightness),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right,
+                                  color: AppColors.primary,
+                                  size: 22,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: AppSpacing.md),
+
+                      // Month in Review banner
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                        child: TapScale(
+                          onTap: () => context.push(Routes.monthReview),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(AppSpacing.lg),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  const Color(0xFF10B981).withValues(alpha: isDark ? 0.12 : 0.06),
+                                  const Color(0xFF3B82F6).withValues(alpha: isDark ? 0.08 : 0.04),
+                                ],
+                              ),
+                              border: Border.all(
+                                color: isDark
+                                    ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                    : const Color(0xFF10B981).withValues(alpha: 0.12),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: LinearGradient(
+                                      colors: [Color(0xFF10B981), Color(0xFF3B82F6)],
+                                    ),
+                                  ),
+                                  child: const Icon(Icons.calendar_month, color: Colors.white, size: 22),
+                                ),
+                                const SizedBox(width: AppSpacing.md),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Month in Review',
+                                        style: AppTypography.labelLarge.copyWith(
+                                          color: AppColors.textPrimaryFor(brightness),
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Your study highlights & personality',
+                                        style: AppTypography.caption.copyWith(
+                                          color: AppColors.textSecondaryFor(brightness),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.chevron_right, color: Color(0xFF10B981), size: 22),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: AppSpacing.xxl),
+
                       // Settings section
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),

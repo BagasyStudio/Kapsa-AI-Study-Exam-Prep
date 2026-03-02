@@ -418,15 +418,29 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
 
                 // Tab content
                 Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: EdgeInsets.fromLTRB(
-                      AppSpacing.xl,
-                      0,
-                      AppSpacing.xl,
-                      120,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: child,
+                      );
+                    },
+                    child: KeyedSubtree(
+                      key: ValueKey(_selectedTab),
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: EdgeInsets.fromLTRB(
+                          AppSpacing.xl,
+                          0,
+                          AppSpacing.xl,
+                          120,
+                        ),
+                        child: _buildTabContent(materialsAsync),
+                      ),
                     ),
-                    child: _buildTabContent(materialsAsync),
                   ),
                 ),
               ],
@@ -629,9 +643,11 @@ class _MaterialsTab extends ConsumerWidget {
               itemCount: materials.length,
               itemBuilder: (context, index) {
                 final material = materials[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                  child: MaterialListItem(
+                return EntranceAnimation(
+                  index: index,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                    child: MaterialListItem(
                     title: material.title,
                     timeLabel: material.sizeLabel,
                     typeLabel: material.typeLabel,
@@ -691,12 +707,115 @@ class _MaterialsTab extends ConsumerWidget {
                         ),
                       );
                     },
+                    onGenerateFlashcards: () async {
+                      final canUse = await checkFeatureAccess(
+                        ref: ref,
+                        feature: 'flashcards',
+                        context: context,
+                      );
+                      if (!canUse || !context.mounted) return;
+
+                      final navigator =
+                          Navigator.of(context, rootNavigator: true);
+                      navigator.push(
+                        PageRouteBuilder(
+                          opaque: true,
+                          pageBuilder: (_, __, ___) => _GeneratingOverlay(
+                            type: 'flashcards',
+                            future: ref
+                                .read(flashcardRepositoryProvider)
+                                .generateFlashcards(
+                                  courseId: courseId,
+                                  count: 10,
+                                  materialId: material.id,
+                                ),
+                            onResult: (deck) async {
+                              await recordFeatureUsage(
+                                  ref: ref, feature: 'flashcards');
+                              ref.invalidate(flashcardDecksProvider(courseId));
+                              navigator.pop();
+                              if (context.mounted) {
+                                context.push(
+                                    Routes.flashcardSessionPath(deck.id));
+                              }
+                            },
+                            onError: (e) {
+                              navigator.pop();
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
+                                );
+                              }
+                            },
+                          ),
+                          transitionsBuilder: (_, animation, __, child) =>
+                              FadeTransition(
+                                  opacity: animation, child: child),
+                          transitionDuration:
+                              const Duration(milliseconds: 300),
+                        ),
+                      );
+                    },
+                    onAudioSummary: () {
+                      context.push(
+                        Routes.audioPlayerPath(
+                            material.id, courseId, material.title),
+                      );
+                    },
+                    onPracticeQuiz: () async {
+                      final canUse = await checkFeatureAccess(
+                        ref: ref,
+                        feature: 'quiz',
+                        context: context,
+                      );
+                      if (!canUse || !context.mounted) return;
+
+                      final navigator =
+                          Navigator.of(context, rootNavigator: true);
+                      navigator.push(
+                        PageRouteBuilder(
+                          opaque: true,
+                          pageBuilder: (_, __, ___) => _GeneratingOverlay(
+                            type: 'quiz',
+                            future: ref
+                                .read(testRepositoryProvider)
+                                .generateQuiz(
+                                  courseId: courseId,
+                                  count: 5,
+                                ),
+                            onResult: (result) async {
+                              await recordFeatureUsage(
+                                  ref: ref, feature: 'quiz');
+                              navigator.pop();
+                              if (context.mounted) {
+                                context.push(
+                                    Routes.quizSessionPath(result.test.id));
+                              }
+                            },
+                            onError: (e) {
+                              navigator.pop();
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
+                                );
+                              }
+                            },
+                          ),
+                          transitionsBuilder: (_, animation, __, child) =>
+                              FadeTransition(
+                                  opacity: animation, child: child),
+                          transitionDuration:
+                              const Duration(milliseconds: 300),
+                        ),
+                      );
+                    },
                     onDelete: () async {
                       await ref
                           .read(materialRepositoryProvider)
                           .deleteMaterial(material.id);
                       ref.invalidate(courseMaterialsProvider(courseId));
                     },
+                  ),
                   ),
                 );
               },

@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/animated_counter.dart';
 import '../providers/course_stats_provider.dart';
 
 /// Dynamic course stats banner replacing the static AiInsightBanner.
@@ -207,7 +208,7 @@ class CourseStatsBanner extends ConsumerWidget {
   }
 }
 
-class _StatChip extends StatelessWidget {
+class _StatChip extends StatefulWidget {
   final IconData icon;
   final String value;
   final String label;
@@ -223,42 +224,84 @@ class _StatChip extends StatelessWidget {
   });
 
   @override
+  State<_StatChip> createState() => _StatChipState();
+}
+
+class _StatChipState extends State<_StatChip>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _pulseController;
+  Animation<double>? _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isHighlighted) {
+      _pulseController = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 1200),
+      );
+      _pulseAnimation = Tween<double>(begin: 1.0, end: 1.04).animate(
+        CurvedAnimation(
+          parent: _pulseController!,
+          curve: Curves.easeInOut,
+        ),
+      );
+      _pulseController!.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final color = isHighlighted
+    final color = widget.isHighlighted
         ? const Color(0xFFF59E0B)
         : AppColors.textSecondaryFor(Theme.of(context).brightness);
 
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-        decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.05)
-              : Colors.white.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 16, color: color),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: AppTypography.labelLarge.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-              ),
+    final parsedValue = int.tryParse(widget.value) ?? 0;
+
+    Widget chip = Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+      decoration: BoxDecoration(
+        color: widget.isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.white.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(widget.icon, size: 16, color: color),
+          const SizedBox(height: 4),
+          AnimatedCounter(
+            value: parsedValue,
+            style: AppTypography.labelLarge.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
             ),
-            Text(
-              label,
-              style: AppTypography.caption.copyWith(
-                color: color.withValues(alpha: 0.7),
-                fontSize: 10,
-              ),
+          ),
+          Text(
+            widget.label,
+            style: AppTypography.caption.copyWith(
+              color: color.withValues(alpha: 0.7),
+              fontSize: 10,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+
+    if (widget.isHighlighted && _pulseAnimation != null) {
+      chip = ScaleTransition(
+        scale: _pulseAnimation!,
+        child: chip,
+      );
+    }
+
+    return Expanded(child: chip);
   }
 }

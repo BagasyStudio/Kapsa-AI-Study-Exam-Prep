@@ -200,7 +200,7 @@ Deno.serve(async (req: Request) => {
     // ACTION: GENERATE QUIZ
     // ═══════════════════════════════════════════
     if (action === "generate") {
-      const { courseId, count: rawCount } = body;
+      const { courseId, count: rawCount, isPracticeExam } = body;
 
       // ── Input validation ────────────────────────────────────────
       if (!isValidUUID(courseId)) {
@@ -295,8 +295,11 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation.`;
         .insert({
           course_id: courseId,
           user_id: user.id,
-          title: `${course.title || "Quiz"} - Quiz`,
+          title: isPracticeExam
+            ? `${course.title || "Exam"} - Practice Exam`
+            : `${course.title || "Quiz"} - Quiz`,
           total_count: questions.length,
+          is_practice_exam: isPracticeExam === true,
         })
         .select()
         .single();

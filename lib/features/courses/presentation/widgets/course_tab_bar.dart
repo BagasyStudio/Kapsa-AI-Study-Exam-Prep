@@ -21,7 +21,6 @@ class CourseTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final brightness = Theme.of(context).brightness;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -40,30 +39,19 @@ class CourseTabBar extends StatelessWidget {
                   horizontal: 22,
                   vertical: 11,
                 ),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColors.primary
-                      : isDark
-                          ? Colors.white.withValues(alpha: 0.08)
-                          : Colors.white,
-                  borderRadius: AppRadius.borderRadiusPill,
-                  border: isSelected
-                      ? null
-                      : Border.all(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.12)
-                              : const Color(0xFFE2E8F0),
-                        ),
-                  boxShadow: isSelected
-                      ? [
+                decoration: isSelected
+                    ? BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: AppRadius.borderRadiusPill,
+                        boxShadow: [
                           BoxShadow(
                             color: AppColors.primary.withValues(alpha: 0.25),
                             blurRadius: 16,
                             offset: const Offset(0, 4),
                           ),
-                        ]
-                      : null,
-                ),
+                        ],
+                      )
+                    : null,
                 child: Text(
                   tabs[index],
                   style: AppTypography.labelLarge.copyWith(

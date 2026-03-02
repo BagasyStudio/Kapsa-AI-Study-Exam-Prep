@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/services/sound_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -17,6 +18,9 @@ import '../../data/models/flashcard_model.dart';
 import '../../../courses/presentation/providers/course_provider.dart';
 import '../../../gamification/presentation/providers/xp_provider.dart';
 import '../../../gamification/presentation/widgets/xp_popup.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
+import '../../../sharing/presentation/widgets/share_preview_sheet.dart';
+import '../../../sharing/presentation/widgets/srs_review_share_card.dart';
 import '../../../../core/constants/xp_config.dart';
 
 /// SRS Review screen — reviews all due cards for a course using FSRS ratings.
@@ -125,6 +129,42 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
         _isRevealed = false;
       });
     }
+  }
+
+  Future<void> _showSrsShareSheet() async {
+    final profile = ref.read(profileProvider).valueOrNull;
+    final xpTotal = ref.read(xpTotalProvider).valueOrNull ?? 0;
+    final total = _againCount + _hardCount + _goodCount + _easyCount;
+
+    // Get course name
+    String courseName = 'My Course';
+    try {
+      final course = await Supabase.instance.client
+          .from('courses')
+          .select('title')
+          .eq('id', widget.courseId)
+          .maybeSingle();
+      courseName = course?['title'] as String? ?? 'My Course';
+    } catch (_) {}
+
+    if (!mounted) return;
+
+    SharePreviewSheet.show(
+      context,
+      shareCard: SrsReviewShareCard(
+        totalReviewed: total,
+        againCount: _againCount,
+        hardCount: _hardCount,
+        goodCount: _goodCount,
+        easyCount: _easyCount,
+        xpEarned: _sessionXp,
+        courseName: courseName,
+        userName: profile?.fullName ?? 'Student',
+        xpLevel: XpConfig.levelFromXp(xpTotal),
+        dueRemaining: 0, // All due cards were reviewed
+      ),
+      shareType: 'srs_review',
+    );
   }
 
   Future<void> _recalculateCourseProgress() async {
@@ -249,6 +289,7 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
         easyCount: _easyCount,
         xpEarned: _sessionXp,
         onDone: () => Navigator.of(context).pop(),
+        onShare: _showSrsShareSheet,
       ),
     );
   }

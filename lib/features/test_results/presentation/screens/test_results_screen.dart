@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/confetti_overlay.dart';
+import '../../../../core/widgets/celebration_overlay.dart';
 import '../../../../core/widgets/floating_orbs.dart';
 import '../widgets/score_ring.dart';
 import '../widgets/correction_card.dart';
@@ -15,11 +17,17 @@ import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/staggered_list.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../core/utils/error_handler.dart';
+import '../../../../core/constants/xp_config.dart';
 import '../providers/test_provider.dart';
 import '../../data/test_repository.dart';
 import '../../data/models/test_question_model.dart';
 import '../../../flashcards/presentation/providers/flashcard_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
+import '../../../gamification/presentation/providers/xp_provider.dart';
+import '../../../sharing/presentation/widgets/share_preview_sheet.dart';
+import '../../../sharing/presentation/widgets/quiz_share_card.dart';
+import '../../../sharing/presentation/widgets/practice_exam_share_card.dart';
 
 class TestResultsScreen extends ConsumerStatefulWidget {
   final String testId;
@@ -38,9 +46,73 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
     if (!_confettiShown && score >= 60) {
       _confettiShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) ConfettiOverlay.show(context);
+        if (!mounted) return;
+        ConfettiOverlay.show(context);
+        // Extra celebration for perfect score
+        if (score >= 100) {
+          Future.delayed(const Duration(milliseconds: 800), () {
+            if (mounted) {
+              CelebrationOverlay.show(
+                context,
+                title: '🏆 Perfect Score!',
+                subtitle: 'You mastered every question!',
+                icon: Icons.military_tech,
+                color: const Color(0xFFF59E0B),
+              );
+            }
+          });
+        }
       });
     }
+  }
+
+  Future<void> _showShareSheet(TestWithQuestions result) async {
+    final test = result.test;
+    final profile = ref.read(profileProvider).valueOrNull;
+    final xpTotal = ref.read(xpTotalProvider).valueOrNull ?? 0;
+
+    // Get course name
+    String courseName = 'My Course';
+    try {
+      final course = await Supabase.instance.client
+          .from('courses')
+          .select('title')
+          .eq('id', test.courseId)
+          .maybeSingle();
+      courseName = course?['title'] as String? ?? 'My Course';
+    } catch (_) {}
+
+    if (!mounted) return;
+
+    final isPracticeExam = test.isPracticeExam;
+
+    final Widget shareCard = isPracticeExam
+        ? PracticeExamShareCard(
+            scorePercent: (test.score ?? 0) * 100,
+            grade: test.grade ?? 'N/A',
+            correctCount: test.correctCount,
+            totalCount: test.totalCount,
+            courseName: courseName,
+            userName: profile?.fullName ?? 'Student',
+            xpLevel: XpConfig.levelFromXp(xpTotal),
+          )
+        : QuizShareCard(
+            scorePercent: (test.score ?? 0) * 100,
+            grade: test.grade ?? 'N/A',
+            correctCount: test.correctCount,
+            totalCount: test.totalCount,
+            courseName: courseName,
+            userName: profile?.fullName ?? 'Student',
+            xpLevel: XpConfig.levelFromXp(xpTotal),
+            streakDays: profile?.streakDays ?? 0,
+          );
+
+    SharePreviewSheet.show(
+      context,
+      shareCard: shareCard,
+      shareType: isPracticeExam ? 'practice_exam' : 'quiz',
+      referenceId: test.id,
+    );
   }
 
   @override
@@ -188,12 +260,7 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
               ),
               _GlassIconButton(
                 icon: Icons.ios_share,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Share results coming soon')),
-                  );
-                },
+                onTap: () => _showShareSheet(result),
                 iconSize: 18,
               ),
             ],

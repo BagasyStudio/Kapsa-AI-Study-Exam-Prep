@@ -9,6 +9,7 @@ class TestModel {
   final int correctCount;
   final int totalCount;
   final String? motivationText;
+  final bool isPracticeExam;
   final DateTime? createdAt;
 
   const TestModel({
@@ -21,6 +22,7 @@ class TestModel {
     this.correctCount = 0,
     this.totalCount = 0,
     this.motivationText,
+    this.isPracticeExam = false,
     this.createdAt,
   });
 
@@ -35,6 +37,7 @@ class TestModel {
       correctCount: (json['correct_count'] as num?)?.toInt() ?? 0,
       totalCount: (json['total_count'] as num?)?.toInt() ?? 0,
       motivationText: json['motivation_text'] as String?,
+      isPracticeExam: json['is_practice_exam'] as bool? ?? false,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
@@ -51,6 +54,7 @@ class TestModel {
       'correct_count': correctCount,
       'total_count': totalCount,
       'motivation_text': motivationText,
+      'is_practice_exam': isPracticeExam,
     };
   }
 
@@ -61,6 +65,7 @@ class TestModel {
     int? correctCount,
     int? totalCount,
     String? motivationText,
+    bool? isPracticeExam,
   }) {
     return TestModel(
       id: id,
@@ -72,6 +77,7 @@ class TestModel {
       correctCount: correctCount ?? this.correctCount,
       totalCount: totalCount ?? this.totalCount,
       motivationText: motivationText ?? this.motivationText,
+      isPracticeExam: isPracticeExam ?? this.isPracticeExam,
       createdAt: createdAt,
     );
   }

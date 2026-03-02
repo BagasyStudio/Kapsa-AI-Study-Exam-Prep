@@ -97,6 +97,10 @@ Deno.serve(async (req: Request) => {
     // 7. XP events
     await adminClient.from("xp_events").delete().eq("user_id", userId);
 
+    // 7b. Knowledge scores & milestones
+    await adminClient.from("knowledge_scores").delete().eq("user_id", userId);
+    await adminClient.from("milestones_shown").delete().eq("user_id", userId);
+
     // 7. Usage tracking
     await adminClient.from("usage_tracking").delete().eq("user_id", userId);
 

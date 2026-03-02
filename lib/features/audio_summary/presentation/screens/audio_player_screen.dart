@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,7 @@ import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
+import '../../../../core/widgets/shimmer_button.dart';
 import '../../../../core/utils/error_handler.dart';
 import '../../data/models/audio_summary_model.dart';
 import '../providers/audio_summary_provider.dart';
@@ -35,10 +37,30 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
   AudioSummaryModel? _summary;
   String? _errorMessage;
 
+  // Step-by-step progress state
+  int _generatingStep = 0;
+  Timer? _generatingTimer;
+
+  // Speed control state
+  double _selectedSpeed = 1.0;
+
+  static const _generatingSteps = [
+    'Analyzing your material...',
+    'Generating script...',
+    'Converting to audio...',
+    'Almost ready!',
+  ];
+
   @override
   void initState() {
     super.initState();
     _loadExisting();
+  }
+
+  @override
+  void dispose() {
+    _generatingTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadExisting() async {
@@ -54,11 +76,33 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
     }
   }
 
+  void _startGeneratingSteps() {
+    _generatingStep = 0;
+    _generatingTimer?.cancel();
+    _generatingTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        if (_generatingStep < _generatingSteps.length - 1) {
+          _generatingStep++;
+        }
+      });
+    });
+  }
+
+  void _stopGeneratingSteps() {
+    _generatingTimer?.cancel();
+    _generatingTimer = null;
+  }
+
   Future<void> _generate() async {
     setState(() {
       _isGenerating = true;
       _errorMessage = null;
     });
+    _startGeneratingSteps();
     HapticFeedback.mediumImpact();
 
     try {
@@ -69,6 +113,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
             courseId: widget.courseId,
           );
       if (!mounted) return;
+      _stopGeneratingSteps();
       setState(() {
         _isGenerating = false;
         _summary = summary;
@@ -76,6 +121,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
       ref.invalidate(audioSummariesProvider(widget.courseId));
     } catch (e) {
       if (!mounted) return;
+      _stopGeneratingSteps();
       setState(() {
         _isGenerating = false;
         _errorMessage = AppErrorHandler.friendlyMessage(e);
@@ -274,7 +320,7 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
           const SizedBox(height: AppSpacing.lg),
 
           // Play button (placeholder - needs audio plugin)
-          if (hasAudio)
+          if (hasAudio) ...[
             TapScale(
               onTap: () {
                 HapticFeedback.lightImpact();
@@ -307,8 +353,65 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
                     color: Colors.white, size: 36),
               ),
             ),
+
+            const SizedBox(height: AppSpacing.lg),
+
+            // Speed controls
+            _buildSpeedControls(),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildSpeedControls() {
+    const speeds = [1.0, 1.25, 1.5, 2.0];
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: speeds.map((speed) {
+        final isSelected = _selectedSpeed == speed;
+        final label = speed == 1.0
+            ? '1x'
+            : speed == 1.25
+                ? '1.25x'
+                : speed == 1.5
+                    ? '1.5x'
+                    : '2x';
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: TapScale(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              setState(() => _selectedSpeed = speed);
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.primary
+                    : Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.primary
+                      : Colors.white.withValues(alpha: 0.15),
+                  width: 1.5,
+                ),
+              ),
+              child: Text(
+                label,
+                style: AppTypography.labelSmall.copyWith(
+                  color: isSelected
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.6),
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -326,18 +429,42 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
-          Text(
-            'Generating audio summary...',
-            style: AppTypography.labelLarge.copyWith(
-              color: Colors.white.withValues(alpha: 0.7),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 400),
+            child: Text(
+              _generatingSteps[_generatingStep],
+              key: ValueKey<int>(_generatingStep),
+              style: AppTypography.labelLarge.copyWith(
+                color: Colors.white.withValues(alpha: 0.7),
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'This may take a minute',
+            'This may take a couple of minutes',
             style: AppTypography.bodySmall.copyWith(
               color: Colors.white.withValues(alpha: 0.4),
             ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          // Step indicators
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(_generatingSteps.length, (index) {
+              final isActive = index <= _generatingStep;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: isActive ? 24 : 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  color: isActive
+                      ? AppColors.primary
+                      : Colors.white.withValues(alpha: 0.15),
+                ),
+              );
+            }),
           ),
         ],
       ),
@@ -364,53 +491,23 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
-            'No summary yet',
+            'Turn your notes into a podcast',
             style: AppTypography.h3.copyWith(color: Colors.white),
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'Generate an AI audio summary of this material to listen while studying.',
+            'AI creates a 5-10 min audio summary you can listen to while commuting or exercising',
             style: AppTypography.bodySmall.copyWith(
               color: Colors.white.withValues(alpha: 0.5),
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.xxl),
-          TapScale(
-            onTap: _generate,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 28,
-                vertical: 16,
-              ),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF6467F2), Color(0xFF8B5CF6)],
-                ),
-                borderRadius: BorderRadius.circular(100),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.4),
-                    blurRadius: 20,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Generate Summary',
-                    style: AppTypography.labelLarge.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          ShimmerButton(
+            label: 'Generate Summary (~2 min)',
+            icon: Icons.auto_awesome,
+            onPressed: _generate,
+            expanded: false,
           ),
         ],
       ),

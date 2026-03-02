@@ -717,7 +717,11 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
       final displayXp = scorePercent >= 100
           ? totalXp + XpConfig.perfectQuiz
           : totalXp;
-      XpPopup.show(context, xp: displayXp, label: 'Quiz Complete');
+      XpPopup.show(
+        context,
+        xp: displayXp,
+        label: scorePercent >= 100 ? '🏆 Perfect!' : 'Quiz Complete',
+      );
     }
   }
 

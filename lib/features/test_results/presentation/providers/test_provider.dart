@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../data/test_repository.dart';
+import '../../data/models/test_model.dart';
 import '../../data/models/test_question_model.dart';
 
 /// Provider for the test repository.
@@ -22,4 +23,10 @@ final quizQuestionsProvider = FutureProvider.autoDispose
     .family<List<TestQuestionModel>, String>((ref, testId) async {
   final result = await ref.read(testRepositoryProvider).getTestResults(testId);
   return result.questions;
+});
+
+/// Fetches all tests for a given course, ordered by most recent first.
+final courseTestsProvider = FutureProvider.autoDispose
+    .family<List<TestModel>, String>((ref, courseId) async {
+  return ref.watch(testRepositoryProvider).getTestsForCourse(courseId);
 });

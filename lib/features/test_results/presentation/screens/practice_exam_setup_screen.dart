@@ -7,6 +7,7 @@ import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
+import '../../../../core/widgets/shimmer_button.dart';
 import '../../../../core/utils/error_handler.dart';
 import '../../../courses/presentation/providers/course_provider.dart';
 import '../../../courses/data/models/course_model.dart';
@@ -62,6 +63,7 @@ class _PracticeExamSetupScreenState
       final result = await ref.read(testRepositoryProvider).generateQuiz(
             courseId: _selectedCourseId!,
             count: _questionCount,
+            isPracticeExam: true,
           );
 
       await recordFeatureUsage(ref: ref, feature: 'quiz');
@@ -312,60 +314,9 @@ class _PracticeExamSetupScreenState
 
                       const SizedBox(height: AppSpacing.xxl * 2),
 
-                      // ── Summary ──
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(AppSpacing.lg),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.06),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.08),
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Questions',
-                                  style: AppTypography.bodySmall.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.5),
-                                  ),
-                                ),
-                                Text(
-                                  '$_questionCount',
-                                  style: AppTypography.labelLarge.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: AppSpacing.sm),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Time Limit',
-                                  style: AppTypography.bodySmall.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.5),
-                                  ),
-                                ),
-                                Text(
-                                  _timeLimitMinutes != null
-                                      ? '$_timeLimitMinutes min'
-                                      : 'No Limit',
-                                  style: AppTypography.labelLarge.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                      // ── Motivational Card ──
+                      _MotivationalCard(
+                        selectedCourseId: _selectedCourseId,
                       ),
                     ],
                   ),
@@ -404,47 +355,11 @@ class _PracticeExamSetupScreenState
                           ),
                         ),
                       )
-                    : TapScale(
-                        onTap: _startExam,
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFF6467F2),
-                                Color(0xFF8B5CF6),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(100),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary
-                                    .withValues(alpha: 0.4),
-                                blurRadius: 20,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.play_arrow_rounded,
-                                    color: Colors.white, size: 24),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Start Exam',
-                                  style: AppTypography.labelLarge.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                    : ShimmerButton(
+                        label: 'Start Exam',
+                        icon: Icons.play_arrow_rounded,
+                        onPressed: _startExam,
+                        height: 58,
                       ),
               ),
             ],
@@ -564,6 +479,144 @@ class _CourseSelector extends StatelessWidget {
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+class _MotivationalCard extends ConsumerWidget {
+  final String? selectedCourseId;
+
+  const _MotivationalCard({required this.selectedCourseId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Determine motivational content based on previous performance
+    Widget motivationalContent;
+
+    if (selectedCourseId == null) {
+      motivationalContent = _buildMessage(
+        icon: Icons.touch_app_rounded,
+        text: 'Select a course to start',
+        color: Colors.white.withValues(alpha: 0.5),
+      );
+    } else {
+      final testsAsync = ref.watch(courseTestsProvider(selectedCourseId!));
+      motivationalContent = testsAsync.when(
+        loading: () => _buildMessage(
+          icon: Icons.hourglass_empty_rounded,
+          text: 'Loading history...',
+          color: Colors.white.withValues(alpha: 0.4),
+        ),
+        error: (_, __) => _buildMessage(
+          icon: Icons.auto_awesome,
+          text: 'First attempt \u2014 Good luck! \ud83c\udf40',
+          color: const Color(0xFF60A5FA),
+        ),
+        data: (tests) {
+          // Find the most recent completed test (one with a score)
+          final completedTests =
+              tests.where((t) => t.score != null).toList();
+          if (completedTests.isEmpty) {
+            return _buildMessage(
+              icon: Icons.auto_awesome,
+              text: 'First attempt \u2014 Good luck! \ud83c\udf40',
+              color: const Color(0xFF60A5FA),
+            );
+          }
+
+          final lastTest = completedTests.first; // already sorted desc
+          final pct = lastTest.percentage;
+
+          final Color scoreColor;
+          final String encouragement;
+          if (pct >= 80) {
+            scoreColor = const Color(0xFF34D399); // green
+            encouragement = 'Keep it up!';
+          } else if (pct >= 50) {
+            scoreColor = const Color(0xFFFBBF24); // amber
+            encouragement = 'You can do better!';
+          } else {
+            scoreColor = const Color(0xFFEF4444); // red
+            encouragement = 'Practice makes perfect!';
+          }
+
+          return _buildMessage(
+            icon: Icons.emoji_events_rounded,
+            text: 'Last score: $pct% \u2014 $encouragement',
+            color: scoreColor,
+          );
+        },
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.08),
+        ),
+      ),
+      child: Column(
+        children: [
+          motivationalContent,
+          const SizedBox(height: AppSpacing.md),
+          // Estimated difficulty (static for now)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Estimated difficulty',
+                style: AppTypography.bodySmall.copyWith(
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFBBF24).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Medium',
+                  style: AppTypography.caption.copyWith(
+                    color: const Color(0xFFFBBF24),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessage({
+    required IconData icon,
+    required String text,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 22),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Text(
+            text,
+            style: AppTypography.labelLarge.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
