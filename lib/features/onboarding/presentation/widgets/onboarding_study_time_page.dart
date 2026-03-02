@@ -85,21 +85,24 @@ class _OnboardingStudyTimePageState extends State<OnboardingStudyTimePage>
         ).value;
         final headerSlide = (1 - headerOpacity) * 20;
 
+        final screenH = MediaQuery.of(context).size.height;
+        final imgSize = (screenH * 0.15).clamp(90.0, 140.0);
+
         return SingleChildScrollView(
-          physics: const NeverScrollableScrollPhysics(),
+          physics: const ClampingScrollPhysics(),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
             child: Column(
               children: [
-                const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: AppSpacing.md),
 
                 // Mascot
                 Opacity(
                   opacity: headerOpacity,
                   child: Image.asset(
                     'assets/images/onboarding/onboarding_study_time.png',
-                    width: 160,
-                    height: 160,
+                    width: imgSize,
+                    height: imgSize,
                     fit: BoxFit.contain,
                   ),
                 ),

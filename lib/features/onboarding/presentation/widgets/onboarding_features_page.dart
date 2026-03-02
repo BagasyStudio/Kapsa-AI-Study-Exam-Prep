@@ -138,9 +138,14 @@ class _OnboardingFeaturesPageState extends State<OnboardingFeaturesPage>
           curve: const Interval(0.2, 0.7, curve: Curves.easeOut),
         ).value;
 
-        return Column(
+        final screenH = MediaQuery.of(context).size.height;
+        final carouselH = (screenH * 0.40).clamp(260.0, 340.0);
+
+        return SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: Column(
           children: [
-            const SizedBox(height: AppSpacing.xxl),
+            const SizedBox(height: AppSpacing.lg),
 
             // Title
             Opacity(
@@ -158,13 +163,13 @@ class _OnboardingFeaturesPageState extends State<OnboardingFeaturesPage>
               ),
             ),
 
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
 
             // Carousel
             Opacity(
               opacity: carouselOpacity,
               child: SizedBox(
-                height: 340,
+                height: carouselH,
                 child: PageView.builder(
                   controller: _carouselController,
                   onPageChanged: (i) {
@@ -231,6 +236,7 @@ class _OnboardingFeaturesPageState extends State<OnboardingFeaturesPage>
 
             const SizedBox(height: AppSpacing.lg),
           ],
+        ),
         );
       },
     );

@@ -84,21 +84,24 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
         ).value;
         final headerSlide = (1 - headerOpacity) * 20;
 
+        final screenH = MediaQuery.of(context).size.height;
+        final imgSize = (screenH * 0.17).clamp(100.0, 160.0);
+
         return SingleChildScrollView(
-          physics: const NeverScrollableScrollPhysics(),
+          physics: const ClampingScrollPhysics(),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
             child: Column(
               children: [
-                const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: AppSpacing.md),
 
                 // Mascot
                 Opacity(
                   opacity: headerOpacity,
                   child: Image.asset(
                     'assets/images/onboarding/onboarding_study_area.png',
-                    width: 180,
-                    height: 180,
+                    width: imgSize,
+                    height: imgSize,
                     fit: BoxFit.contain,
                   ),
                 ),
@@ -188,12 +191,16 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
               decoration: BoxDecoration(
                 color: isSelected
                     ? AppColors.primary.withValues(alpha: 0.12)
-                    : Colors.white,
+                    : brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.white,
                 borderRadius: BorderRadius.circular(100),
                 border: Border.all(
                   color: isSelected
                       ? AppColors.primary
-                      : AppColors.primary.withValues(alpha: 0.15),
+                      : brightness == Brightness.dark
+                          ? Colors.white.withValues(alpha: 0.12)
+                          : AppColors.primary.withValues(alpha: 0.15),
                   width: isSelected ? 2 : 1,
                 ),
                 boxShadow: isSelected

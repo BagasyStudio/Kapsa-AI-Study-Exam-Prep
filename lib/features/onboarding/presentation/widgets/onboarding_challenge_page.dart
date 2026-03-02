@@ -80,21 +80,24 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
         ).value;
         final headerSlide = (1 - headerOpacity) * 20;
 
+        final screenH = MediaQuery.of(context).size.height;
+        final imgSize = (screenH * 0.15).clamp(90.0, 140.0);
+
         return SingleChildScrollView(
-          physics: const NeverScrollableScrollPhysics(),
+          physics: const ClampingScrollPhysics(),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
             child: Column(
               children: [
-                const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: AppSpacing.md),
 
                 // Mascot
                 Opacity(
                   opacity: headerOpacity,
                   child: Image.asset(
                     'assets/images/onboarding/onboarding_challenge.png',
-                    width: 160,
-                    height: 160,
+                    width: imgSize,
+                    height: imgSize,
                     fit: BoxFit.contain,
                   ),
                 ),
@@ -181,12 +184,16 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
                 decoration: BoxDecoration(
                   color: isSelected
                       ? AppColors.primary.withValues(alpha: 0.12)
-                      : Colors.white,
+                      : brightness == Brightness.dark
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : Colors.white,
                   borderRadius: BorderRadius.circular(AppSpacing.sm),
                   border: Border.all(
                     color: isSelected
                         ? AppColors.primary
-                        : AppColors.primary.withValues(alpha: 0.12),
+                        : brightness == Brightness.dark
+                            ? Colors.white.withValues(alpha: 0.12)
+                            : AppColors.primary.withValues(alpha: 0.12),
                     width: isSelected ? 1.5 : 1,
                   ),
                 ),

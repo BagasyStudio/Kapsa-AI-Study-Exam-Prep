@@ -30,6 +30,7 @@ class StudyTimeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
     return TapScale(
       onTap: onTap,
       child: AnimatedOpacity(
@@ -46,12 +47,16 @@ class StudyTimeCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: isSelected
                 ? AppColors.primary.withValues(alpha: 0.08)
-                : Colors.white.withValues(alpha: 0.55),
+                : isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.white.withValues(alpha: 0.55),
             borderRadius: AppRadius.borderRadiusLg,
             border: Border.all(
               color: isSelected
                   ? AppColors.primary
-                  : Colors.white.withValues(alpha: 0.2),
+                  : isDark
+                      ? Colors.white.withValues(alpha: 0.12)
+                      : Colors.white.withValues(alpha: 0.2),
               width: isSelected ? 2 : 1,
             ),
             boxShadow: [

@@ -33,19 +33,22 @@ class OnboardingPaywallPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenH = MediaQuery.of(context).size.height;
+    final imgSize = (screenH * 0.14).clamp(80.0, 120.0);
+
     return SingleChildScrollView(
-      physics: const NeverScrollableScrollPhysics(),
+      physics: const ClampingScrollPhysics(),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
         child: Column(
           children: [
-            const SizedBox(height: AppSpacing.xxl),
+            const SizedBox(height: AppSpacing.lg),
 
             // Mascot
             Image.asset(
               'assets/images/onboarding/onboarding_paywall.png',
-              width: 140,
-              height: 140,
+              width: imgSize,
+              height: imgSize,
               fit: BoxFit.contain,
             ),
 
@@ -96,25 +99,25 @@ class OnboardingPaywallPage extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
 
-            const SizedBox(height: AppSpacing.xxl),
+            const SizedBox(height: AppSpacing.lg),
 
             // Feature rows
             ...List.generate(_proFeatures.length, (i) {
               final feat = _proFeatures[i];
               return Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                 child: Row(
                   children: [
                     Container(
-                      width: 40,
-                      height: 40,
+                      width: 36,
+                      height: 36,
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
                         feat.icon,
-                        size: 20,
+                        size: 18,
                         color: Colors.white.withValues(alpha: 0.8),
                       ),
                     ),
@@ -186,7 +189,7 @@ class OnboardingPaywallPage extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.md),
 
             // CTA
             PulseGlow(
@@ -194,7 +197,7 @@ class OnboardingPaywallPage extends StatelessWidget {
                 onTap: onTryPro,
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
                     gradient: AppGradients.primaryToIndigo,
                     borderRadius: BorderRadius.circular(100),

@@ -95,13 +95,18 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
   @override
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
+    final screenH = MediaQuery.of(context).size.height;
+    final ringSize = (screenH * 0.18).clamp(120.0, 160.0);
+    final ringStroke = ringSize * 0.08;
+    final isDark = brightness == Brightness.dark;
+
     return SingleChildScrollView(
-      physics: const NeverScrollableScrollPhysics(),
+      physics: const ClampingScrollPhysics(),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
         child: Column(
           children: [
-            const SizedBox(height: AppSpacing.xxl),
+            const SizedBox(height: AppSpacing.lg),
 
             // Title
             Text(
@@ -129,8 +134,8 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
 
                 return CircularProgressRing(
                   progress: ringProgress,
-                  size: 180,
-                  strokeWidth: 14,
+                  size: ringSize,
+                  strokeWidth: ringStroke,
                   trackColor: AppColors.primary.withValues(alpha: 0.12),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -195,10 +200,14 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
                               vertical: AppSpacing.sm,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.55),
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.08)
+                                  : Colors.white.withValues(alpha: 0.55),
                               borderRadius: AppRadius.borderRadiusMd,
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.2),
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.1)
+                                    : Colors.white.withValues(alpha: 0.2),
                               ),
                             ),
                             child: Row(
@@ -231,8 +240,8 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
             // Small mascot
             Image.asset(
               'assets/images/onboarding/onboarding_plan_ready.png',
-              width: 100,
-              height: 100,
+              width: (screenH * 0.1).clamp(60.0, 90.0),
+              height: (screenH * 0.1).clamp(60.0, 90.0),
               fit: BoxFit.contain,
             ),
 

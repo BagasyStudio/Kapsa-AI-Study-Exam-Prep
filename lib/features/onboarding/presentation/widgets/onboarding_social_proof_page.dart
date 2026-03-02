@@ -72,21 +72,25 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
           curve: const Interval(0.7, 0.95, curve: Curves.easeOutQuart),
         ).value;
 
+        final screenH = MediaQuery.of(context).size.height;
+        final imgSize = (screenH * 0.15).clamp(90.0, 140.0);
+        final isDark = brightness == Brightness.dark;
+
         return SingleChildScrollView(
-          physics: const NeverScrollableScrollPhysics(),
+          physics: const ClampingScrollPhysics(),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
             child: Column(
               children: [
-                const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: AppSpacing.md),
 
                 // Mascot
                 Opacity(
                   opacity: headerOpacity,
                   child: Image.asset(
                     'assets/images/onboarding/onboarding_social_proof.png',
-                    width: 160,
-                    height: 160,
+                    width: imgSize,
+                    height: imgSize,
                     fit: BoxFit.contain,
                   ),
                 ),
@@ -171,10 +175,14 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                   width: double.infinity,
                   padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.55),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.white.withValues(alpha: 0.55),
                     borderRadius: AppRadius.borderRadiusLg,
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Colors.white.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Column(

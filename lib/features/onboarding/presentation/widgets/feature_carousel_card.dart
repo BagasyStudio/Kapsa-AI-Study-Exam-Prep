@@ -26,16 +26,21 @@ class FeatureCarouselCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.symmetric(
         horizontal: AppSpacing.xs,
         vertical: AppSpacing.md,
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.55),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.55),
         borderRadius: AppRadius.borderRadiusCard,
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.25),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.white.withValues(alpha: 0.25),
         ),
         boxShadow: [
           BoxShadow(
@@ -60,12 +65,12 @@ class FeatureCarouselCard extends StatelessWidget {
                     offset: Offset(imageParallaxOffset, 0),
                     child: Image.asset(
                       imagePath,
-                      width: 140,
-                      height: 140,
+                      width: 110,
+                      height: 110,
                       fit: BoxFit.contain,
                       errorBuilder: (_, __, ___) => SizedBox(
-                        width: 140,
-                        height: 140,
+                        width: 110,
+                        height: 110,
                         child: Icon(Icons.image_not_supported_outlined,
                             size: 48, color: AppColors.textMutedFor(brightness)),
                       ),

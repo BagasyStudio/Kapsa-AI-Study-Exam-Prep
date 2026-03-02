@@ -108,23 +108,27 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
+        final screenH = MediaQuery.of(context).size.height;
+        final mascotBox = (screenH * 0.28).clamp(160.0, 260.0);
+        final mascotImg = mascotBox * 0.78;
+
         return SingleChildScrollView(
-          physics: const NeverScrollableScrollPhysics(),
+          physics: const ClampingScrollPhysics(),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
             child: Column(
               children: [
-                const SizedBox(height: AppSpacing.xxl),
+                const SizedBox(height: AppSpacing.lg),
 
                 // Mascot + sparkles
                 SizedBox(
-                  width: 280,
-                  height: 280,
+                  width: mascotBox,
+                  height: mascotBox,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
                       // Sparkles behind mascot
-                      const SparkleParticles(width: 280, height: 280),
+                      SparkleParticles(width: mascotBox, height: mascotBox),
                       // Mascot bouncing in
                       Transform.translate(
                         offset: Offset(0, _mascotSlide.value),
@@ -134,8 +138,8 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
                             opacity: _mascotOpacity.value,
                             child: Image.asset(
                               'assets/images/onboarding/onboarding_welcome.png',
-                              width: 220,
-                              height: 220,
+                              width: mascotImg,
+                              height: mascotImg,
                               fit: BoxFit.contain,
                             ),
                           ),

@@ -116,9 +116,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final isPaywallPage = _currentPage == _totalPages - 1;
+    final brightness = Theme.of(context).brightness;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: AppColors.backgroundFor(brightness),
       body: Stack(
         children: [
           // Background orbs (hidden on dark paywall page)
