@@ -9,6 +9,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../core/widgets/staggered_list.dart';
+import '../../../../core/utils/error_handler.dart';
 import '../../../../core/providers/theme_provider.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../gamification/presentation/providers/xp_provider.dart';
@@ -72,7 +73,18 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
             padding: EdgeInsets.all(AppSpacing.xl),
             child: ShimmerList(count: 4, itemHeight: 70),
           ),
-          error: (e, _) => Center(child: Text('Error: $e')),
+          error: (e, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: Text(
+                AppErrorHandler.friendlyMessage(e),
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textMutedFor(brightness),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
           data: (group) {
             if (group == null) {
               return const Center(child: Text('Group not found'));
@@ -224,7 +236,18 @@ class _FeedTab extends ConsumerWidget {
         padding: EdgeInsets.all(AppSpacing.xl),
         child: ShimmerList(count: 5, itemHeight: 72),
       ),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      error: (e, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Text(
+            AppErrorHandler.friendlyMessage(e),
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textMutedFor(Theme.of(context).brightness),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
       data: (activities) {
         if (activities.isEmpty) {
           return Center(
@@ -310,7 +333,18 @@ class _LeaderboardTab extends ConsumerWidget {
         padding: EdgeInsets.all(AppSpacing.xl),
         child: ShimmerList(count: 5, itemHeight: 56),
       ),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      error: (e, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Text(
+            AppErrorHandler.friendlyMessage(e),
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textMutedFor(Theme.of(context).brightness),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
       data: (members) {
         // Check if current user is #1 and prompt share
         if (members.isNotEmpty && members[0].userId == currentUserId) {
@@ -350,7 +384,18 @@ class _MembersTab extends ConsumerWidget {
         padding: EdgeInsets.all(AppSpacing.xl),
         child: ShimmerList(count: 4, itemHeight: 56),
       ),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      error: (e, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Text(
+            AppErrorHandler.friendlyMessage(e),
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textMutedFor(Theme.of(context).brightness),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
       data: (members) {
         return ListView.builder(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),

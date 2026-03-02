@@ -104,28 +104,23 @@ class _ShimmerButtonState extends State<ShimmerButton>
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Shimmer sweep overlay
+                // Shimmer sweep overlay — simple gradient layer
                 Positioned.fill(
                   child: ClipRRect(
                     borderRadius: AppRadius.borderRadiusPill,
-                    child: ShaderMask(
-                      shaderCallback: (bounds) {
-                        return LinearGradient(
-                          colors: [
-                            Colors.white.withValues(alpha: 0.0),
-                            Colors.white.withValues(alpha: 0.18),
-                            Colors.white.withValues(alpha: 0.0),
-                          ],
-                          stops: const [0.0, 0.5, 1.0],
-                          begin: Alignment(_shimmerAnim.value - 0.3, 0),
-                          end: Alignment(_shimmerAnim.value + 0.3, 0),
-                        ).createShader(bounds);
-                      },
-                      blendMode: BlendMode.srcATop,
-                      child: Container(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: AppRadius.borderRadiusPill,
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.white.withValues(alpha: 0.0),
+                              Colors.white.withValues(alpha: 0.15),
+                              Colors.white.withValues(alpha: 0.0),
+                            ],
+                            stops: const [0.0, 0.5, 1.0],
+                            begin: Alignment(_shimmerAnim.value - 0.3, 0),
+                            end: Alignment(_shimmerAnim.value + 0.3, 0),
+                          ),
                         ),
                       ),
                     ),

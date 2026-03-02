@@ -57,7 +57,7 @@ class AiMessageBubble extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.white.withValues(alpha: 0.14)
+                        ? Colors.white.withValues(alpha: 0.28)
                         : Colors.white.withValues(alpha: 0.82),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(AppRadius.xxl),

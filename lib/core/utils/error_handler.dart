@@ -62,8 +62,21 @@ class AppErrorHandler {
         serverMsg = details['error']?.toString() ?? details['message']?.toString();
       }
 
+      // Only treat 401 as session expired if the message explicitly
+      // mentions JWT / auth. Edge Functions may return 401 for other
+      // reasons (e.g. upstream API auth failures like Replicate).
       if (status == 401) {
-        return 'Your session has expired. Please sign in again.';
+        final lowerMsg = (serverMsg ?? '').toLowerCase();
+        if (lowerMsg.contains('jwt') ||
+            lowerMsg.contains('token') ||
+            lowerMsg.contains('auth') ||
+            lowerMsg.contains('session') ||
+            serverMsg == null ||
+            serverMsg.isEmpty) {
+          return 'Your session has expired. Please sign in again.';
+        }
+        // Non-auth 401 from Edge Function → show as service error
+        return 'AI service error: $serverMsg';
       }
       if (status == 429) {
         return 'Too many requests. Please wait a moment and try again.';
@@ -82,6 +95,15 @@ class AppErrorHandler {
         return isActionable ? serverMsg : 'AI service error: $serverMsg';
       }
       return 'AI service is temporarily unavailable. Please try again.';
+    }
+
+    // PostgREST errors — show user-friendly messages instead of raw SQL errors
+    if (error is PostgrestException) {
+      if (kDebugMode) {
+        debugPrint('[ErrorHandler] PostgrestException: code=${error.code}, '
+            'message=${error.message}, details=${error.details}');
+      }
+      return 'Something went wrong loading data. Please try again.';
     }
 
     final msg = error.toString().toLowerCase();
