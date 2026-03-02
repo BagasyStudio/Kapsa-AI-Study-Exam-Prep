@@ -122,8 +122,8 @@ class StudyHeatmap extends ConsumerWidget {
   List<Color> _legendColors(bool isDark) {
     if (isDark) {
       return [
-        Colors.white.withValues(alpha: 0.06),
-        const Color(0xFF6467F2).withValues(alpha: 0.25),
+        Colors.white.withValues(alpha: 0.12),
+        const Color(0xFF6467F2).withValues(alpha: 0.30),
         const Color(0xFF6467F2).withValues(alpha: 0.50),
         const Color(0xFF6467F2).withValues(alpha: 0.75),
         const Color(0xFF6467F2),
@@ -131,7 +131,7 @@ class StudyHeatmap extends ConsumerWidget {
     }
     return [
       Colors.black.withValues(alpha: 0.05),
-      const Color(0xFF6467F2).withValues(alpha: 0.20),
+      const Color(0xFF6467F2).withValues(alpha: 0.25),
       const Color(0xFF6467F2).withValues(alpha: 0.40),
       const Color(0xFF6467F2).withValues(alpha: 0.65),
       const Color(0xFF6467F2),
@@ -224,13 +224,20 @@ class _HeatmapPainter extends CustomPainter {
 
         final paint = Paint()..color = _colorForIntensity(xp);
 
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromLTWH(x, y, cellSize, cellSize),
-            radius,
-          ),
-          paint,
+        final rrect = RRect.fromRectAndRadius(
+          Rect.fromLTWH(x, y, cellSize, cellSize),
+          radius,
         );
+        canvas.drawRRect(rrect, paint);
+
+        // Subtle border on empty cells in dark mode for grid visibility
+        if (xp == 0 && isDark) {
+          final borderPaint = Paint()
+            ..color = Colors.white.withValues(alpha: 0.08)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 0.5;
+          canvas.drawRRect(rrect, borderPaint);
+        }
       }
     }
   }
@@ -238,7 +245,7 @@ class _HeatmapPainter extends CustomPainter {
   Color _colorForIntensity(int xp) {
     if (xp == 0) {
       return isDark
-          ? Colors.white.withValues(alpha: 0.06)
+          ? Colors.white.withValues(alpha: 0.12)
           : Colors.black.withValues(alpha: 0.05);
     }
 
@@ -246,8 +253,8 @@ class _HeatmapPainter extends CustomPainter {
 
     if (effective < 0.25) {
       return isDark
-          ? const Color(0xFF6467F2).withValues(alpha: 0.25)
-          : const Color(0xFF6467F2).withValues(alpha: 0.20);
+          ? const Color(0xFF6467F2).withValues(alpha: 0.30)
+          : const Color(0xFF6467F2).withValues(alpha: 0.25);
     }
     if (effective < 0.50) {
       return isDark

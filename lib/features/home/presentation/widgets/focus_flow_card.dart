@@ -194,26 +194,46 @@ class FocusFlowCard extends StatelessWidget {
                   child: progress != null
                       ? CircularProgressRing(
                           progress: progress!,
-                          size: 160,
-                          strokeWidth: 12,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '${(progress! * 100).round()}%',
-                                style: AppTypography.h1.copyWith(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.w700,
+                          size: 120,
+                          strokeWidth: 10,
+                          child: progress! > 0
+                              ? Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '${(progress! * 100).round()}%',
+                                      style: AppTypography.h1.copyWith(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Mastery',
+                                      style: AppTypography.caption.copyWith(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.play_arrow_rounded,
+                                        size: 28,
+                                        color: AppColors.primary),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Start\nreviewing!',
+                                      textAlign: TextAlign.center,
+                                      style: AppTypography.caption.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.primary,
+                                        fontSize: 10,
+                                        height: 1.2,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              Text(
-                                'Mastery',
-                                style: AppTypography.caption.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
                         )
                       : Column(
                           mainAxisSize: MainAxisSize.min,

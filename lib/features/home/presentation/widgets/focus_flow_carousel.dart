@@ -80,7 +80,7 @@ class _FocusFlowCarouselState extends ConsumerState<FocusFlowCarousel> {
 
         // Card carousel
         SizedBox(
-          height: 380,
+          height: 280,
           child: coursesAsync.when(
             loading: () => const Center(
               child: SizedBox(

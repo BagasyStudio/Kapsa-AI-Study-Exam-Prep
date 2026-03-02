@@ -48,6 +48,7 @@ class WeeklyStatsCard extends ConsumerWidget {
             ? ((thisWeekXp - lastWeekXp) / lastWeekXp * 100).round()
             : (thisWeekXp > 0 ? 100 : 0);
         final isUp = change >= 0;
+        final isFirstWeek = lastWeekXp == 0 && thisWeekXp > 0;
 
         return Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -79,7 +80,32 @@ class WeeklyStatsCard extends ConsumerWidget {
                     ),
                   ),
                   const Spacer(),
-                  if (lastWeekXp > 0 || thisWeekXp > 0)
+                  if (isFirstWeek)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.celebration,
+                              size: 14, color: AppColors.primary),
+                          const SizedBox(width: 3),
+                          Text(
+                            'First week!',
+                            style: AppTypography.caption.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (lastWeekXp > 0 || thisWeekXp > 0)
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),

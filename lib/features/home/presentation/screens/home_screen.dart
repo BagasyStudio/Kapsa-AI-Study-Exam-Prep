@@ -32,7 +32,7 @@ import '../../../groups/presentation/providers/groups_provider.dart';
 import '../../../groups/presentation/widgets/group_card.dart';
 import '../widgets/weekly_stats_card.dart';
 import '../widgets/quick_actions_row.dart';
-import '../../../flashcards/presentation/providers/flashcard_provider.dart';
+import '../providers/study_activity_provider.dart';
 import '../../../sharing/data/milestone_service.dart';
 import '../../../sharing/presentation/widgets/share_preview_sheet.dart';
 import '../../../sharing/presentation/widgets/micro_cards/streak_milestone_card.dart';
@@ -217,12 +217,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         )) ??
         0;
 
-    // Total due flashcards across all courses (for Exam badge)
-    final totalDueCards = ref.watch(totalDueCardsProvider).whenOrNull(
-          data: (c) => c,
-        ) ??
-        0;
-
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AuroraBackground(
@@ -264,7 +258,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ref.invalidate(studyPlanProvider);
                 ref.invalidate(heatmapDataProvider);
                 ref.invalidate(xpTotalProvider);
-                ref.invalidate(totalDueCardsProvider);
+                ref.invalidate(studyActivityProvider);
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(
@@ -289,11 +283,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
 
                   // Quick Actions Row
-                  QuickActionsRow(
-                    badges: totalDueCards > 0
-                        ? {3: totalDueCards}
-                        : null,
-                  ),
+                  const QuickActionsRow(),
                   const SizedBox(height: AppSpacing.md),
 
                   // Usage Limit Banner (freemium)

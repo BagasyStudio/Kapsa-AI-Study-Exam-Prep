@@ -138,24 +138,34 @@ class _HeaderRow extends StatelessWidget {
                 ),
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 4,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Text(
-                '$completedCount of $totalCount done',
-                style: AppTypography.caption.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 11,
+            Builder(builder: (context) {
+              // Dynamic pill color: red (0 done), amber (partial), green (all)
+              final pillColor = totalCount == 0
+                  ? const Color(0xFFF59E0B)
+                  : completedCount == 0
+                      ? const Color(0xFFEF4444)
+                      : completedCount < totalCount
+                          ? const Color(0xFFF59E0B)
+                          : const Color(0xFF10B981);
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
                 ),
-              ),
-            ),
+                decoration: BoxDecoration(
+                  color: pillColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(
+                  '$completedCount of $totalCount done',
+                  style: AppTypography.caption.copyWith(
+                    color: pillColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
+                  ),
+                ),
+              );
+            }),
           ],
         ),
         const SizedBox(height: 8),
