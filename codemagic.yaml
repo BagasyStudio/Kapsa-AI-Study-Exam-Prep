@@ -27,15 +27,42 @@ workflows:
           # Initialize keychain
           keychain initialize
 
-          # Revoke existing iOS Distribution certificates to avoid key mismatch
+          # Revoke ALL existing distribution certificates to avoid mismatch
           echo "Cleaning up existing distribution certificates..."
-          app-store-connect certificates list \
-            --type IOS_DISTRIBUTION 2>/dev/null | \
-            awk '/^[A-Z0-9]/ {print $1}' | \
-            while read -r cert_id; do
-              echo "Revoking certificate: $cert_id"
-              app-store-connect certificates delete "$cert_id" 2>/dev/null || true
-            done || true
+
+          # Delete IOS_DISTRIBUTION certificates (legacy type)
+          app-store-connect certificates list --type IOS_DISTRIBUTION --json 2>/dev/null | \
+            python3 -c "
+          import sys, json
+          try:
+              data = json.load(sys.stdin)
+              certs = data if isinstance(data, list) else data.get('data', data.get('certificates', []))
+              for c in certs:
+                  cid = c.get('id', '') if isinstance(c, dict) else ''
+                  if cid: print(cid)
+          except: pass
+          " 2>/dev/null | while read -r cert_id; do
+            echo "Deleting IOS_DISTRIBUTION cert: $cert_id"
+            app-store-connect certificates delete "$cert_id" --ignore-not-found 2>/dev/null || true
+          done || true
+
+          # Delete DISTRIBUTION certificates (modern Apple Distribution type)
+          app-store-connect certificates list --type DISTRIBUTION --json 2>/dev/null | \
+            python3 -c "
+          import sys, json
+          try:
+              data = json.load(sys.stdin)
+              certs = data if isinstance(data, list) else data.get('data', data.get('certificates', []))
+              for c in certs:
+                  cid = c.get('id', '') if isinstance(c, dict) else ''
+                  if cid: print(cid)
+          except: pass
+          " 2>/dev/null | while read -r cert_id; do
+            echo "Deleting DISTRIBUTION cert: $cert_id"
+            app-store-connect certificates delete "$cert_id" --ignore-not-found 2>/dev/null || true
+          done || true
+
+          echo "Certificate cleanup done. Creating fresh certificate..."
 
           # Fetch/create signing files with the fresh key
           app-store-connect fetch-signing-files "com.kapsa.kapsaApp" \
