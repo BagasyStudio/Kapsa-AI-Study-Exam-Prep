@@ -751,12 +751,12 @@ class _CaptureAction extends StatelessWidget {
             height: 64,
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
+                  ? AppColors.primary.withValues(alpha: 0.12)
                   : Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.1),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),

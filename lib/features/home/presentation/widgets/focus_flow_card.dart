@@ -52,7 +52,10 @@ class FocusFlowCard extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
-          padding: const EdgeInsets.all(AppSpacing.xl),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xl,
+            vertical: AppSpacing.lg,
+          ),
           decoration: BoxDecoration(
             color: isDark
                 ? Colors.white.withValues(alpha: 0.08)
@@ -194,8 +197,8 @@ class FocusFlowCard extends StatelessWidget {
                   child: progress != null
                       ? CircularProgressRing(
                           progress: progress!,
-                          size: 120,
-                          strokeWidth: 10,
+                          size: 100,
+                          strokeWidth: 9,
                           child: progress! > 0
                               ? Column(
                                   mainAxisSize: MainAxisSize.min,
@@ -219,17 +222,16 @@ class FocusFlowCard extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(Icons.play_arrow_rounded,
-                                        size: 28,
+                                        size: 24,
                                         color: AppColors.primary),
                                     const SizedBox(height: 2),
                                     Text(
-                                      'Start\nreviewing!',
+                                      'Start',
                                       textAlign: TextAlign.center,
                                       style: AppTypography.caption.copyWith(
                                         fontWeight: FontWeight.w600,
                                         color: AppColors.primary,
                                         fontSize: 10,
-                                        height: 1.2,
                                       ),
                                     ),
                                   ],
@@ -240,7 +242,7 @@ class FocusFlowCard extends StatelessWidget {
                           children: [
                             Icon(
                               placeholderIcon ?? Icons.edit_note,
-                              size: 56,
+                              size: 44,
                               color: AppColors.textMutedFor(brightness).withValues(alpha: 0.5),
                             ),
                             const SizedBox(height: 8),
