@@ -170,10 +170,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == Routes.register;
       final isOnboardingRoute = state.matchedLocation == Routes.onboarding;
       final isPaywallRoute = state.matchedLocation == Routes.paywall;
+      final isLegalRoute = state.matchedLocation == Routes.terms ||
+          state.matchedLocation == Routes.privacy;
 
-      // First launch → show onboarding (but allow paywall route too,
-      // since onboarding navigates to paywall before marking as seen)
-      if (!hasSeenOnboarding && !isOnboardingRoute && !isPaywallRoute) {
+      // First launch → show onboarding (but allow paywall & legal routes,
+      // since onboarding navigates to paywall before marking as seen,
+      // and paywall links to Terms/Privacy)
+      if (!hasSeenOnboarding &&
+          !isOnboardingRoute &&
+          !isPaywallRoute &&
+          !isLegalRoute) {
         return Routes.onboarding;
       }
 
@@ -183,7 +189,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       }
 
       // Not logged in and trying to access a protected route → login
-      if (!isLoggedIn && !isAuthRoute && !isOnboardingRoute && !isPaywallRoute) {
+      if (!isLoggedIn &&
+          !isAuthRoute &&
+          !isOnboardingRoute &&
+          !isPaywallRoute &&
+          !isLegalRoute) {
         return Routes.login;
       }
 
