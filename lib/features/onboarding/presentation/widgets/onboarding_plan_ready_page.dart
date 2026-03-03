@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../../core/theme/app_animations.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -74,6 +75,7 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && !_confettiFired) {
         _confettiFired = true;
+        HapticFeedback.heavyImpact();
         ConfettiOverlay.show(context);
       }
     });

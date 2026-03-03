@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../../core/theme/app_animations.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -7,12 +8,15 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/widgets/animated_counter.dart';
+import 'typewriter_text.dart';
 
 /// Screen 7: Students love Kapsa.
 ///
 /// AnimatedCounter for "50,000+", stars stagger in, 3-testimonial carousel,
 /// animated stat card for "In 30 days: +40% grades".
 /// If user uploaded material, shows personalized "Your X flashcards are ready!".
+///
+/// Testimonial quotes are typed out character-by-character with haptic feedback.
 class OnboardingSocialProofPage extends StatefulWidget {
   final bool isActive;
   final bool materialUploaded;
@@ -37,6 +41,8 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
   Timer? _autoScrollTimer;
   bool _hasAnimated = false;
   int _currentTestimonial = 0;
+  bool _counterFired = false;
+  final Set<int> _starHapticFired = {};
 
   static List<({String name, String role, String avatar, String quote})>
       _testimonials(AppLocalizations l) => [
@@ -80,8 +86,17 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
   void _animate() {
     _hasAnimated = true;
     _controller.forward();
+
+    // Haptic when counter finishes (~1.2s after controller starts at 0.15)
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted && !_counterFired) {
+        _counterFired = true;
+        HapticFeedback.mediumImpact();
+      }
+    });
+
     // Start auto-scroll after testimonial is visible
-    _autoScrollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+    _autoScrollTimer = Timer.periodic(const Duration(seconds: 6), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
@@ -130,6 +145,9 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
         final screenH = MediaQuery.of(context).size.height;
         final imgSize = (screenH * 0.13).clamp(75.0, 110.0);
         final isDark = brightness == Brightness.dark;
+
+        // Testimonials should start typing after they become visible
+        final canType = testimonialProgress > 0.5;
 
         return SingleChildScrollView(
           physics: const ClampingScrollPhysics(),
@@ -196,7 +214,7 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
 
                 const SizedBox(height: AppSpacing.md),
 
-                // Star rating — stagger in one by one
+                // Star rating — stagger in one by one with haptic
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(5, (i) {
@@ -207,6 +225,14 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                       curve: Interval(starStart, starEnd,
                           curve: AppAnimations.curveBounce),
                     ).value;
+
+                    // Haptic when star pops in (fire once per star)
+                    if (starProgress > 0.8 && !_starHapticFired.contains(i)) {
+                      _starHapticFired.add(i);
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) HapticFeedback.lightImpact();
+                      });
+                    }
 
                     return AnimatedScale(
                       scale: starProgress,
@@ -228,7 +254,7 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
 
                 const SizedBox(height: AppSpacing.lg),
 
-                // Testimonial carousel
+                // Testimonial carousel with typing effect
                 Opacity(
                   opacity: testimonialProgress,
                   child: Transform.translate(
@@ -236,7 +262,7 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                     child: Column(
                       children: [
                         SizedBox(
-                          height: 140,
+                          height: 155,
                           child: PageView.builder(
                             controller: _testimonialController,
                             onPageChanged: (i) =>
@@ -245,12 +271,14 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                             itemBuilder: (context, i) {
                               final t = testimonials[i];
                               return _TestimonialCard(
+                                key: ValueKey('testimonial_${i}_$_currentTestimonial'),
                                 name: t.name,
                                 role: t.role,
                                 avatar: t.avatar,
                                 quote: t.quote,
                                 brightness: brightness,
                                 isDark: isDark,
+                                shouldType: canType && i == _currentTestimonial,
                               );
                             },
                           ),
@@ -350,14 +378,17 @@ class _TestimonialCard extends StatelessWidget {
   final String quote;
   final Brightness brightness;
   final bool isDark;
+  final bool shouldType;
 
   const _TestimonialCard({
+    super.key,
     required this.name,
     required this.role,
     required this.avatar,
     required this.quote,
     required this.brightness,
     required this.isDark,
+    required this.shouldType,
   });
 
   @override
@@ -379,15 +410,33 @@ class _TestimonialCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Quote with typewriter effect
           Expanded(
-            child: Text(
-              quote,
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textPrimaryFor(brightness),
-                fontStyle: FontStyle.italic,
-                height: 1.5,
-              ),
-            ),
+            child: shouldType
+                ? TypewriterText(
+                    text: quote,
+                    animate: true,
+                    charDelay: const Duration(milliseconds: 25),
+                    showCursor: true,
+                    cursorColor: AppColors.primary,
+                    onCharTyped: () {
+                      HapticFeedback.selectionClick();
+                    },
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.textPrimaryFor(brightness),
+                      fontStyle: FontStyle.italic,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.left,
+                  )
+                : Text(
+                    quote,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.textPrimaryFor(brightness),
+                      fontStyle: FontStyle.italic,
+                      height: 1.5,
+                    ),
+                  ),
           ),
           const SizedBox(height: AppSpacing.sm),
           Row(

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
@@ -77,6 +78,7 @@ class _OnboardingUploadMaterialPageState
       if (photo != null) {
         final file = File(photo.path);
         final size = await file.length();
+        HapticFeedback.mediumImpact();
         widget.onMaterialPicked(photo.path, 'camera', size);
         return;
       }
@@ -99,6 +101,7 @@ class _OnboardingUploadMaterialPageState
         String? path = file.path;
         int size = file.size;
         if (path != null) {
+          HapticFeedback.mediumImpact();
           widget.onMaterialPicked(path, 'pdf', size);
           return;
         }
