@@ -67,36 +67,43 @@ class SupabaseFunctions {
         'The AI is taking too long to respond. Please try again.',
       );
     } on FunctionException catch (e) {
-      if (kDebugMode) {
-        debugPrint(
-          '[SupabaseFunctions] $functionName failed: '
-          'status=${e.status}, details=${e.details}',
-        );
-      }
+      debugPrint(
+        '[SupabaseFunctions] $functionName failed: '
+        'status=${e.status}, details=${e.details}, '
+        'reasonPhrase=${e.reasonPhrase}',
+      );
 
       // 401 → token might have expired in a race condition.
       // Try refreshing manually and retry once.
       if (e.status == 401) {
+        debugPrint('[SupabaseFunctions] Got 401, attempting session refresh...');
         try {
           await _client.auth.refreshSession();
+          debugPrint('[SupabaseFunctions] Session refresh succeeded, retrying...');
         } catch (refreshError) {
-          if (kDebugMode) {
-            debugPrint(
-              '[SupabaseFunctions] Token refresh failed: $refreshError',
-            );
-          }
+          debugPrint(
+            '[SupabaseFunctions] Token refresh failed: $refreshError',
+          );
           // Only NOW do we know the session is truly gone.
           throw const SessionExpiredException();
         }
         // Retry the call with the fresh token.
-        return await _client.functions
-            .invoke(
-              functionName,
-              headers: headers,
-              body: body,
-              method: method,
-            )
-            .timeout(const Duration(seconds: 180));
+        try {
+          return await _client.functions
+              .invoke(
+                functionName,
+                headers: headers,
+                body: body,
+                method: method,
+              )
+              .timeout(const Duration(seconds: 180));
+        } on FunctionException catch (retryError) {
+          debugPrint(
+            '[SupabaseFunctions] Retry also failed: '
+            'status=${retryError.status}, details=${retryError.details}',
+          );
+          rethrow;
+        }
       }
       rethrow;
     }

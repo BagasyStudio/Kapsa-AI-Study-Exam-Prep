@@ -500,7 +500,16 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         // Show nothing — user can use the cancel button we added to
         // the processing view.
       },
-      child: DraggableScrollableSheet(
+      child: NotificationListener<DraggableScrollableNotification>(
+        onNotification: (notification) {
+          // Close the sheet when dragged below 55% (if not processing)
+          if (!_isProcessing && notification.extent < 0.55) {
+            Navigator.of(context).pop();
+            return true;
+          }
+          return false;
+        },
+        child: DraggableScrollableSheet(
         initialChildSize: 0.92,
         minChildSize: _isProcessing ? 0.92 : 0.3,
         maxChildSize: 0.92,
@@ -738,6 +747,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
           ),
         );
         },
+      ),
       ),
     );
   }
