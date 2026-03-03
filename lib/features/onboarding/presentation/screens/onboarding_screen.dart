@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:in_app_review/in_app_review.dart';
@@ -31,24 +32,24 @@ import '../widgets/onboarding_paywall_page.dart';
 
 const _totalPages = 11;
 
-const _studyAreas = [
-  'Sciences',
-  'Engineering',
-  'Law',
-  'Medicine',
-  'Economics',
-  'Arts',
-  'Computer Science',
-  'Other',
+List<String> _localizedStudyAreas(AppLocalizations l) => [
+  l.studyAreaSciences,
+  l.studyAreaEngineering,
+  l.studyAreaLaw,
+  l.studyAreaMedicine,
+  l.studyAreaEconomics,
+  l.studyAreaArts,
+  l.studyAreaCS,
+  l.studyAreaOther,
 ];
 
-const _challenges = [
-  'Memorizing',
-  'Time management',
-  'Staying focused',
-  'Organizing notes',
-  'Exam stress',
-  'Getting started',
+List<String> _localizedChallenges(AppLocalizations l) => [
+  l.challengeMemorizing,
+  l.challengeTime,
+  l.challengeBored,
+  l.challengeNotes,
+  l.challengeExams,
+  l.challengeStart,
 ];
 
 // Page indices
@@ -364,10 +365,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       OnboardingPlanReadyPage(
                         isActive: _currentPage == _pagePlanReady,
                         studyArea: _selectedArea != null
-                            ? _studyAreas[_selectedArea!]
+                            ? _localizedStudyAreas(AppLocalizations.of(context)!)[_selectedArea!]
                             : null,
                         challenge: _selectedChallenge != null
-                            ? _challenges[_selectedChallenge!]
+                            ? _localizedChallenges(AppLocalizations.of(context)!)[_selectedChallenge!]
                             : null,
                         studyTime: _studyTimeLabel,
                         examUrgency: _selectedExamUrgency,
@@ -418,21 +419,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   // ── CTA button ──
 
   Widget _buildCTAButton() {
+    final l = AppLocalizations.of(context)!;
     final String buttonText;
     final bool showPulse;
 
     switch (_currentPage) {
       case _pageWelcome:
-        buttonText = 'Get Started';
+        buttonText = l.onboardingGetStarted;
         showPulse = true;
       case _pageSocialProof:
-        buttonText = 'Almost There';
+        buttonText = l.onboardingAlmostThere;
         showPulse = false;
       case _pagePlanReady:
-        buttonText = 'Start Studying \u{1F680}';
+        buttonText = l.onboardingStartStudying;
         showPulse = true;
       default:
-        buttonText = 'Continue';
+        buttonText = l.commonContinue;
         showPulse = false;
     }
 

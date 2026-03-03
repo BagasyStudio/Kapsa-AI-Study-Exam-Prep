@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -104,6 +105,7 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final brightness = Theme.of(context).brightness;
     return AnimatedBuilder(
       animation: _controller,
@@ -152,7 +154,7 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
                 const SizedBox(height: AppSpacing.xl),
 
                 // Title — staggered words
-                _buildTitle(brightness),
+                _buildTitle(brightness, l),
 
                 const SizedBox(height: AppSpacing.sm),
 
@@ -162,7 +164,7 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
                   child: Transform.translate(
                     offset: Offset(0, (1 - _subtitleOpacity.value) * 10),
                     child: Text(
-                      'Your smart study companion.\nAI-powered tools to ace exams\nand boost your GPA.',
+                      l.welcomeSubtitle,
                       style: AppTypography.bodyMedium.copyWith(
                         color: AppColors.textSecondaryFor(brightness),
                         height: 1.55,
@@ -181,19 +183,19 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
     );
   }
 
-  Widget _buildTitle(Brightness brightness) {
+  Widget _buildTitle(Brightness brightness, AppLocalizations l) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _animatedWord('Welcome ', _word0, brightness),
-        _animatedWord('to ', _word1, brightness),
+        _animatedWord(l.welcomeTo, _word0, brightness),
+        _animatedWord(l.welcomeToWord, _word1, brightness),
         // "Kapsa" uses gradient text
         Opacity(
           opacity: _word2.value,
           child: Transform.translate(
             offset: Offset(0, (1 - _word2.value) * 15),
             child: GradientText(
-              'Kapsa',
+              l.welcomeBrand,
               style: AppTypography.h1.copyWith(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,

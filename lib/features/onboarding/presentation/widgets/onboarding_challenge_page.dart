@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../../core/theme/app_animations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -33,13 +34,13 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
   late final AnimationController _controller;
   bool _hasAnimated = false;
 
-  static const _challenges = [
-    '😵 I struggle to memorize',
-    '📅 I don\'t have time',
-    '😴 I get bored studying',
-    '📝 I can\'t organize my notes',
-    '😰 Exams are coming soon',
-    '🤷 I don\'t know where to start',
+  static List<String> _challenges(AppLocalizations l) => [
+    '😵 ${l.challengeMemorizing}',
+    '📅 ${l.challengeTime}',
+    '😴 ${l.challengeBored}',
+    '📝 ${l.challengeNotes}',
+    '😰 ${l.challengeExams}',
+    '🤷 ${l.challengeStart}',
   ];
 
   @override
@@ -71,6 +72,8 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final challenges = _challenges(l);
     final brightness = Theme.of(context).brightness;
     return AnimatedBuilder(
       animation: _controller,
@@ -111,7 +114,7 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
                   child: Transform.translate(
                     offset: Offset(0, headerSlide),
                     child: Text(
-                      "What's your\nbiggest challenge?",
+                      l.challengeTitle,
                       style: AppTypography.h1.copyWith(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
@@ -129,7 +132,7 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
                 Opacity(
                   opacity: headerOpacity,
                   child: Text(
-                    "We'll figure out how to help you best.",
+                    l.challengeSubtitle,
                     style: AppTypography.bodyMedium.copyWith(
                       color: AppColors.textSecondaryFor(brightness),
                       height: 1.55,
@@ -141,7 +144,7 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
                 const SizedBox(height: AppSpacing.lg),
 
                 // Challenge cards
-                ...List.generate(_challenges.length, (i) => _buildCard(i, brightness)),
+                ...List.generate(challenges.length, (i) => _buildCard(i, challenges, brightness)),
 
                 const SizedBox(height: AppSpacing.md),
               ],
@@ -152,7 +155,7 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
     );
   }
 
-  Widget _buildCard(int i, Brightness brightness) {
+  Widget _buildCard(int i, List<String> challenges, Brightness brightness) {
     final start = (0.25 + i * 0.08).clamp(0.0, 1.0);
     final end = (start + 0.35).clamp(0.0, 1.0);
     final progress = CurvedAnimation(
@@ -205,7 +208,7 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
                   children: [
                     Expanded(
                       child: Text(
-                        _challenges[i],
+                        challenges[i],
                         style: AppTypography.bodyMedium.copyWith(
                           color: isSelected
                               ? AppColors.primary

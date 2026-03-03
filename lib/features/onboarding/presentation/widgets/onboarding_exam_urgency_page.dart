@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../../core/theme/app_animations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -33,11 +34,11 @@ class _OnboardingExamUrgencyPageState extends State<OnboardingExamUrgencyPage>
   late final AnimationController _controller;
   bool _hasAnimated = false;
 
-  static const _options = [
-    (emoji: '\u{1F6A8}', label: 'This week'),
-    (emoji: '\u{1F4C5}', label: 'This month'),
-    (emoji: '\u{1F4C6}', label: 'In a few months'),
-    (emoji: '\u{1F60C}', label: 'No exams yet'),
+  static List<({String emoji, String label})> _options(AppLocalizations l) => [
+    (emoji: '\u{1F6A8}', label: l.examUrgencyThisWeek),
+    (emoji: '\u{1F4C5}', label: l.examUrgencyThisMonth),
+    (emoji: '\u{1F4C6}', label: l.examUrgencyFewMonths),
+    (emoji: '\u{1F60C}', label: l.examUrgencyNoExams),
   ];
 
   @override
@@ -69,6 +70,8 @@ class _OnboardingExamUrgencyPageState extends State<OnboardingExamUrgencyPage>
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final options = _options(l);
     final brightness = Theme.of(context).brightness;
     return AnimatedBuilder(
       animation: _controller,
@@ -109,7 +112,7 @@ class _OnboardingExamUrgencyPageState extends State<OnboardingExamUrgencyPage>
                   child: Transform.translate(
                     offset: Offset(0, headerSlide),
                     child: Text(
-                      'Do you have an\nexam coming up?',
+                      l.examUrgencyTitle,
                       style: AppTypography.h1.copyWith(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
@@ -127,7 +130,7 @@ class _OnboardingExamUrgencyPageState extends State<OnboardingExamUrgencyPage>
                 Opacity(
                   opacity: headerOpacity,
                   child: Text(
-                    "We'll prioritize what matters most.",
+                    l.examUrgencySubtitle,
                     style: AppTypography.bodyMedium.copyWith(
                       color: AppColors.textSecondaryFor(brightness),
                       height: 1.55,
@@ -140,7 +143,7 @@ class _OnboardingExamUrgencyPageState extends State<OnboardingExamUrgencyPage>
 
                 // Option cards
                 ...List.generate(
-                    _options.length, (i) => _buildCard(i, brightness)),
+                    options.length, (i) => _buildCard(i, options, brightness)),
 
                 const SizedBox(height: AppSpacing.md),
               ],
@@ -151,7 +154,7 @@ class _OnboardingExamUrgencyPageState extends State<OnboardingExamUrgencyPage>
     );
   }
 
-  Widget _buildCard(int i, Brightness brightness) {
+  Widget _buildCard(int i, List<({String emoji, String label})> options, Brightness brightness) {
     final start = (0.25 + i * 0.10).clamp(0.0, 1.0);
     final end = (start + 0.35).clamp(0.0, 1.0);
     final progress = CurvedAnimation(
@@ -162,7 +165,7 @@ class _OnboardingExamUrgencyPageState extends State<OnboardingExamUrgencyPage>
     final slideX = 60.0 * (1 - progress);
     final isSelected = widget.selectedUrgency == i;
     final hasSelection = widget.selectedUrgency != null;
-    final option = _options[i];
+    final option = options[i];
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.xs),

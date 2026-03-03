@@ -1,5 +1,6 @@
 import 'dart:math' show cos, sin;
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../../core/theme/app_animations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
@@ -88,6 +89,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final brightness = Theme.of(context).brightness;
     final isDark = brightness == Brightness.dark;
     final screenH = MediaQuery.of(context).size.height;
@@ -149,7 +151,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                     ),
                     child: _phase == _Phase.gate
                         ? GradientText(
-                            'Are you enjoying\nKapsa?',
+                            l.rateTitle,
                             key: const ValueKey('gate'),
                             style: AppTypography.h1.copyWith(
                               fontSize: 28,
@@ -162,7 +164,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                           )
                         : _phase == _Phase.rate
                             ? GradientText(
-                                'Help us grow',
+                                l.rateSubtitle,
                                 key: const ValueKey('rate'),
                                 style: AppTypography.h1.copyWith(
                                   fontSize: 28,
@@ -174,7 +176,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                                 textAlign: TextAlign.center,
                               )
                             : Text(
-                                'Thank you for\nyour honesty',
+                                l.rateThankYou,
                                 key: const ValueKey('feedback'),
                                 style: AppTypography.h1.copyWith(
                                   fontSize: 28,
@@ -197,7 +199,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                     child: Transform.translate(
                       offset: Offset(0, 12 * (1 - gateProgress)),
                       child: Text(
-                        'Your feedback helps us build a better\nstudy experience for everyone.',
+                        l.rateFeedbackHelps,
                         style: AppTypography.bodyMedium.copyWith(
                           color: AppColors.textSecondaryFor(brightness),
                           height: 1.55,
@@ -220,7 +222,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                           Expanded(
                             child: _GateButton(
                               emoji: '❤️',
-                              label: 'Love it!',
+                              label: l.rateLoveIt,
                               gradient: const LinearGradient(
                                 colors: [Color(0xFF6467F2), Color(0xFF818CF8)],
                               ),
@@ -233,7 +235,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                           Expanded(
                             child: _GateButton(
                               emoji: '🤔',
-                              label: 'Not yet',
+                              label: l.rateNotYet,
                               gradient: null,
                               isDark: isDark,
                               onTap: _onCouldBeBetter,
@@ -274,7 +276,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                       child: Column(
                         children: [
                           Text(
-                            'Awesome! 🎉',
+                            l.rateAwesome,
                             style: AppTypography.h3.copyWith(
                               color: AppColors.textPrimaryFor(brightness),
                               fontWeight: FontWeight.w600,
@@ -284,7 +286,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                           ),
                           const SizedBox(height: AppSpacing.xs),
                           Text(
-                            'A 5-star rating helps us keep building\nAI tools that make studying easier.',
+                            l.rateAskStars,
                             style: AppTypography.bodyMedium.copyWith(
                               color: AppColors.textSecondaryFor(brightness),
                               height: 1.55,
@@ -303,7 +305,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                     opacity: phaseAnim,
                     child: Transform.translate(
                       offset: Offset(0, 16 * (1 - phaseAnim)),
-                      child: _buildTestimonialCard(brightness, isDark),
+                      child: _buildTestimonialCard(brightness, isDark, l),
                     ),
                   ),
 
@@ -339,7 +341,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                                     color: Colors.white, size: 20),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Rate 5 Stars ⭐',
+                                  l.rate5Stars,
                                   style: AppTypography.button.copyWith(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w700,
@@ -363,7 +365,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                       child: Padding(
                         padding: const EdgeInsets.all(8),
                         child: Text(
-                          'Maybe later',
+                          l.rateMaybeLater,
                           style: AppTypography.bodySmall.copyWith(
                             color: AppColors.textMutedFor(brightness),
                             fontWeight: FontWeight.w500,
@@ -387,7 +389,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                         children: [
                           // Feedback message
                           Text(
-                            'We appreciate your honesty. 🙏',
+                            l.rateHonestyAppreciated,
                             style: AppTypography.h3.copyWith(
                               color: AppColors.textPrimaryFor(brightness),
                               fontWeight: FontWeight.w600,
@@ -397,7 +399,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                           ),
                           const SizedBox(height: AppSpacing.sm),
                           Text(
-                            'We\'re always improving Kapsa.\nYour feedback helps us build the study\ntools you actually need.',
+                            l.rateAlwaysImproving,
                             style: AppTypography.bodyMedium.copyWith(
                               color: AppColors.textSecondaryFor(brightness),
                               height: 1.55,
@@ -428,7 +430,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                                     style: TextStyle(fontSize: 32)),
                                 const SizedBox(height: AppSpacing.sm),
                                 Text(
-                                  'We ship updates every week',
+                                  l.rateWeShipUpdates,
                                   style: AppTypography.labelLarge.copyWith(
                                     color:
                                         AppColors.textPrimaryFor(brightness),
@@ -438,7 +440,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                                 ),
                                 const SizedBox(height: AppSpacing.xxs),
                                 Text(
-                                  'Kapsa gets better with every\nstudent\'s feedback.',
+                                  l.rateGetsBetter,
                                   style: AppTypography.bodySmall.copyWith(
                                     color:
                                         AppColors.textSecondaryFor(brightness),
@@ -473,7 +475,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                               ),
                               child: Center(
                                 child: Text(
-                                  'Continue',
+                                  l.commonContinue,
                                   style: AppTypography.button.copyWith(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w700,
@@ -596,7 +598,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
 
   // ── Testimonial card ──
 
-  Widget _buildTestimonialCard(Brightness brightness, bool isDark) {
+  Widget _buildTestimonialCard(Brightness brightness, bool isDark, AppLocalizations l) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -634,14 +636,14 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Sofia M.',
+                      l.testimonialSofiaName,
                       style: AppTypography.labelLarge.copyWith(
                         color: AppColors.textPrimaryFor(brightness),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
-                      'Med Student',
+                      l.testimonialSofiaRole,
                       style: AppTypography.caption.copyWith(
                         color: AppColors.textMutedFor(brightness),
                       ),
@@ -664,7 +666,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            '"Kapsa changed how I study. My grades improved so much in just one month!"',
+            l.testimonialSofiaQuote,
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textPrimaryFor(brightness),
               fontStyle: FontStyle.italic,

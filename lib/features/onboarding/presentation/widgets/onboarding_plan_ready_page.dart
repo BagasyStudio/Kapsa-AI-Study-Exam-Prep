@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../../core/theme/app_animations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -91,18 +92,18 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
     super.dispose();
   }
 
-  List<(String, String)> get _stats {
+  List<(String, String)> _stats(AppLocalizations l) {
     final items = <(String, String)>[
-      ('\u{1F4DA}', 'Study area: ${widget.studyArea ?? 'Not set'}'),
-      ('\u{26A1}', 'Focus: ${widget.challenge ?? 'Not set'}'),
-      ('\u{23F0}', 'Time: ${widget.studyTime} per day'),
-      ('\u{1F3AF}', 'AI tools tailored just for you'),
+      ('\u{1F4DA}', l.planReadyStudyArea(widget.studyArea ?? l.planReadyNotSet)),
+      ('\u{26A1}', l.planReadyFocus(widget.challenge ?? l.planReadyNotSet)),
+      ('\u{23F0}', l.planReadyTime(widget.studyTime)),
+      ('\u{1F3AF}', l.planReadyAiTools),
     ];
 
     if (widget.materialUploaded && widget.flashcardCount > 0) {
       items.add((
         '\u{1F0CF}',
-        '${widget.flashcardCount} flashcards & ${widget.quizCount} quiz questions ready',
+        l.planReadyMaterial(widget.flashcardCount, widget.quizCount),
       ));
     }
 
@@ -112,11 +113,9 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
   bool get _hasUrgency =>
       widget.examUrgency != null && widget.examUrgency! <= 1;
 
-  String get _urgencyLabel =>
-      widget.examUrgency == 0 ? 'this week' : 'this month';
-
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final brightness = Theme.of(context).brightness;
     final screenH = MediaQuery.of(context).size.height;
     final ringSize = (screenH * 0.16).clamp(110.0, 150.0);
@@ -133,7 +132,7 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
 
             // Title
             Text(
-              'Your plan is\nready!',
+              l.planReadyTitle,
               style: AppTypography.h1.copyWith(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
@@ -178,7 +177,7 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
                         duration: const Duration(milliseconds: 400),
                         opacity: ringProgress > 0.5 ? 1.0 : 0.0,
                         child: Text(
-                          'Personalized',
+                          l.planReadyPersonalized,
                           style: AppTypography.caption.copyWith(
                             color: AppColors.textMutedFor(brightness),
                             fontWeight: FontWeight.w500,
@@ -236,7 +235,7 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
                             const SizedBox(width: AppSpacing.sm),
                             Expanded(
                               child: Text(
-                                'Your exam is $_urgencyLabel \u{2014} let\'s get you prepared!',
+                                widget.examUrgency == 0 ? l.planReadyUrgencyThisWeek : l.planReadyUrgencyThisMonth,
                                 style: AppTypography.bodyMedium.copyWith(
                                   color: urgencyColor,
                                   fontWeight: FontWeight.w600,
@@ -255,8 +254,9 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
             AnimatedBuilder(
               animation: _statsController,
               builder: (context, _) {
+                final stats = _stats(l);
                 return Column(
-                  children: List.generate(_stats.length, (i) {
+                  children: List.generate(stats.length, (i) {
                     final start = (i * 0.25).clamp(0.0, 1.0);
                     final end = (start + 0.45).clamp(0.0, 1.0);
                     final progress = CurvedAnimation(
@@ -265,7 +265,7 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
                           curve: AppAnimations.curveEntrance),
                     ).value;
 
-                    final stat = _stats[i];
+                    final stat = stats[i];
 
                     return Opacity(
                       opacity: progress,

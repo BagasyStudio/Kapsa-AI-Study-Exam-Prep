@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # Icons
   cupertino_icons: ^1.0.8
@@ -95,6 +97,7 @@ flutter_launcher_icons:
   remove_alpha_ios: true
 
 flutter:
+  generate: true
   uses-material-design: true
 
   assets:

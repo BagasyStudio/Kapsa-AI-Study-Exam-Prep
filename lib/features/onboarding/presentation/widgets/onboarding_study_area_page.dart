@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../../core/theme/app_animations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -31,15 +32,15 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
   late final AnimationController _controller;
   bool _hasAnimated = false;
 
-  static const _areas = [
-    '🔬 Sciences',
-    '📐 Engineering',
-    '⚖️ Law',
-    '💊 Medicine',
-    '📊 Economics',
-    '🎨 Arts',
-    '💻 Computer Science',
-    '📚 Other',
+  static List<String> _areas(AppLocalizations l) => [
+    '🔬 ${l.studyAreaSciences}',
+    '📐 ${l.studyAreaEngineering}',
+    '⚖️ ${l.studyAreaLaw}',
+    '💊 ${l.studyAreaMedicine}',
+    '📊 ${l.studyAreaEconomics}',
+    '🎨 ${l.studyAreaArts}',
+    '💻 ${l.studyAreaCS}',
+    '📚 ${l.studyAreaOther}',
   ];
 
   @override
@@ -74,6 +75,8 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final areas = _areas(l);
     final brightness = Theme.of(context).brightness;
     return AnimatedBuilder(
       animation: _controller,
@@ -115,7 +118,7 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
                   child: Transform.translate(
                     offset: Offset(0, headerSlide),
                     child: Text(
-                      'What do you\nstudy?',
+                      l.studyAreaTitle,
                       style: AppTypography.h1.copyWith(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
@@ -133,7 +136,7 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
                 Opacity(
                   opacity: headerOpacity,
                   child: Text(
-                    'Customize your experience by choosing\nyour study area.',
+                    l.studyAreaSubtitle,
                     style: AppTypography.bodyMedium.copyWith(
                       color: AppColors.textSecondaryFor(brightness),
                       height: 1.55,
@@ -149,7 +152,7 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
                   spacing: AppSpacing.xs,
                   runSpacing: AppSpacing.xs,
                   alignment: WrapAlignment.center,
-                  children: List.generate(_areas.length, (i) => _buildChip(i, brightness)),
+                  children: List.generate(areas.length, (i) => _buildChip(i, areas, brightness)),
                 ),
 
                 const SizedBox(height: AppSpacing.lg),
@@ -161,7 +164,7 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
     );
   }
 
-  Widget _buildChip(int i, Brightness brightness) {
+  Widget _buildChip(int i, List<String> areas, Brightness brightness) {
     final interval = _chipInterval(i);
     final end = _chipEnd(i);
     final progress = CurvedAnimation(
@@ -218,7 +221,7 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
                     : null,
               ),
               child: Text(
-                _areas[i],
+                areas[i],
                 style: AppTypography.labelMedium.copyWith(
                   color:
                       isSelected ? AppColors.primary : AppColors.textSecondaryFor(brightness),

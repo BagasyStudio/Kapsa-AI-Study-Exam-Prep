@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -110,6 +111,7 @@ class _OnboardingUploadMaterialPageState
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final brightness = Theme.of(context).brightness;
     final isDark = brightness == Brightness.dark;
 
@@ -162,7 +164,7 @@ class _OnboardingUploadMaterialPageState
                   child: Transform.translate(
                     offset: Offset(0, headerSlide),
                     child: Text(
-                      'Upload your first\nstudy material',
+                      l.uploadTitle,
                       style: AppTypography.h1.copyWith(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
@@ -181,7 +183,7 @@ class _OnboardingUploadMaterialPageState
                 Opacity(
                   opacity: headerOpacity,
                   child: Text(
-                    'Kapsa will create flashcards, quizzes\nand a study plan from it.',
+                    l.uploadSubtitle,
                     style: AppTypography.bodyMedium.copyWith(
                       color: AppColors.textSecondaryFor(brightness),
                       height: 1.55,
@@ -202,8 +204,8 @@ class _OnboardingUploadMaterialPageState
                         // Scan pages
                         _ActionButton(
                           emoji: '\u{1F4F8}',
-                          title: 'Scan pages',
-                          subtitle: 'Take a photo of your notes',
+                          title: l.uploadScanPages,
+                          subtitle: l.uploadScanSub,
                           isPrimary: true,
                           isDark: isDark,
                           brightness: brightness,
@@ -216,8 +218,8 @@ class _OnboardingUploadMaterialPageState
                         // Upload PDF
                         _ActionButton(
                           emoji: '\u{1F4C4}',
-                          title: 'Upload PDF',
-                          subtitle: 'Choose a file from your device',
+                          title: l.uploadPdf,
+                          subtitle: l.uploadPdfSub,
                           isPrimary: false,
                           isDark: isDark,
                           brightness: brightness,
@@ -239,7 +241,7 @@ class _OnboardingUploadMaterialPageState
                     child: Padding(
                       padding: const EdgeInsets.all(8),
                       child: Text(
-                        'Skip for now',
+                        l.commonSkip,
                         style: AppTypography.bodySmall.copyWith(
                           color: AppColors.textMutedFor(brightness),
                           fontWeight: FontWeight.w500,

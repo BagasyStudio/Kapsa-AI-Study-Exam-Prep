@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../../core/theme/app_animations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -32,13 +33,13 @@ class _OnboardingStudyTimePageState extends State<OnboardingStudyTimePage>
   late final AnimationController _controller;
   bool _hasAnimated = false;
 
-  static const _timeOptions = [
-    (emoji: '⏰', label: '30 min', subtitle: 'Quick sessions', hours: 0.5),
-    (emoji: '📖', label: '1 hour', subtitle: 'Steady pace', hours: 1.0),
-    (emoji: '☕', label: '2 hours', subtitle: 'Focused study', hours: 2.0),
-    (emoji: '🎯', label: '3 hours', subtitle: 'Dedicated learner', hours: 3.0),
-    (emoji: '🔥', label: '5 hours', subtitle: 'Power student', hours: 5.0),
-    (emoji: '🚀', label: '8 hours', subtitle: 'Full commitment', hours: 8.0),
+  static List<({String emoji, String label, String subtitle, double hours})> _timeOptions(AppLocalizations l) => [
+    (emoji: '\u23f0', label: l.studyTime30min, subtitle: l.studyTimeSub30, hours: 0.5),
+    (emoji: '\ud83d\udcd6', label: l.studyTime1h, subtitle: l.studyTimeSub1, hours: 1.0),
+    (emoji: '\u2615', label: l.studyTime2h, subtitle: l.studyTimeSub2, hours: 2.0),
+    (emoji: '\ud83c\udfaf', label: l.studyTime3h, subtitle: l.studyTimeSub3, hours: 3.0),
+    (emoji: '\ud83d\udd25', label: l.studyTime5h, subtitle: l.studyTimeSub5, hours: 5.0),
+    (emoji: '\ud83d\ude80', label: l.studyTime8h, subtitle: l.studyTimeSub8, hours: 8.0),
   ];
 
   @override
@@ -68,13 +69,10 @@ class _OnboardingStudyTimePageState extends State<OnboardingStudyTimePage>
     super.dispose();
   }
 
-  String get _selectedLabel {
-    if (widget.selectedIndex == null) return '';
-    return _timeOptions[widget.selectedIndex!].label;
-  }
-
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final timeOptions = _timeOptions(l);
     final brightness = Theme.of(context).brightness;
     return AnimatedBuilder(
       animation: _controller,
@@ -115,7 +113,7 @@ class _OnboardingStudyTimePageState extends State<OnboardingStudyTimePage>
                   child: Transform.translate(
                     offset: Offset(0, headerSlide),
                     child: Text(
-                      'How much do you\nstudy per day?',
+                      l.studyTimeTitle,
                       style: AppTypography.h1.copyWith(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
@@ -147,7 +145,7 @@ class _OnboardingStudyTimePageState extends State<OnboardingStudyTimePage>
                     ),
                     child: widget.selectedIndex != null
                         ? Text(
-                            '$_selectedLabel per day',
+                            l.studyTimePerDay(timeOptions[widget.selectedIndex!].label),
                             key: ValueKey(widget.selectedIndex),
                             style: AppTypography.h3.copyWith(
                               color: AppColors.primary,
@@ -155,7 +153,7 @@ class _OnboardingStudyTimePageState extends State<OnboardingStudyTimePage>
                             ),
                           )
                         : Text(
-                            "We'll adapt your plan to your routine.",
+                            l.studyTimeSubtitle,
                             key: const ValueKey('subtitle'),
                             style: AppTypography.bodyMedium.copyWith(
                               color: AppColors.textSecondaryFor(brightness),
@@ -168,7 +166,7 @@ class _OnboardingStudyTimePageState extends State<OnboardingStudyTimePage>
                 const SizedBox(height: AppSpacing.lg),
 
                 // 2x3 grid
-                _buildGrid(),
+                _buildGrid(timeOptions),
 
                 const SizedBox(height: AppSpacing.lg),
               ],
@@ -179,7 +177,7 @@ class _OnboardingStudyTimePageState extends State<OnboardingStudyTimePage>
     );
   }
 
-  Widget _buildGrid() {
+  Widget _buildGrid(List<({String emoji, String label, String subtitle, double hours})> timeOptions) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cardWidth =
@@ -187,7 +185,7 @@ class _OnboardingStudyTimePageState extends State<OnboardingStudyTimePage>
         return Wrap(
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
-          children: List.generate(_timeOptions.length, (i) {
+          children: List.generate(timeOptions.length, (i) {
             // Stagger: scale from 0.7 to 1.0
             final start = (0.2 + i * 0.08).clamp(0.0, 1.0);
             final end = (start + 0.35).clamp(0.0, 1.0);
@@ -196,7 +194,7 @@ class _OnboardingStudyTimePageState extends State<OnboardingStudyTimePage>
               curve: Interval(start, end, curve: AppAnimations.curveBounce),
             ).value;
 
-            final opt = _timeOptions[i];
+            final opt = timeOptions[i];
 
             return SizedBox(
               width: cardWidth,

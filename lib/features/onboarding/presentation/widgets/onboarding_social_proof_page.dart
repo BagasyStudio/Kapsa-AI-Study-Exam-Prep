@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../../core/theme/app_animations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -37,27 +38,25 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
   bool _hasAnimated = false;
   int _currentTestimonial = 0;
 
-  static const _testimonials = [
+  static List<({String name, String role, String avatar, String quote})>
+      _testimonials(AppLocalizations l) => [
     (
-      name: 'Sofia M.',
-      role: 'Med Student',
+      name: l.testimonialSofiaName,
+      role: l.testimonialSofiaRole,
       avatar: 'assets/images/avatars/avatar_social_03_female.png',
-      quote:
-          '"Kapsa changed the way I study. My grades improved so much in just one month."',
+      quote: l.testimonialSofiaQuote,
     ),
     (
-      name: 'Marco L.',
-      role: 'Engineering',
+      name: l.testimonialMarcoName,
+      role: l.testimonialMarcoRole,
       avatar: 'assets/images/avatars/avatar_social_04_male.png',
-      quote:
-          '"I passed my finals thanks to the AI flashcards. Best study app ever."',
+      quote: l.testimonialMarcoQuote,
     ),
     (
-      name: 'Lucia R.',
-      role: 'Law Student',
+      name: l.testimonialLuciaName,
+      role: l.testimonialLuciaRole,
       avatar: 'assets/images/avatars/avatar_social_01_female.png',
-      quote:
-          '"The Oracle is like having a personal tutor 24/7. Can\'t study without it now."',
+      quote: l.testimonialLuciaQuote,
     ),
   ];
 
@@ -87,7 +86,7 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
         timer.cancel();
         return;
       }
-      final next = (_currentTestimonial + 1) % _testimonials.length;
+      final next = (_currentTestimonial + 1) % 3;
       _testimonialController.animateToPage(
         next,
         duration: const Duration(milliseconds: 400),
@@ -107,6 +106,8 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
   @override
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
+    final l = AppLocalizations.of(context)!;
+    final testimonials = _testimonials(l);
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
@@ -155,7 +156,7 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                 Opacity(
                   opacity: headerOpacity,
                   child: Text(
-                    'Students love Kapsa',
+                    l.socialProofTitle,
                     style: AppTypography.h1.copyWith(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
@@ -184,8 +185,8 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                 if (counterReady)
                   Text(
                     widget.materialUploaded && widget.flashcardCount > 0
-                        ? 'students — your ${widget.flashcardCount} flashcards are ready!'
-                        : 'active students',
+                        ? l.socialProofFlashcardsReady(widget.flashcardCount)
+                        : l.socialProofActiveStudents,
                     style: AppTypography.bodySmall.copyWith(
                       color: AppColors.textMutedFor(brightness),
                       fontWeight: FontWeight.w500,
@@ -240,9 +241,9 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                             controller: _testimonialController,
                             onPageChanged: (i) =>
                                 setState(() => _currentTestimonial = i),
-                            itemCount: _testimonials.length,
+                            itemCount: testimonials.length,
                             itemBuilder: (context, i) {
-                              final t = _testimonials[i];
+                              final t = testimonials[i];
                               return _TestimonialCard(
                                 name: t.name,
                                 role: t.role,
@@ -258,7 +259,7 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                         // Dots
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(_testimonials.length, (i) {
+                          children: List.generate(testimonials.length, (i) {
                             return AnimatedContainer(
                               duration: const Duration(milliseconds: 300),
                               margin:
@@ -311,14 +312,14 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'In 30 days',
+                                l.socialProofIn30Days,
                                 style: AppTypography.labelLarge.copyWith(
                                   color:
                                       AppColors.textPrimaryFor(brightness),
                                 ),
                               ),
                               Text(
-                                'Average +40% grade improvement',
+                                l.socialProofGradeImprovement,
                                 style: AppTypography.bodySmall.copyWith(
                                   color:
                                       AppColors.textSecondaryFor(brightness),

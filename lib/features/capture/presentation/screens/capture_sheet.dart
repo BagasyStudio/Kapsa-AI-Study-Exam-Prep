@@ -23,6 +23,7 @@ import '../../../courses/data/models/course_model.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
 import '../../../../core/utils/error_handler.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 /// Bottom sheet modal for capturing new study materials.
 ///
@@ -886,6 +887,7 @@ class _SimplePasteProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -922,7 +924,7 @@ class _SimplePasteProgress extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xl),
           Text(
-            'Saving note...',
+            l.captureSavingNote,
             style: AppTypography.h3.copyWith(fontWeight: FontWeight.w700),
           ),
         ],
@@ -956,6 +958,7 @@ class _EnhancedProcessingView extends StatefulWidget {
 }
 
 class _EnhancedProcessingViewState extends State<_EnhancedProcessingView> {
+  static const _stepCount = 7;
   int _currentStep = 0;
   bool _realDone = false;
   Timer? _stepTimer;
@@ -971,49 +974,49 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView> {
     Icons.celebration_rounded,
   ];
 
-  List<({String loading, String done})> get _steps {
+  List<({String loading, String done})> _getSteps(AppLocalizations l) {
     switch (widget.type) {
       case 'pdf':
         return [
-          (loading: 'Uploading PDF...', done: '\u2713 PDF uploaded'),
-          (loading: 'Parsing pages...', done: '\u2713 Pages parsed'),
-          (loading: 'Analyzing structure...', done: '\u2713 Structure analyzed'),
-          (loading: 'AI extracting content...', done: '\u2713 Content extracted'),
-          (loading: 'Identifying key concepts...', done: '\u2713 Key concepts found'),
-          (loading: 'Formatting text...', done: '\u2713 Text formatted'),
-          (loading: 'Finishing up...', done: '\u2713 Ready!'),
+          (loading: l.capturePdfUploading, done: '\u2713 ${l.capturePdfUploaded}'),
+          (loading: l.capturePdfParsing, done: '\u2713 ${l.capturePdfParsed}'),
+          (loading: l.capturePdfAnalyzing, done: '\u2713 ${l.capturePdfAnalyzed}'),
+          (loading: l.capturePdfExtracting, done: '\u2713 ${l.capturePdfExtracted}'),
+          (loading: l.capturePdfConcepts, done: '\u2713 ${l.capturePdfConceptsDone}'),
+          (loading: l.capturePdfFormatting, done: '\u2713 ${l.capturePdfFormattingDone}'),
+          (loading: l.capturePdfFinishing, done: '\u2713 ${l.capturePdfReady}'),
         ];
       case 'whisper':
         return [
-          (loading: 'Uploading audio...', done: '\u2713 Audio uploaded'),
-          (loading: 'Processing audio signal...', done: '\u2713 Signal processed'),
-          (loading: 'Detecting speech patterns...', done: '\u2713 Speech detected'),
-          (loading: 'AI transcribing audio...', done: '\u2713 Audio transcribed'),
-          (loading: 'Formatting transcript...', done: '\u2713 Transcript formatted'),
-          (loading: 'Cleaning up text...', done: '\u2713 Text polished'),
-          (loading: 'Finishing up...', done: '\u2713 Ready!'),
+          (loading: l.captureWhisperUploading, done: '\u2713 ${l.captureWhisperUploaded}'),
+          (loading: l.captureWhisperSignal, done: '\u2713 ${l.captureWhisperSignalDone}'),
+          (loading: l.captureWhisperSpeech, done: '\u2713 ${l.captureWhisperSpeechDone}'),
+          (loading: l.captureWhisperTranscribing, done: '\u2713 ${l.captureWhisperTranscribed}'),
+          (loading: l.captureWhisperFormatting, done: '\u2713 ${l.captureWhisperFormattingDone}'),
+          (loading: l.captureWhisperCleaning, done: '\u2713 ${l.captureWhisperCleaningDone}'),
+          (loading: l.captureWhisperFinishing, done: '\u2713 ${l.captureWhisperReady}'),
         ];
       default: // ocr
         return [
-          (loading: 'Uploading image...', done: '\u2713 Image uploaded'),
-          (loading: 'Scanning document...', done: '\u2713 Document scanned'),
-          (loading: 'AI recognizing text...', done: '\u2713 Text recognized'),
-          (loading: 'Extracting key content...', done: '\u2713 Content extracted'),
-          (loading: 'Formatting results...', done: '\u2713 Results formatted'),
-          (loading: 'Organizing material...', done: '\u2713 Material organized'),
-          (loading: 'Finishing up...', done: '\u2713 Ready!'),
+          (loading: l.captureOcrUploading, done: '\u2713 ${l.captureOcrUploaded}'),
+          (loading: l.captureOcrScanning, done: '\u2713 ${l.captureOcrScanned}'),
+          (loading: l.captureOcrRecognizing, done: '\u2713 ${l.captureOcrRecognized}'),
+          (loading: l.captureOcrExtracting, done: '\u2713 ${l.captureOcrExtracted}'),
+          (loading: l.captureOcrFormatting, done: '\u2713 ${l.captureOcrFormattingDone}'),
+          (loading: l.captureOcrOrganizing, done: '\u2713 ${l.captureOcrOrganized}'),
+          (loading: l.captureOcrFinishing, done: '\u2713 ${l.captureOcrReady}'),
         ];
     }
   }
 
-  String get _title {
+  String _getTitle(AppLocalizations l) {
     switch (widget.type) {
       case 'pdf':
-        return 'Processing your PDF...';
+        return l.captureProcessingPdf;
       case 'whisper':
-        return 'Transcribing audio...';
+        return l.captureProcessingWhisper;
       default:
-        return 'Analyzing your scan...';
+        return l.captureProcessingOcr;
     }
   }
 
@@ -1051,7 +1054,7 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView> {
       // Don't advance past step 5 until real processing is done
       if (_currentStep >= 5 && !_realDone) return;
 
-      if (_currentStep < _steps.length - 1) {
+      if (_currentStep < _stepCount - 1) {
         setState(() => _currentStep++);
       } else {
         // Animation complete
@@ -1072,7 +1075,7 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView> {
         timer.cancel();
         return;
       }
-      if (_currentStep < _steps.length - 1) {
+      if (_currentStep < _stepCount - 1) {
         setState(() => _currentStep++);
       } else {
         timer.cancel();
@@ -1089,13 +1092,14 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView> {
     super.dispose();
   }
 
-  double get _progress => (_currentStep + 1) / _steps.length;
+  double get _progress => (_currentStep + 1) / _stepCount;
 
   @override
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
     final isDark = brightness == Brightness.dark;
-    final steps = _steps;
+    final l = AppLocalizations.of(context)!;
+    final steps = _getSteps(l);
 
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
@@ -1162,8 +1166,8 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView> {
               duration: const Duration(milliseconds: 400),
               child: Text(
                 _currentStep == steps.length - 1 && _realDone
-                    ? 'All done!'
-                    : _title,
+                    ? l.captureProcessingDone
+                    : _getTitle(l),
                 key: ValueKey(_currentStep == steps.length - 1 && _realDone),
                 style: AppTypography.h3.copyWith(
                   fontWeight: FontWeight.w700,

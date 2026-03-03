@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -105,6 +106,7 @@ class _OnboardingProcessingPageState extends State<OnboardingProcessingPage>
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final brightness = Theme.of(context).brightness;
     final isDark = brightness == Brightness.dark;
     final screenH = MediaQuery.of(context).size.height;
@@ -130,7 +132,7 @@ class _OnboardingProcessingPageState extends State<OnboardingProcessingPage>
 
             // Title
             Text(
-              'Creating your\nstudy toolkit...',
+              l.processingTitle,
               style: AppTypography.h1.copyWith(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
@@ -167,7 +169,7 @@ class _OnboardingProcessingPageState extends State<OnboardingProcessingPage>
             SizedBox(height: screenH * 0.04),
 
             // Processing steps
-            ..._buildSteps(brightness, isDark),
+            ..._buildSteps(brightness, isDark, l),
 
             const SizedBox(height: AppSpacing.xl),
 
@@ -200,7 +202,7 @@ class _OnboardingProcessingPageState extends State<OnboardingProcessingPage>
                     ),
                     child: Center(
                       child: Text(
-                        'Continue',
+                        l.processingContinue,
                         style: AppTypography.button.copyWith(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
@@ -219,27 +221,27 @@ class _OnboardingProcessingPageState extends State<OnboardingProcessingPage>
     );
   }
 
-  List<Widget> _buildSteps(Brightness brightness, bool isDark) {
+  List<Widget> _buildSteps(Brightness brightness, bool isDark, AppLocalizations l) {
     final steps = [
       (
         icon: '\u{1F4C4}',
-        loading: 'Reading your material...',
-        done: '\u{2713} Material analyzed',
+        loading: l.processingStepReading,
+        done: '\u2713 ${l.processingStepReadingDone}',
       ),
       (
         icon: '\u{1F0CF}',
-        loading: 'Generating flashcards...',
-        done: '\u{2713} ${widget.estimatedFlashcards} flashcards created',
+        loading: l.processingStepFlashcards,
+        done: '\u2713 ${l.processingStepFlashcardsDone(widget.estimatedFlashcards)}',
       ),
       (
         icon: '\u{1F4DD}',
-        loading: 'Creating quiz questions...',
-        done: '\u{2713} ${widget.estimatedQuizzes} quiz questions ready',
+        loading: l.processingStepQuiz,
+        done: '\u2713 ${l.processingStepQuizDone(widget.estimatedQuizzes)}',
       ),
       (
         icon: '\u{1F4C5}',
-        loading: 'Building your study plan...',
-        done: '\u{2713} Study plan ready!',
+        loading: l.processingStepPlan,
+        done: '\u2713 ${l.processingStepPlanDone}',
       ),
     ];
 

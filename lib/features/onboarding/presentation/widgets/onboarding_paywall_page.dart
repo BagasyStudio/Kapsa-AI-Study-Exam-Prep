@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
@@ -43,17 +44,18 @@ class OnboardingPaywallPage extends StatelessWidget {
     );
   }
 
-  static const _proFeatures = [
-    (icon: Icons.chat_bubble_outline, text: 'Unlimited AI Oracle Chat'),
-    (icon: Icons.style_outlined, text: 'Unlimited Flashcards & Quizzes'),
-    (icon: Icons.calendar_today_outlined, text: 'Smart Study Plans'),
-    (icon: Icons.insights_outlined, text: 'Advanced Analytics & Insights'),
-    (icon: Icons.headset_outlined, text: 'Audio Summaries & Occlusion'),
-    (icon: Icons.groups_outlined, text: 'Unlimited Study Groups'),
+  static List<({IconData icon, String text})> _proFeatures(AppLocalizations l) => [
+    (icon: Icons.chat_bubble_outline, text: l.paywallFeature1),
+    (icon: Icons.style_outlined, text: l.paywallFeature2),
+    (icon: Icons.calendar_today_outlined, text: l.paywallFeature3),
+    (icon: Icons.insights_outlined, text: l.paywallFeature4),
+    (icon: Icons.headset_outlined, text: l.paywallFeature5),
+    (icon: Icons.groups_outlined, text: l.paywallFeature6),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final screenH = MediaQuery.of(context).size.height;
     final imgSize = (screenH * 0.14).clamp(80.0, 120.0);
 
@@ -94,7 +96,7 @@ class OnboardingPaywallPage extends StatelessWidget {
                       size: 14, color: Colors.white),
                   const SizedBox(width: 4),
                   Text(
-                    'KAPSA PRO',
+                    l.paywallKapsaPro,
                     style: AppTypography.labelSmall.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -109,7 +111,7 @@ class OnboardingPaywallPage extends StatelessWidget {
 
             // Title
             Text(
-              'Unlock your\nfull potential',
+              l.paywallTitle,
               style: AppTypography.h1.copyWith(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
@@ -123,8 +125,7 @@ class OnboardingPaywallPage extends StatelessWidget {
             const SizedBox(height: AppSpacing.lg),
 
             // Feature rows
-            ...List.generate(_proFeatures.length, (i) {
-              final feat = _proFeatures[i];
+            ..._proFeatures(l).map((feat) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                 child: Row(
@@ -194,7 +195,7 @@ class OnboardingPaywallPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '50K+ students',
+                          l.paywallStudents,
                           style: AppTypography.caption.copyWith(
                             color: Colors.white.withValues(alpha: 0.8),
                             fontWeight: FontWeight.w600,
@@ -211,7 +212,7 @@ class OnboardingPaywallPage extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '4.8',
+                              l.paywallRating,
                               style: AppTypography.caption.copyWith(
                                 color: Colors.white.withValues(alpha: 0.6),
                                 fontWeight: FontWeight.w500,
@@ -242,7 +243,7 @@ class OnboardingPaywallPage extends StatelessWidget {
                   ),
                   child: Center(
                     child: Text(
-                      'Start 7-Day Free Trial',
+                      l.paywallStartTrial,
                       style: AppTypography.button.copyWith(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
@@ -261,7 +262,7 @@ class OnboardingPaywallPage extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(8),
                 child: Text(
-                  'Continue without Pro',
+                  l.paywallSkip,
                   style: AppTypography.bodySmall.copyWith(
                     color: Colors.white.withValues(alpha: 0.5),
                     fontWeight: FontWeight.w500,
@@ -276,7 +277,7 @@ class OnboardingPaywallPage extends StatelessWidget {
 
             // Trial note
             Text(
-              '7-day free trial · Cancel anytime · No charge today',
+              l.paywallDisclaimer,
               style: AppTypography.caption.copyWith(
                 color: Colors.white.withValues(alpha: 0.35),
               ),
