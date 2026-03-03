@@ -7,11 +7,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Same version used by ai-assistant (proven working)
-const LLAMA_VERSION =
-  "5a6809ca6288247d06daf6365557e5e429063f32a21146b2a807c682652136b8";
-const LLAMA_TEMPLATE =
-  "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n";
+const LLAMA_MODEL = "meta/meta-llama-3-8b-instruct";
+
+function buildLlamaPrompt(systemPrompt: string, userPrompt: string): string {
+  return `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemPrompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n${userPrompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`;
+}
 
 async function callReplicate(
   apiKey: string,
@@ -19,21 +19,15 @@ async function callReplicate(
   userPrompt: string,
   maxTokens = 1024
 ): Promise<string> {
-  const response = await fetch("https://api.replicate.com/v1/predictions", {
+  const response = await fetch(`https://api.replicate.com/v1/models/${LLAMA_MODEL}/predictions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      version: LLAMA_VERSION,
       input: {
-        prompt: userPrompt,
-        system_prompt: systemPrompt,
-        prompt_template: LLAMA_TEMPLATE,
-        max_tokens: maxTokens,
-        temperature: 0.6,
-        top_p: 0.9,
+        prompt: buildLlamaPrompt(systemPrompt, userPrompt),
       },
     }),
   });

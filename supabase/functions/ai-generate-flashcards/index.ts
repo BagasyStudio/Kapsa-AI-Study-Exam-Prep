@@ -6,8 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const LLAMA_VERSION = "5a6809ca6288247d06daf6365557e5e429063f32a21146b2a807c682652136b8";
-const LLAMA_TEMPLATE = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n";
+const LLAMA_MODEL = "meta/meta-llama-3-8b-instruct";
 
 // ── Constants ─────────────────────────────────────────────────────
 const MAX_FLASHCARD_COUNT = 30;
@@ -31,22 +30,20 @@ function clampCount(value: unknown): number {
 }
 
 // ── AI call ───────────────────────────────────────────────────────
+function buildLlamaPrompt(systemPrompt: string, userPrompt: string): string {
+  return `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemPrompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n${userPrompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`;
+}
+
 async function callReplicate(apiKey: string, prompt: string, systemPrompt: string, maxTokens = 2048): Promise<string> {
-  const createRes = await fetch("https://api.replicate.com/v1/predictions", {
+  const createRes = await fetch(`https://api.replicate.com/v1/models/${LLAMA_MODEL}/predictions`, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      version: LLAMA_VERSION,
       input: {
-        prompt: prompt,
-        system_prompt: systemPrompt,
-        prompt_template: LLAMA_TEMPLATE,
-        max_tokens: maxTokens,
-        temperature: 0.7,
-        top_p: 0.9,
+        prompt: buildLlamaPrompt(systemPrompt, prompt),
       },
     }),
   });
