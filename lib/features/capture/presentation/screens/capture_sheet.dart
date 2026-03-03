@@ -24,7 +24,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
 import '../../../../core/utils/error_handler.dart';
 import '../../../../core/widgets/animated_counter.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 
 /// Bottom sheet modal for capturing new study materials.
 ///

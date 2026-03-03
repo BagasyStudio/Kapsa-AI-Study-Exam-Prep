@@ -52,11 +52,7 @@ workflows:
 
       - name: Get Flutter packages
         script: |
-          flutter packages pub get
-
-      - name: Generate localizations
-        script: |
-          flutter gen-l10n
+          flutter pub get
 
       - name: Install CocoaPods dependencies
         script: |
