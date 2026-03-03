@@ -333,6 +333,10 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
               child: GestureDetector(
                 onTap: _onTapCard,
                 child: FlashcardWidget(
+                  // Key forces full widget recreation on card change,
+                  // preventing AnimatedSwitcher cross-fade from old answer
+                  // to new question (which briefly shows the answer).
+                  key: ValueKey('card_${currentCard.id}'),
                   topic: currentCard.topic,
                   questionBefore: currentCard.questionBefore,
                   keyword: currentCard.keyword,

@@ -480,6 +480,14 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     }
   }
 
+  void _cancelProcessing() {
+    setState(() {
+      _isProcessing = false;
+      _pendingPopMessage = null;
+    });
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final coursesAsync = ref.watch(coursesProvider);
@@ -487,6 +495,11 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
     return PopScope(
       canPop: !_isProcessing,
+      onPopInvokedWithResult: (didPop, result) {
+        // When processing, system back press is blocked by canPop.
+        // Show nothing — user can use the cancel button we added to
+        // the processing view.
+      },
       child: DraggableScrollableSheet(
         initialChildSize: 0.92,
         minChildSize: _isProcessing ? 0.92 : 0.3,
@@ -540,6 +553,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                 realPhase: _realPhase,
                                 materialName: _materialName,
                                 pulseAnimation: _pulseController,
+                                onCancel: _cancelProcessing,
                                 onAnimationComplete: () {
                                   if (mounted && _pendingPopMessage != null) {
                                     setState(() => _isProcessing = false);
@@ -1103,6 +1117,7 @@ class _EnhancedProcessingView extends StatefulWidget {
   final String materialName;
   final AnimationController pulseAnimation;
   final VoidCallback onAnimationComplete;
+  final VoidCallback? onCancel;
 
   const _EnhancedProcessingView({
     required this.type,
@@ -1110,6 +1125,7 @@ class _EnhancedProcessingView extends StatefulWidget {
     required this.materialName,
     required this.pulseAnimation,
     required this.onAnimationComplete,
+    this.onCancel,
   });
 
   @override
@@ -1650,6 +1666,33 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView>
                 },
               );
             }),
+
+            const SizedBox(height: AppSpacing.lg),
+
+            // ── Close / Cancel button ──
+            if (widget.onCancel != null)
+              GestureDetector(
+                onTap: widget.onCancel,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(
+                      color: Colors.grey.withValues(alpha: 0.15),
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      l.commonCancel,
+                      style: AppTypography.labelLarge.copyWith(
+                        color: AppColors.textSecondaryFor(brightness),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
 
             const SizedBox(height: AppSpacing.xl),
           ],

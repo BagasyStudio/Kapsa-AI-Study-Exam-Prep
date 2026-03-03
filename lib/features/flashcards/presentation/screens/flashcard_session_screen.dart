@@ -381,6 +381,7 @@ class _FlashcardSessionScreenState
                         onSwiped: (dir) => _onSwiped(dir, cards),
                         onSwipeProgress: _onSwipeProgress,
                         frontCard: FlashcardWidget(
+                          key: ValueKey('card_${currentCard.id}'),
                           topic: currentCard.topic,
                           questionBefore: currentCard.questionBefore,
                           keyword: currentCard.keyword,

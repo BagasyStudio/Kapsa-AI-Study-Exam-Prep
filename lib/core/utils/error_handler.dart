@@ -63,14 +63,14 @@ class AppErrorHandler {
       }
 
       // Only treat 401 as session expired if the message explicitly
-      // mentions JWT / auth. Edge Functions may return 401 for other
-      // reasons (e.g. upstream API auth failures like Replicate).
+      // mentions JWT / session expiry. Edge Functions may return 401 for
+      // other reasons (e.g. upstream API auth failures like Replicate
+      // returning "Unauthorized" for bad API keys — NOT user session issues).
       if (status == 401) {
         final lowerMsg = (serverMsg ?? '').toLowerCase();
         if (lowerMsg.contains('jwt') ||
-            lowerMsg.contains('token') ||
-            lowerMsg.contains('auth') ||
             lowerMsg.contains('session') ||
+            lowerMsg.contains('not authenticated') ||
             serverMsg == null ||
             serverMsg.isEmpty) {
           return 'Your session has expired. Please sign in again.';

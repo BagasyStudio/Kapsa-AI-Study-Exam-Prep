@@ -171,8 +171,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final isOnboardingRoute = state.matchedLocation == Routes.onboarding;
       final isPaywallRoute = state.matchedLocation == Routes.paywall;
 
-      // First launch → show onboarding
-      if (!hasSeenOnboarding && !isOnboardingRoute) {
+      // First launch → show onboarding (but allow paywall route too,
+      // since onboarding navigates to paywall before marking as seen)
+      if (!hasSeenOnboarding && !isOnboardingRoute && !isPaywallRoute) {
         return Routes.onboarding;
       }
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/navigation/app_router.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/providers/revenue_cat_provider.dart';
 import '../../../../core/services/revenue_cat_service.dart';
@@ -65,6 +66,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
     } else {
+      // Coming from onboarding (no route to pop back to) → mark onboarding
+      // as complete so GoRouter redirect won't send us back there.
+      ref.read(hasSeenOnboardingProvider.notifier).state = true;
       context.go(_isLoggedIn ? Routes.home : Routes.login);
     }
   }

@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../core/navigation/app_router.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/theme/app_animations.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -138,7 +137,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Future<void> _goToPaywall() async {
     await _saveOnboardingData();
     if (mounted) {
-      ref.read(hasSeenOnboardingProvider.notifier).state = true;
+      // Navigate FIRST, then mark as seen.
+      // Setting the provider triggers a GoRouter rebuild — if we do it
+      // before navigating, the redirect fires while still on /onboarding
+      // and sends the user to /login, swallowing the paywall route.
       context.go(Routes.paywall);
     }
   }
