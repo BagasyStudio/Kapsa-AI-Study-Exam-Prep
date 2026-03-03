@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/providers/revenue_cat_provider.dart';
 import '../../../../core/services/revenue_cat_service.dart';
@@ -55,6 +56,19 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
     super.dispose();
   }
 
+  /// Whether the user is currently logged in.
+  bool get _isLoggedIn =>
+      Supabase.instance.client.auth.currentSession != null;
+
+  /// Dismiss the paywall — navigate to login if unauthenticated, home if logged in.
+  void _dismiss() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      context.go(_isLoggedIn ? Routes.home : Routes.login);
+    }
+  }
+
   /// Get the correct package from RevenueCat offerings.
   Package? _getSelectedPackage(Offerings? offerings) {
     final current = offerings?.current;
@@ -94,13 +108,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
         ),
       );
       Future.delayed(const Duration(milliseconds: 600), () {
-        if (mounted) {
-          if (Navigator.of(context).canPop()) {
-            Navigator.of(context).pop();
-          } else {
-            context.go(Routes.home);
-          }
-        }
+        if (mounted) _dismiss();
       });
     }
   }
@@ -122,13 +130,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
       );
       if (success) {
         Future.delayed(const Duration(milliseconds: 600), () {
-          if (mounted) {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            } else {
-              context.go(Routes.home);
-            }
-          }
+          if (mounted) _dismiss();
         });
       }
     }
@@ -274,13 +276,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
 
                   // Close button
                   _GlassCloseButton(
-                    onTap: () {
-                      if (Navigator.of(context).canPop()) {
-                        Navigator.of(context).pop();
-                      } else {
-                        context.go(Routes.home);
-                      }
-                    },
+                    onTap: _dismiss,
                   ),
 
                   const SizedBox(height: AppSpacing.xxl),

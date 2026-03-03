@@ -24,13 +24,12 @@ import '../widgets/onboarding_processing_page.dart';
 import '../widgets/onboarding_social_proof_page.dart';
 import '../widgets/onboarding_plan_ready_page.dart';
 import '../widgets/onboarding_rate_page.dart';
-import '../widgets/onboarding_paywall_page.dart';
 
 // ─────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────
 
-const _totalPages = 11;
+const _totalPages = 10;
 
 List<String> _localizedStudyAreas(AppLocalizations l) => [
   l.studyAreaSciences,
@@ -63,7 +62,6 @@ const _pageProcessing = 6;
 const _pageSocialProof = 7;
 const _pagePlanReady = 8;
 const _pageRateUs = 9;
-const _pagePaywall = 10;
 
 // ─────────────────────────────────────────────────────────────
 // Main onboarding orchestrator
@@ -119,11 +117,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   // ── Navigation ──
 
-  Future<void> _completeOnboarding() async {
+  /// Persist onboarding selections to SharedPreferences.
+  Future<void> _saveOnboardingData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('has_seen_onboarding', true);
-
-    // Save onboarding selections
     await prefs.setInt(
         'onboarding_exam_urgency', _selectedExamUrgency ?? -1);
     if (_materialPath != null) {
@@ -132,35 +129,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       await prefs.setInt(
           'onboarding_flashcard_count', _estimatedFlashcards);
       await prefs.setInt('onboarding_quiz_count', _estimatedQuizzes);
-    }
-
-    if (mounted) {
-      ref.read(hasSeenOnboardingProvider.notifier).state = true;
-      context.go(Routes.login);
     }
   }
 
-  void _goToPaywall() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('has_seen_onboarding', true);
-
-    // Save onboarding selections
-    await prefs.setInt(
-        'onboarding_exam_urgency', _selectedExamUrgency ?? -1);
-    if (_materialPath != null) {
-      await prefs.setString('onboarding_material_path', _materialPath!);
-      await prefs.setString('onboarding_material_type', _materialType!);
-      await prefs.setInt(
-          'onboarding_flashcard_count', _estimatedFlashcards);
-      await prefs.setInt('onboarding_quiz_count', _estimatedQuizzes);
-    }
-
+  /// After rate page → navigate directly to the REAL paywall.
+  /// RevenueCat works anonymously — no login needed to purchase.
+  /// After paywall (dismiss or purchase) → user lands on /login.
+  Future<void> _goToPaywall() async {
+    await _saveOnboardingData();
     if (mounted) {
-      // Set pending paywall flag so router redirects to paywall after login
-      ref.read(pendingPaywallProvider.notifier).state = true;
       ref.read(hasSeenOnboardingProvider.notifier).state = true;
-      // Router will redirect: onboarding → login → (after login) → paywall
-      context.go(Routes.login);
+      context.go(Routes.paywall);
     }
   }
 
@@ -213,7 +192,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     } catch (_) {
       // Silently fail — store review may not be available
     }
-    _nextPage();
+    // After rating → go to real paywall (last step before login)
+    _goToPaywall();
   }
 
   void _onPageChanged(int index) {
@@ -224,39 +204,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isPaywallPage = _currentPage == _pagePaywall;
     final isRatePage = _currentPage == _pageRateUs;
-    final hideBottomBar = isPaywallPage || isRatePage;
+    final hideBottomBar = isRatePage;
     final brightness = Theme.of(context).brightness;
 
     return Scaffold(
       backgroundColor: AppColors.backgroundFor(brightness),
       body: Stack(
         children: [
-          // Background orbs (hidden on dark paywall page)
-          if (!isPaywallPage)
-            const Positioned.fill(
-              child: FloatingOrbs(orbCount: 3),
-            ),
-          // Dark gradient background for paywall page
-          if (isPaywallPage)
-            Positioned.fill(
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF0B0D1E),
-                      Color(0xFF111338),
-                      Color(0xFF0F1029),
-                      Color(0xFF0B0D1E),
-                    ],
-                    stops: [0.0, 0.3, 0.7, 1.0],
-                  ),
-                ),
-              ),
-            ),
+          // Background orbs
+          const Positioned.fill(
+            child: FloatingOrbs(orbCount: 3),
+          ),
 
           // Content
           SafeArea(
@@ -377,18 +336,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         quizCount: _estimatedQuizzes,
                       ),
 
-                      // 9 — Rate Us
+                      // 9 — Rate Us (last page — after rate → real paywall)
                       OnboardingRatePage(
                         isActive: _currentPage == _pageRateUs,
                         onRate: _handleRate,
-                        onSkip: _nextPage,
-                      ),
-
-                      // 10 — Paywall
-                      OnboardingPaywallPage(
-                        isActive: _currentPage == _pagePaywall,
-                        onTryPro: _goToPaywall,
-                        onSkip: _completeOnboarding,
+                        onSkip: _goToPaywall,
                       ),
                     ],
                   ),
