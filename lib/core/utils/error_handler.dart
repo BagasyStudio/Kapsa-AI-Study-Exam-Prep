@@ -53,30 +53,44 @@ class AppErrorHandler {
       final details = error.details;
 
       if (kDebugMode) {
-        debugPrint('[ErrorHandler] FunctionException: status=$status, details=$details');
+        debugPrint('[ErrorHandler] FunctionException: status=$status, '
+            'details=$details (${details.runtimeType})');
       }
 
-      // Extract server message from response body
+      // Extract server message from response body.
+      // `details` can be Map (parsed JSON), String (raw body), or null.
       String? serverMsg;
       if (details is Map) {
-        serverMsg = details['error']?.toString() ?? details['message']?.toString();
+        serverMsg = details['error']?.toString() ??
+            details['message']?.toString();
+      } else if (details is String && details.isNotEmpty) {
+        serverMsg = details;
       }
 
-      // Only treat 401 as session expired if the message explicitly
+      // Only treat 401 as session expired if the message **explicitly**
       // mentions JWT / session expiry. Edge Functions may return 401 for
-      // other reasons (e.g. upstream API auth failures like Replicate
-      // returning "Unauthorized" for bad API keys — NOT user session issues).
+      // other reasons (e.g. missing SERVICE_ROLE_KEY, upstream API auth
+      // failures, misconfigured secrets — NOT user session issues).
+      //
+      // IMPORTANT: null/empty serverMsg on 401 used to be treated as
+      // "session expired", but this caused false positives when the edge
+      // function crashed without returning JSON. Now we only show
+      // "session expired" for explicit JWT/session messages.
       if (status == 401) {
         final lowerMsg = (serverMsg ?? '').toLowerCase();
-        if (lowerMsg.contains('jwt') ||
-            lowerMsg.contains('session') ||
+        if (lowerMsg.contains('jwt expired') ||
+            lowerMsg.contains('jwt claim') ||
+            lowerMsg.contains('missing sub claim') ||
+            lowerMsg.contains('session expired') ||
             lowerMsg.contains('not authenticated') ||
-            serverMsg == null ||
-            serverMsg.isEmpty) {
+            lowerMsg.contains('refresh_token')) {
           return 'Your session has expired. Please sign in again.';
         }
-        // Non-auth 401 from Edge Function → show as service error
-        return 'AI service error: $serverMsg';
+        // All other 401s: server-side auth issue, NOT user session
+        if (serverMsg != null && serverMsg.isNotEmpty) {
+          return 'AI service error: $serverMsg';
+        }
+        return 'AI service authentication error. Please try again later.';
       }
       if (status == 429) {
         return 'Too many requests. Please wait a moment and try again.';

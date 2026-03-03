@@ -124,6 +124,16 @@ Deno.serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Early check: is the AI service configured?
+  const replicateKey = Deno.env.get("REPLICATE_API_KEY");
+  if (!replicateKey) {
+    console.error("REPLICATE_API_KEY is not set in Supabase secrets");
+    return new Response(JSON.stringify({ error: "Server configuration error: AI service not configured" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -135,7 +145,6 @@ Deno.serve(async (req: Request) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const replicateKey = Deno.env.get("REPLICATE_API_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Verify JWT

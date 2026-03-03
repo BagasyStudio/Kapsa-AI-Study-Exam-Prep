@@ -17,16 +17,13 @@ class SessionExpiredException implements Exception {
 
 /// Wrapper around Supabase Edge Function calls with retry on 401.
 ///
-/// The Supabase Flutter SDK's internal [AuthHttpClient] already
-/// auto-refreshes expired tokens before every HTTP request
-/// (including `functions.invoke()`). This wrapper does NOT
-/// attempt its own token refresh — it simply:
-///
-/// 1. Checks that a user is logged in (fast, no network call).
-/// 2. Delegates to `_client.functions.invoke()` (SDK handles auth).
-/// 3. If the call fails with 401, retries ONCE (handles rare race
-///    conditions where the token expired between SDK refresh and
-///    Edge Function processing).
+/// Flow:
+/// 1. Check that a user is logged in (fast, no network call).
+/// 2. Delegate to `_client.functions.invoke()` (SDK handles auth).
+/// 3. If 401: refresh session + retry once.
+/// 4. If retry also 401: the problem is server-side (missing secrets,
+///    misconfigured edge function) — rethrow as FunctionException,
+///    NOT SessionExpiredException.
 class SupabaseFunctions {
   final SupabaseClient _client;
 
@@ -34,9 +31,13 @@ class SupabaseFunctions {
 
   /// Invoke an Edge Function.
   ///
-  /// Parameters mirror [FunctionsClient.invoke] exactly.
-  /// Throws [SessionExpiredException] only if there is truly no
-  /// logged-in user.
+  /// Throws [SessionExpiredException] only when:
+  /// - No logged-in user exists, OR
+  /// - Token refresh explicitly fails (refresh token invalid/expired)
+  ///
+  /// Server-side 401s (missing SERVICE_ROLE_KEY, edge function auth
+  /// issues) are rethrown as [FunctionException] so the error handler
+  /// shows "AI service error" instead of "session expired".
   Future<FunctionResponse> invoke(
     String functionName, {
     Map<String, String>? headers,
@@ -44,16 +45,12 @@ class SupabaseFunctions {
     HttpMethod method = HttpMethod.post,
   }) async {
     // Quick check: is there a user at all?
-    // currentUser persists through token refresh cycles, so this
-    // is a reliable indicator of "logged in".
     if (_client.auth.currentUser == null) {
+      debugPrint('[SupabaseFunctions] No currentUser — session expired');
       throw const SessionExpiredException();
     }
 
     try {
-      // The SDK's AuthHttpClient automatically refreshes the
-      // access token if it's expired before sending the request.
-      // Timeout prevents infinite waiting if Edge Function hangs.
       return await _client.functions
           .invoke(
             functionName,
@@ -68,41 +65,57 @@ class SupabaseFunctions {
       );
     } on FunctionException catch (e) {
       debugPrint(
-        '[SupabaseFunctions] $functionName failed: '
-        'status=${e.status}, details=${e.details}, '
+        '[SupabaseFunctions] $functionName FAILED: '
+        'status=${e.status}, '
+        'details=${e.details} (${e.details.runtimeType}), '
         'reasonPhrase=${e.reasonPhrase}',
       );
 
-      // 401 → token might have expired in a race condition.
-      // Try refreshing manually and retry once.
       if (e.status == 401) {
-        debugPrint('[SupabaseFunctions] Got 401, attempting session refresh...');
+        // ── Step 1: Try refreshing the session ──
+        debugPrint(
+          '[SupabaseFunctions] Got 401 — refreshing session...',
+        );
+        bool refreshSucceeded = false;
         try {
           await _client.auth.refreshSession();
-          debugPrint('[SupabaseFunctions] Session refresh succeeded, retrying...');
+          refreshSucceeded = true;
+          debugPrint(
+            '[SupabaseFunctions] Session refresh OK — retrying...',
+          );
         } catch (refreshError) {
           debugPrint(
-            '[SupabaseFunctions] Token refresh failed: $refreshError',
+            '[SupabaseFunctions] Session refresh FAILED: $refreshError',
           );
-          // Only NOW do we know the session is truly gone.
+          // Refresh token is truly invalid → user must re-login
           throw const SessionExpiredException();
         }
-        // Retry the call with the fresh token.
-        try {
-          return await _client.functions
-              .invoke(
-                functionName,
-                headers: headers,
-                body: body,
-                method: method,
-              )
-              .timeout(const Duration(seconds: 180));
-        } on FunctionException catch (retryError) {
-          debugPrint(
-            '[SupabaseFunctions] Retry also failed: '
-            'status=${retryError.status}, details=${retryError.details}',
-          );
-          rethrow;
+
+        // ── Step 2: Retry with fresh token ──
+        if (refreshSucceeded) {
+          try {
+            return await _client.functions
+                .invoke(
+                  functionName,
+                  headers: headers,
+                  body: body,
+                  method: method,
+                )
+                .timeout(const Duration(seconds: 180));
+          } on FunctionException catch (retryError) {
+            // Retry ALSO got an error. Since we just refreshed
+            // successfully, the problem is NOT the user's session —
+            // it's a server-side issue (missing secrets, edge function
+            // bug, etc.). Rethrow as FunctionException so the error
+            // handler shows "AI service error" not "session expired".
+            debugPrint(
+              '[SupabaseFunctions] Retry ALSO failed: '
+              'status=${retryError.status}, '
+              'details=${retryError.details} '
+              '(${retryError.details.runtimeType})',
+            );
+            rethrow;
+          }
         }
       }
       rethrow;

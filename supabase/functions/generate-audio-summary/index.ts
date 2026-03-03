@@ -75,6 +75,16 @@ Deno.serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Early check: is the AI service configured?
+  const replicateKey = Deno.env.get("REPLICATE_API_KEY");
+  if (!replicateKey) {
+    console.error("REPLICATE_API_KEY is not set in Supabase secrets");
+    return new Response(JSON.stringify({ error: "Server configuration error: AI service not configured" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -90,7 +100,6 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const replicateApiToken = Deno.env.get("REPLICATE_API_KEY")!;
 
     // Verify user
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -183,7 +192,7 @@ Deno.serve(async (req: Request) => {
     let summaryText: string;
     try {
       summaryText = await callReplicate(
-        replicateApiToken,
+        replicateKey,
         systemPrompt,
         userPrompt,
         1024
@@ -215,7 +224,7 @@ Deno.serve(async (req: Request) => {
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${replicateApiToken}`,
+          Authorization: `Bearer ${replicateKey}`,
           "Content-Type": "application/json",
           Prefer: "wait",
         },
