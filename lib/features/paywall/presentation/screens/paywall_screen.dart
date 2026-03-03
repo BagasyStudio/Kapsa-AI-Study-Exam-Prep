@@ -81,7 +81,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
     if (_isYearlySelected) {
       return current.annual ?? current.getPackage(RevenueCatService.yearlyProductId);
     } else {
-      return current.monthly ?? current.getPackage(RevenueCatService.monthlyProductId);
+      return current.weekly ?? current.getPackage(RevenueCatService.weeklyProductId);
     }
   }
 
@@ -148,21 +148,21 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
     // Extract dynamic prices from offerings when available
     String yearlyPrice = '\$59.99';
     String yearlyMonthly = '\$5.00/mo';
-    String monthlyPrice = '\$12.99';
+    String weeklyPrice = '\$4.99';
 
     offeringsAsync.whenData((offerings) {
       final current = offerings?.current;
       if (current != null) {
         final annual = current.annual;
-        final monthly = current.monthly;
+        final weekly = current.weekly ?? current.getPackage(RevenueCatService.weeklyProductId);
 
         if (annual != null) {
           yearlyPrice = annual.storeProduct.priceString;
           final monthlyEquiv = annual.storeProduct.price / 12;
           yearlyMonthly = '\$${monthlyEquiv.toStringAsFixed(2)}/mo';
         }
-        if (monthly != null) {
-          monthlyPrice = monthly.storeProduct.priceString;
+        if (weekly != null) {
+          weeklyPrice = weekly.storeProduct.priceString;
         }
       }
     });
@@ -519,7 +519,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
                           price: yearlyPrice,
                           period: '/yr',
                           subtitle: yearlyMonthly,
-                          badgeText: 'BEST VALUE — SAVE 62%',
+                          badgeText: 'BEST VALUE — SAVE 77%',
                           isSelected: _isYearlySelected,
                           onTap: () =>
                               setState(() => _isYearlySelected = true),
@@ -530,9 +530,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
                         child: Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: PricingCard(
-                            planName: 'Monthly',
-                            price: monthlyPrice,
-                            period: '/mo',
+                            planName: 'Weekly',
+                            price: weeklyPrice,
+                            period: '/wk',
                             isSelected: !_isYearlySelected,
                             onTap: () =>
                                 setState(() => _isYearlySelected = false),
@@ -611,7 +611,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
                                     else ...[
                                       Text(
                                         _isYearlySelected
-                                            ? 'Start 7-Day Free Trial'
+                                            ? 'Start 3-Day Free Trial'
                                             : 'Get Kapsa Pro',
                                         style: AppTypography.button.copyWith(
                                           fontSize: 17,
@@ -681,7 +681,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '7-Day Free Trial — Cancel Anytime',
+                            '3-Day Free Trial — Cancel Anytime',
                             style: AppTypography.caption.copyWith(
                               color: const Color(0xFF10B981),
                               fontWeight: FontWeight.w600,

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/Button";
 export function Pricing() {
   const [yearly, setYearly] = useState(true);
   const pro = PRICING.pro;
-  const currentPro = yearly ? pro.yearly : pro.monthly;
+  const currentPro = yearly ? pro.yearly : pro.weekly;
 
   return (
     <section id="pricing" className="relative py-24 sm:py-32">
@@ -23,7 +23,7 @@ export function Pricing() {
 
         <ScrollReveal>
           <div className="flex items-center justify-center gap-3 mb-12">
-            <span className={cn("text-sm", !yearly ? "text-white" : "text-white/40")}>Monthly</span>
+            <span className={cn("text-sm", !yearly ? "text-white" : "text-white/40")}>Weekly</span>
             <button onClick={() => setYearly(!yearly)} className={cn("relative w-14 h-7 rounded-full transition-colors duration-300", yearly ? "bg-primary" : "bg-white/20")}>
               <span className={cn("absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-transform duration-300", yearly ? "translate-x-7" : "translate-x-0.5")} />
             </button>
@@ -55,15 +55,15 @@ export function Pricing() {
                   <h3 className="font-heading text-xl font-bold text-white">{pro.name}</h3>
                   <p className="mt-1 text-sm text-white/40">{pro.description}</p>
                   <div className="mt-6 flex items-baseline gap-2">
-                    <span className="font-heading text-4xl font-bold text-white">{yearly ? pro.yearly.monthlyEquiv : currentPro.price.replace("/month", "")}</span>
-                    <span className="text-white/40 text-sm">/month</span>
+                    <span className="font-heading text-4xl font-bold text-white">{yearly ? pro.yearly.monthlyEquiv : currentPro.price}</span>
+                    <span className="text-white/40 text-sm">{yearly ? "/month" : "/week"}</span>
                   </div>
                   {yearly && <p className="mt-1 text-xs text-white/30">Billed {pro.yearly.price}{pro.yearly.period}</p>}
                   <ul className="mt-8 space-y-3 flex-1">
                     {pro.features.map((f) => (<li key={f} className="flex items-start gap-3 text-sm text-white/70"><CheckIcon className="mt-0.5 shrink-0 text-primary-light" />{f}</li>))}
                   </ul>
                   <Button href={LINKS.appStore} className="w-full mt-8 animate-pulse-glow">{yearly ? `Start ${pro.trialDays}-Day Free Trial` : "Get Kapsa Pro"}</Button>
-                  <p className="mt-3 text-center text-xs text-white/30">{yearly ? "7-day free trial, then $59.99/year. Cancel anytime." : "Cancel anytime. No questions asked."}</p>
+                  <p className="mt-3 text-center text-xs text-white/30">{yearly ? "3-day free trial, then $59.99/year. Cancel anytime." : "Cancel anytime. No questions asked."}</p>
                   <div className="mt-4 flex items-center justify-center gap-4 text-xs text-white/25">
                     <span className="flex items-center gap-1"><LockIcon /> Secure</span>
                     <span className="flex items-center gap-1"><ShieldIcon /> Encrypted</span>

@@ -108,12 +108,12 @@ export const PRICING = {
   pro: {
     name: "Kapsa Pro",
     badge: "MOST POPULAR",
-    monthly: { price: "$12.99", period: "/month" },
+    weekly: { price: "$4.99", period: "/week" },
     yearly: {
       price: "$59.99",
       period: "/year",
       monthlyEquiv: "$5.00",
-      savings: "62%",
+      savings: "77%",
     },
     description: "Everything you need to ace your exams",
     features: [
@@ -124,7 +124,7 @@ export const PRICING = {
       "Unlimited courses",
       "Priority support",
     ],
-    trialDays: 7,
+    trialDays: 3,
     highlighted: true,
   },
 };

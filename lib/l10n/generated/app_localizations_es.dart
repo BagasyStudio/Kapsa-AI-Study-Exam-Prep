@@ -362,13 +362,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get paywallRating => '4.8';
 
   @override
-  String get paywallStartTrial => 'Empezar prueba gratis de 7 días';
+  String get paywallStartTrial => 'Empezar prueba gratis de 3 días';
 
   @override
   String get paywallSkip => 'Continuar sin Pro';
 
   @override
-  String get paywallDisclaimer => 'Prueba gratis de 7 días · Cancelá en cualquier momento · Sin cargo hoy';
+  String get paywallDisclaimer => 'Prueba gratis de 3 días · Cancelá en cualquier momento · Sin cargo hoy';
 
   @override
   String get captureProcessingPdf => 'Procesando tu PDF...';

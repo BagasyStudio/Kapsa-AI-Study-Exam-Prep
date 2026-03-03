@@ -362,13 +362,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paywallRating => '4.8';
 
   @override
-  String get paywallStartTrial => 'Start 7-Day Free Trial';
+  String get paywallStartTrial => 'Start 3-Day Free Trial';
 
   @override
   String get paywallSkip => 'Continue without Pro';
 
   @override
-  String get paywallDisclaimer => '7-day free trial · Cancel anytime · No charge today';
+  String get paywallDisclaimer => '3-day free trial · Cancel anytime · No charge today';
 
   @override
   String get captureProcessingPdf => 'Processing your PDF...';

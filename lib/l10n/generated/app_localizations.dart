@@ -776,7 +776,7 @@ abstract class AppLocalizations {
   /// No description provided for @paywallStartTrial.
   ///
   /// In en, this message translates to:
-  /// **'Start 7-Day Free Trial'**
+  /// **'Start 3-Day Free Trial'**
   String get paywallStartTrial;
 
   /// No description provided for @paywallSkip.
@@ -788,7 +788,7 @@ abstract class AppLocalizations {
   /// No description provided for @paywallDisclaimer.
   ///
   /// In en, this message translates to:
-  /// **'7-day free trial · Cancel anytime · No charge today'**
+  /// **'3-day free trial · Cancel anytime · No charge today'**
   String get paywallDisclaimer;
 
   /// No description provided for @captureProcessingPdf.

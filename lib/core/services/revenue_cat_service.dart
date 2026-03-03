@@ -13,8 +13,8 @@ class RevenueCatService {
   static const String _entitlementId = 'pro';
 
   /// Product IDs matching App Store Connect configuration.
-  static const String monthlyProductId = 'kapsa_pro_monthly';
-  static const String yearlyProductId = 'kapsa_pro_yearly';
+  static const String weeklyProductId = 'kapsa_pro_weekly';
+  static const String yearlyProductId = 'kapsa_pro_annual';
 
   /// RevenueCat API Key — injected via dart-define at build time.
   static const String _apiKey = Env.revenueCatApiKey;
