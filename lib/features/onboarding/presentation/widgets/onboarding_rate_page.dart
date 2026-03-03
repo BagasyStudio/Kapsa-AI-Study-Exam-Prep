@@ -546,11 +546,11 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
   // ── Overlapping avatars ──
 
   Widget _buildAvatarRow(Brightness brightness) {
-    const avatars = [
-      (initial: 'S', color1: Color(0xFF8B5CF6), color2: Color(0xFF6366F1)),
-      (initial: 'M', color1: Color(0xFF3B82F6), color2: Color(0xFF06B6D4)),
-      (initial: 'L', color1: Color(0xFFEC4899), color2: Color(0xFFF43F5E)),
-      (initial: 'A', color1: Color(0xFF10B981), color2: Color(0xFF059669)),
+    const avatarImages = [
+      'assets/images/avatars/avatar_social_04_female.png',
+      'assets/images/avatars/avatar_social_04_male.png',
+      'assets/images/avatars/avatar_social_01_female.png',
+      'assets/images/avatars/avatar_social_02_female.png',
     ];
 
     final bgColor = brightness == Brightness.dark
@@ -563,28 +563,18 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
           width: 124,
           height: 38,
           child: Stack(
-            children: List.generate(avatars.length, (i) {
-              final a = avatars[i];
+            children: List.generate(avatarImages.length, (i) {
               return Positioned(
                 left: i * 24.0,
                 child: Container(
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [a.color1, a.color2],
-                    ),
                     shape: BoxShape.circle,
                     border: Border.all(color: bgColor, width: 2.5),
-                  ),
-                  child: Center(
-                    child: Text(
-                      a.initial,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
+                    image: DecorationImage(
+                      image: AssetImage(avatarImages[i]),
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),
@@ -630,19 +620,11 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                 width: 40,
                 height: 40,
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
-                  ),
                   shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text(
-                    'S',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
+                  image: DecorationImage(
+                    image: AssetImage(
+                        'assets/images/avatars/avatar_social_03_female.png'),
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),

@@ -40,8 +40,10 @@ class CaptureSheet extends ConsumerStatefulWidget {
 class _CaptureSheetState extends ConsumerState<CaptureSheet>
     with SingleTickerProviderStateMixin {
   bool _isProcessing = false;
-  String _processingStatus = 'Processing...';
-  int _processingStep = 0; // 0=uploading, 1=analyzing, 2=done
+  String _realPhase = 'uploading'; // 'uploading' | 'analyzing' | 'done'
+  String _processingType = 'ocr'; // 'ocr' | 'pdf' | 'whisper'
+  String _materialName = '';
+  String? _pendingPopMessage; // message to pop with after animation
   late AnimationController _pulseController;
 
   @override
@@ -98,8 +100,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
     setState(() {
       _isProcessing = true;
-      _processingStep = 0;
-      _processingStatus = 'Uploading image...';
+      _realPhase = 'uploading';
+      _processingType = 'ocr';
+      _materialName = 'Scanned Page';
     });
 
     try {
@@ -119,10 +122,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
           client.storage.from('course-materials').getPublicUrl(fileName);
 
       if (mounted) {
-        setState(() {
-          _processingStep = 1;
-          _processingStatus = 'AI is extracting text...';
-        });
+        setState(() => _realPhase = 'analyzing');
       }
 
       // Process with OCR Edge Function
@@ -144,8 +144,11 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
       if (mounted) {
         SoundService.playProcessingComplete();
-        Navigator.of(context)
-            .pop('Scanned and processed: ${material.title}');
+        // Let the animation finish gracefully before popping
+        setState(() {
+          _realPhase = 'done';
+          _pendingPopMessage = 'Scanned and processed: ${material.title}';
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -178,8 +181,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
     setState(() {
       _isProcessing = true;
-      _processingStep = 0;
-      _processingStatus = 'Uploading audio...';
+      _realPhase = 'uploading';
+      _processingType = 'whisper';
+      _materialName = 'Recording - ${DateTime.now().day}/${DateTime.now().month}';
     });
 
     try {
@@ -206,10 +210,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
           client.storage.from('course-materials').getPublicUrl(fileName);
 
       if (mounted) {
-        setState(() {
-          _processingStep = 1;
-          _processingStatus = 'AI is transcribing audio...';
-        });
+        setState(() => _realPhase = 'analyzing');
       }
 
       // Process with Whisper Edge Function
@@ -236,8 +237,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
       if (mounted) {
         SoundService.playProcessingComplete();
-        Navigator.of(context)
-            .pop('Transcribed: ${material.title}');
+        setState(() {
+          _realPhase = 'done';
+          _pendingPopMessage = 'Transcribed: ${material.title}';
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -300,8 +303,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
     setState(() {
       _isProcessing = true;
-      _processingStep = 0;
-      _processingStatus = 'Uploading PDF...';
+      _realPhase = 'uploading';
+      _processingType = 'pdf';
+      _materialName = file.name;
     });
 
     try {
@@ -318,10 +322,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
           client.storage.from('course-materials').getPublicUrl(fileName);
 
       if (mounted) {
-        setState(() {
-          _processingStep = 1;
-          _processingStatus = 'AI is extracting text...';
-        });
+        setState(() => _realPhase = 'analyzing');
       }
 
       // Extract text from PDF (direct extraction, no AI needed)
@@ -343,8 +344,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
       if (mounted) {
         SoundService.playProcessingComplete();
-        Navigator.of(context)
-            .pop('Uploaded and processed: ${material.title}');
+        setState(() {
+          _realPhase = 'done';
+          _pendingPopMessage = 'Uploaded and processed: ${material.title}';
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -363,8 +366,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
     setState(() {
       _isProcessing = true;
-      _processingStep = 1;
-      _processingStatus = 'Saving note...';
+      _realPhase = 'analyzing';
+      _processingType = 'paste';
+      _materialName = 'Quick Note';
     });
 
     try {
@@ -521,11 +525,21 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                   // Content
                   Expanded(
                     child: _isProcessing
-                        ? _UploadProgressView(
-                            status: _processingStatus,
-                            step: _processingStep,
-                            pulseAnimation: _pulseController,
-                          )
+                        ? _processingType == 'paste'
+                            ? _SimplePasteProgress(
+                                pulseAnimation: _pulseController,
+                              )
+                            : _EnhancedProcessingView(
+                                type: _processingType,
+                                realPhase: _realPhase,
+                                materialName: _materialName,
+                                pulseAnimation: _pulseController,
+                                onAnimationComplete: () {
+                                  if (mounted && _pendingPopMessage != null) {
+                                    Navigator.of(context).pop(_pendingPopMessage);
+                                  }
+                                },
+                              )
                         : ListView(
                             controller: scrollController,
                             padding: const EdgeInsets.symmetric(
@@ -862,45 +876,253 @@ class _RecentItem extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════
-// Upload Progress View
+// Simple Paste Progress (quick — no mega animation)
 // ═══════════════════════════════════════════
 
-/// Beautiful animated upload progress view with step indicators.
-class _UploadProgressView extends StatelessWidget {
-  final String status;
-  final int step; // 0=uploading, 1=analyzing
+class _SimplePasteProgress extends StatelessWidget {
   final AnimationController pulseAnimation;
 
-  const _UploadProgressView({
-    required this.status,
-    required this.step,
-    required this.pulseAnimation,
-  });
+  const _SimplePasteProgress({required this.pulseAnimation});
 
   @override
   Widget build(BuildContext context) {
     return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedBuilder(
+            animation: pulseAnimation,
+            builder: (_, __) {
+              final scale = 1.0 + (pulseAnimation.value * 0.12);
+              return Transform.scale(
+                scale: scale,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.primaryLight,
+                        AppColors.primary,
+                        AppColors.primaryDark,
+                      ],
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.save_rounded,
+                    color: Colors.white,
+                    size: 36,
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          Text(
+            'Saving note...',
+            style: AppTypography.h3.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════
+// Enhanced Processing View (mega animation)
+// ═══════════════════════════════════════════
+
+class _EnhancedProcessingView extends StatefulWidget {
+  final String type; // 'ocr' | 'pdf' | 'whisper'
+  final String realPhase; // 'uploading' | 'analyzing' | 'done'
+  final String materialName;
+  final AnimationController pulseAnimation;
+  final VoidCallback onAnimationComplete;
+
+  const _EnhancedProcessingView({
+    required this.type,
+    required this.realPhase,
+    required this.materialName,
+    required this.pulseAnimation,
+    required this.onAnimationComplete,
+  });
+
+  @override
+  State<_EnhancedProcessingView> createState() =>
+      _EnhancedProcessingViewState();
+}
+
+class _EnhancedProcessingViewState extends State<_EnhancedProcessingView> {
+  int _currentStep = 0;
+  bool _realDone = false;
+  Timer? _stepTimer;
+
+  // Icons per step
+  static const _stepIcons = <IconData>[
+    Icons.cloud_upload_rounded,
+    Icons.document_scanner_rounded,
+    Icons.psychology_rounded,
+    Icons.edit_note_rounded,
+    Icons.auto_awesome_rounded,
+    Icons.bar_chart_rounded,
+    Icons.celebration_rounded,
+  ];
+
+  List<({String loading, String done})> get _steps {
+    switch (widget.type) {
+      case 'pdf':
+        return [
+          (loading: 'Uploading PDF...', done: '\u2713 PDF uploaded'),
+          (loading: 'Parsing pages...', done: '\u2713 Pages parsed'),
+          (loading: 'Analyzing structure...', done: '\u2713 Structure analyzed'),
+          (loading: 'AI extracting content...', done: '\u2713 Content extracted'),
+          (loading: 'Identifying key concepts...', done: '\u2713 Key concepts found'),
+          (loading: 'Formatting text...', done: '\u2713 Text formatted'),
+          (loading: 'Finishing up...', done: '\u2713 Ready!'),
+        ];
+      case 'whisper':
+        return [
+          (loading: 'Uploading audio...', done: '\u2713 Audio uploaded'),
+          (loading: 'Processing audio signal...', done: '\u2713 Signal processed'),
+          (loading: 'Detecting speech patterns...', done: '\u2713 Speech detected'),
+          (loading: 'AI transcribing audio...', done: '\u2713 Audio transcribed'),
+          (loading: 'Formatting transcript...', done: '\u2713 Transcript formatted'),
+          (loading: 'Cleaning up text...', done: '\u2713 Text polished'),
+          (loading: 'Finishing up...', done: '\u2713 Ready!'),
+        ];
+      default: // ocr
+        return [
+          (loading: 'Uploading image...', done: '\u2713 Image uploaded'),
+          (loading: 'Scanning document...', done: '\u2713 Document scanned'),
+          (loading: 'AI recognizing text...', done: '\u2713 Text recognized'),
+          (loading: 'Extracting key content...', done: '\u2713 Content extracted'),
+          (loading: 'Formatting results...', done: '\u2713 Results formatted'),
+          (loading: 'Organizing material...', done: '\u2713 Material organized'),
+          (loading: 'Finishing up...', done: '\u2713 Ready!'),
+        ];
+    }
+  }
+
+  String get _title {
+    switch (widget.type) {
+      case 'pdf':
+        return 'Processing your PDF...';
+      case 'whisper':
+        return 'Transcribing audio...';
+      default:
+        return 'Analyzing your scan...';
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _startStepTimer();
+  }
+
+  @override
+  void didUpdateWidget(_EnhancedProcessingView old) {
+    super.didUpdateWidget(old);
+    // Detect phase changes
+    if (widget.realPhase != old.realPhase) {
+      if (widget.realPhase == 'analyzing' && _currentStep < 2) {
+        // Real upload finished — jump to analysis steps
+        setState(() => _currentStep = 2);
+      }
+      if (widget.realPhase == 'done') {
+        _realDone = true;
+        // Accelerate: finish remaining steps quickly
+        _stepTimer?.cancel();
+        _accelerateToEnd();
+      }
+    }
+  }
+
+  void _startStepTimer() {
+    _stepTimer = Timer.periodic(const Duration(milliseconds: 1800), (_) {
+      if (!mounted) {
+        _stepTimer?.cancel();
+        return;
+      }
+
+      // Don't advance past step 5 until real processing is done
+      if (_currentStep >= 5 && !_realDone) return;
+
+      if (_currentStep < _steps.length - 1) {
+        setState(() => _currentStep++);
+      } else {
+        // Animation complete
+        _stepTimer?.cancel();
+        if (_realDone) {
+          Future.delayed(const Duration(milliseconds: 600), () {
+            if (mounted) widget.onAnimationComplete();
+          });
+        }
+      }
+    });
+  }
+
+  void _accelerateToEnd() {
+    // Rapidly complete remaining steps
+    Timer.periodic(const Duration(milliseconds: 400), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_currentStep < _steps.length - 1) {
+        setState(() => _currentStep++);
+      } else {
+        timer.cancel();
+        Future.delayed(const Duration(milliseconds: 600), () {
+          if (mounted) widget.onAnimationComplete();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _stepTimer?.cancel();
+    super.dispose();
+  }
+
+  double get _progress => (_currentStep + 1) / _steps.length;
+
+  @override
+  Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
+    final steps = _steps;
+
+    return SingleChildScrollView(
+      physics: const ClampingScrollPhysics(),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Animated orb
+            const SizedBox(height: AppSpacing.xl),
+
+            // Neural orb
             AnimatedBuilder(
-              animation: pulseAnimation,
+              animation: widget.pulseAnimation,
               builder: (_, __) {
-                final scale = 1.0 + (pulseAnimation.value * 0.12);
-                final glowOpacity = 0.2 + (pulseAnimation.value * 0.15);
+                final pulse = widget.pulseAnimation.value;
+                final scale = 0.92 + (pulse * 0.08);
+                final glowAlpha = 0.15 + (pulse * 0.15) + (_progress * 0.1);
+
                 return Container(
-                  width: 100,
-                  height: 100,
+                  width: 110,
+                  height: 110,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: glowOpacity),
-                        blurRadius: 40,
-                        spreadRadius: 8,
+                        color: AppColors.primary.withValues(alpha: glowAlpha),
+                        blurRadius: 40 + pulse * 15,
+                        spreadRadius: 5 + _progress * 10,
                       ),
                     ],
                   ),
@@ -909,22 +1131,23 @@ class _UploadProgressView extends StatelessWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                        gradient: RadialGradient(
                           colors: [
-                            AppColors.primaryLight,
+                            AppColors.primaryLight.withValues(alpha: 0.8),
                             AppColors.primary,
                             AppColors.primaryDark,
                           ],
+                          stops: const [0.0, 0.5, 1.0],
                         ),
                       ),
-                      child: Icon(
-                        step == 0
-                            ? Icons.cloud_upload_rounded
-                            : Icons.auto_awesome_rounded,
-                        color: Colors.white,
-                        size: 40,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: Icon(
+                          _stepIcons[_currentStep.clamp(0, _stepIcons.length - 1)],
+                          key: ValueKey(_currentStep),
+                          color: Colors.white,
+                          size: 44,
+                        ),
                       ),
                     ),
                   ),
@@ -932,148 +1155,162 @@ class _UploadProgressView extends StatelessWidget {
               },
             ),
 
-            const SizedBox(height: AppSpacing.xxl),
+            const SizedBox(height: AppSpacing.lg),
 
-            // Status text
+            // Title
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 400),
-              switchInCurve: Curves.easeOut,
-              switchOutCurve: Curves.easeIn,
               child: Text(
-                status,
-                key: ValueKey(status),
+                _currentStep == steps.length - 1 && _realDone
+                    ? 'All done!'
+                    : _title,
+                key: ValueKey(_currentStep == steps.length - 1 && _realDone),
                 style: AppTypography.h3.copyWith(
                   fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimaryFor(brightness),
                 ),
                 textAlign: TextAlign.center,
               ),
             ),
 
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: 4),
 
+            // Subtitle
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               child: Text(
-                step == 0
-                    ? 'Sending your file to the cloud...'
-                    : 'Our AI is working its magic...',
-                key: ValueKey(step),
+                steps[_currentStep].loading,
+                key: ValueKey('sub_$_currentStep'),
                 style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textMutedFor(Theme.of(context).brightness),
+                  color: AppColors.textMutedFor(brightness),
                 ),
                 textAlign: TextAlign.center,
               ),
             ),
 
-            const SizedBox(height: AppSpacing.xxxl),
+            const SizedBox(height: AppSpacing.lg),
 
-            // Step indicators
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _StepDot(
-                  label: 'Upload',
-                  icon: Icons.cloud_upload_outlined,
-                  isActive: step == 0,
-                  isComplete: step > 0,
+            // Progress bar
+            ClipRRect(
+              borderRadius: BorderRadius.circular(100),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 600),
+                curve: Curves.easeOutCubic,
+                height: 6,
+                child: LinearProgressIndicator(
+                  value: _progress,
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
-                _StepConnector(isComplete: step > 0),
-                _StepDot(
-                  label: 'Analyze',
-                  icon: Icons.psychology_outlined,
-                  isActive: step == 1,
-                  isComplete: step > 1,
-                ),
-                _StepConnector(isComplete: step > 1),
-                _StepDot(
-                  label: 'Done',
-                  icon: Icons.check_circle_outline,
-                  isActive: false,
-                  isComplete: step > 1,
-                ),
-              ],
+              ),
             ),
+
+            const SizedBox(height: 6),
+
+            // Percentage
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                '${(_progress * 100).round()}%',
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: AppSpacing.lg),
+
+            // Step cards
+            ...List.generate(steps.length, (i) {
+              final isComplete = i < _currentStep;
+              final isCurrent = i == _currentStep;
+              final step = steps[i];
+
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 350),
+                curve: Curves.easeOutCubic,
+                margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: isComplete
+                      ? AppColors.success.withValues(alpha: isDark ? 0.10 : 0.06)
+                      : isCurrent
+                          ? AppColors.primary.withValues(alpha: isDark ? 0.10 : 0.05)
+                          : isDark
+                              ? Colors.white.withValues(alpha: 0.03)
+                              : Colors.black.withValues(alpha: 0.02),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isComplete
+                        ? AppColors.success.withValues(alpha: 0.25)
+                        : isCurrent
+                            ? AppColors.primary.withValues(alpha: 0.2)
+                            : Colors.transparent,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // Status icon
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: isComplete
+                          ? const Icon(
+                              Icons.check_circle_rounded,
+                              key: ValueKey('check'),
+                              size: 20,
+                              color: AppColors.success,
+                            )
+                          : isCurrent
+                              ? SizedBox(
+                                  key: const ValueKey('spinner'),
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.primary,
+                                  ),
+                                )
+                              : Icon(
+                                  Icons.circle_outlined,
+                                  key: const ValueKey('pending'),
+                                  size: 20,
+                                  color: AppColors.textMutedFor(brightness)
+                                      .withValues(alpha: 0.3),
+                                ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    // Text
+                    Expanded(
+                      child: AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 300),
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: isComplete
+                              ? AppColors.success
+                              : isCurrent
+                                  ? AppColors.textPrimaryFor(brightness)
+                                  : AppColors.textMutedFor(brightness)
+                                      .withValues(alpha: 0.5),
+                          fontWeight: isCurrent || isComplete
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                        child: Text(
+                          isComplete ? step.done : step.loading,
+                          key: ValueKey('text_${i}_$isComplete'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+
+            const SizedBox(height: AppSpacing.xl),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StepDot extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool isActive;
-  final bool isComplete;
-
-  const _StepDot({
-    required this.label,
-    required this.icon,
-    required this.isActive,
-    required this.isComplete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final color = isComplete
-        ? AppColors.success
-        : isActive
-            ? AppColors.primary
-            : AppColors.textMutedFor(brightness).withValues(alpha: 0.4);
-
-    return Column(
-      children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeOut,
-          width: isActive ? 44 : 36,
-          height: isActive ? 44 : 36,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: color.withValues(alpha: isActive ? 0.15 : 0.08),
-            border: Border.all(
-              color: color.withValues(alpha: isActive ? 0.5 : 0.2),
-              width: isActive ? 2 : 1,
-            ),
-          ),
-          child: Icon(
-            isComplete ? Icons.check_rounded : icon,
-            size: isActive ? 22 : 18,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: AppTypography.caption.copyWith(
-            color: isActive ? AppColors.primary : AppColors.textMutedFor(brightness),
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StepConnector extends StatelessWidget {
-  final bool isComplete;
-
-  const _StepConnector({required this.isComplete});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 400),
-        width: 40,
-        height: 2,
-        decoration: BoxDecoration(
-          color: isComplete
-              ? AppColors.success.withValues(alpha: 0.5)
-              : AppColors.textMutedFor(Theme.of(context).brightness).withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(1),
         ),
       ),
     );

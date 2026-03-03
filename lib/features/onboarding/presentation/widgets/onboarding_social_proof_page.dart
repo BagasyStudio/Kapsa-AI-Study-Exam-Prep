@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_animations.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -5,16 +6,23 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/widgets/animated_counter.dart';
-import 'typewriter_text.dart';
 
-/// Screen 6: Students love Kapsa.
+/// Screen 7: Students love Kapsa.
 ///
-/// AnimatedCounter for "10,000+", stars stagger in, typewriter testimonial,
+/// AnimatedCounter for "50,000+", stars stagger in, 3-testimonial carousel,
 /// animated stat card for "In 30 days: +40% grades".
+/// If user uploaded material, shows personalized "Your X flashcards are ready!".
 class OnboardingSocialProofPage extends StatefulWidget {
   final bool isActive;
+  final bool materialUploaded;
+  final int flashcardCount;
 
-  const OnboardingSocialProofPage({super.key, required this.isActive});
+  const OnboardingSocialProofPage({
+    super.key,
+    required this.isActive,
+    this.materialUploaded = false,
+    this.flashcardCount = 0,
+  });
 
   @override
   State<OnboardingSocialProofPage> createState() =>
@@ -22,9 +30,36 @@ class OnboardingSocialProofPage extends StatefulWidget {
 }
 
 class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _controller;
+  late final PageController _testimonialController;
+  Timer? _autoScrollTimer;
   bool _hasAnimated = false;
+  int _currentTestimonial = 0;
+
+  static const _testimonials = [
+    (
+      name: 'Sofia M.',
+      role: 'Med Student',
+      avatar: 'assets/images/avatars/avatar_social_03_female.png',
+      quote:
+          '"Kapsa changed the way I study. My grades improved so much in just one month."',
+    ),
+    (
+      name: 'Marco L.',
+      role: 'Engineering',
+      avatar: 'assets/images/avatars/avatar_social_04_male.png',
+      quote:
+          '"I passed my finals thanks to the AI flashcards. Best study app ever."',
+    ),
+    (
+      name: 'Lucia R.',
+      role: 'Law Student',
+      avatar: 'assets/images/avatars/avatar_social_01_female.png',
+      quote:
+          '"The Oracle is like having a personal tutor 24/7. Can\'t study without it now."',
+    ),
+  ];
 
   @override
   void initState() {
@@ -33,6 +68,7 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
       vsync: this,
       duration: const Duration(milliseconds: 2000),
     );
+    _testimonialController = PageController();
     if (widget.isActive) _animate();
   }
 
@@ -45,11 +81,26 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
   void _animate() {
     _hasAnimated = true;
     _controller.forward();
+    // Start auto-scroll after testimonial is visible
+    _autoScrollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      final next = (_currentTestimonial + 1) % _testimonials.length;
+      _testimonialController.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOutCubic,
+      );
+    });
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _testimonialController.dispose();
+    _autoScrollTimer?.cancel();
     super.dispose();
   }
 
@@ -65,15 +116,18 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
         ).value;
 
         final counterReady = _controller.value > 0.15;
-        final starsStart = 0.35;
-        final typewriterReady = _controller.value > 0.55;
+        const starsStart = 0.35;
+        final testimonialProgress = CurvedAnimation(
+          parent: _controller,
+          curve: const Interval(0.50, 0.75, curve: Curves.easeOutCubic),
+        ).value;
         final statCardProgress = CurvedAnimation(
           parent: _controller,
           curve: const Interval(0.7, 0.95, curve: Curves.easeOutQuart),
         ).value;
 
         final screenH = MediaQuery.of(context).size.height;
-        final imgSize = (screenH * 0.15).clamp(90.0, 140.0);
+        final imgSize = (screenH * 0.13).clamp(75.0, 110.0);
         final isDark = brightness == Brightness.dark;
 
         return SingleChildScrollView(
@@ -129,11 +183,14 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                   ),
                 if (counterReady)
                   Text(
-                    'active students',
+                    widget.materialUploaded && widget.flashcardCount > 0
+                        ? 'students — your ${widget.flashcardCount} flashcards are ready!'
+                        : 'active students',
                     style: AppTypography.bodySmall.copyWith(
                       color: AppColors.textMutedFor(brightness),
                       fontWeight: FontWeight.w500,
                     ),
+                    textAlign: TextAlign.center,
                   ),
 
                 const SizedBox(height: AppSpacing.md),
@@ -152,7 +209,7 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
 
                     return AnimatedScale(
                       scale: starProgress,
-                      duration: Duration.zero, // Driven by controller
+                      duration: Duration.zero,
                       child: Opacity(
                         opacity: starProgress,
                         child: const Padding(
@@ -170,41 +227,56 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
 
                 const SizedBox(height: AppSpacing.lg),
 
-                // Testimonial with typewriter
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : Colors.white.withValues(alpha: 0.55),
-                    borderRadius: AppRadius.borderRadiusLg,
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.1)
-                          : Colors.white.withValues(alpha: 0.2),
+                // Testimonial carousel
+                Opacity(
+                  opacity: testimonialProgress,
+                  child: Transform.translate(
+                    offset: Offset(0, 16 * (1 - testimonialProgress)),
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          height: 140,
+                          child: PageView.builder(
+                            controller: _testimonialController,
+                            onPageChanged: (i) =>
+                                setState(() => _currentTestimonial = i),
+                            itemCount: _testimonials.length,
+                            itemBuilder: (context, i) {
+                              final t = _testimonials[i];
+                              return _TestimonialCard(
+                                name: t.name,
+                                role: t.role,
+                                avatar: t.avatar,
+                                quote: t.quote,
+                                brightness: brightness,
+                                isDark: isDark,
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        // Dots
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(_testimonials.length, (i) {
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 3),
+                              width: _currentTestimonial == i ? 16 : 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: _currentTestimonial == i
+                                    ? AppColors.primary
+                                    : AppColors.primary
+                                        .withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(100),
+                              ),
+                            );
+                          }),
+                        ),
+                      ],
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      TypewriterText(
-                        text:
-                            '"Kapsa changed the way I study. My grades improved so much in just one month."',
-                        animate: typewriterReady,
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textPrimaryFor(brightness),
-                          fontStyle: FontStyle.italic,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        '— Sofia, Med Student',
-                        style: AppTypography.caption.copyWith(
-                          color: AppColors.textMutedFor(brightness),
-                        ),
-                      ),
-                    ],
                   ),
                 ),
 
@@ -232,7 +304,7 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                       ),
                       child: Row(
                         children: [
-                          const Text('📈',
+                          const Text('\u{1F4C8}',
                               style: TextStyle(fontSize: 28)),
                           const SizedBox(width: AppSpacing.sm),
                           Column(
@@ -241,13 +313,15 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                               Text(
                                 'In 30 days',
                                 style: AppTypography.labelLarge.copyWith(
-                                  color: AppColors.textPrimaryFor(brightness),
+                                  color:
+                                      AppColors.textPrimaryFor(brightness),
                                 ),
                               ),
                               Text(
                                 'Average +40% grade improvement',
                                 style: AppTypography.bodySmall.copyWith(
-                                  color: AppColors.textSecondaryFor(brightness),
+                                  color:
+                                      AppColors.textSecondaryFor(brightness),
                                 ),
                               ),
                             ],
@@ -264,6 +338,106 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
           ),
         );
       },
+    );
+  }
+}
+
+class _TestimonialCard extends StatelessWidget {
+  final String name;
+  final String role;
+  final String avatar;
+  final String quote;
+  final Brightness brightness;
+  final bool isDark;
+
+  const _TestimonialCard({
+    required this.name,
+    required this.role,
+    required this.avatar,
+    required this.quote,
+    required this.brightness,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.55),
+        borderRadius: AppRadius.borderRadiusLg,
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.white.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              quote,
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textPrimaryFor(brightness),
+                fontStyle: FontStyle.italic,
+                height: 1.5,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  image: DecorationImage(
+                    image: AssetImage(avatar),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.textPrimaryFor(brightness),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    role,
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.textMutedFor(brightness),
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(
+                  5,
+                  (_) => const Icon(
+                    Icons.star_rounded,
+                    color: Color(0xFFFFCC00),
+                    size: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

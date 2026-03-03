@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/theme/app_animations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -177,7 +178,10 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
       child: Transform.translate(
         offset: Offset(slideX, 0),
         child: TapScale(
-          onTap: () => widget.onSelect(i),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            widget.onSelect(i);
+          },
           child: AnimatedScale(
             scale: isSelected ? 1.05 : 1.0,
             duration: AppAnimations.durationMedium,

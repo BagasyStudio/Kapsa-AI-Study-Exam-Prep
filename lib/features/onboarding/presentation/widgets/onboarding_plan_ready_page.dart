@@ -8,15 +8,20 @@ import '../../../../core/widgets/animated_counter.dart';
 import '../../../../core/widgets/circular_progress_ring.dart';
 import '../../../../core/widgets/confetti_overlay.dart';
 
-/// Screen 4: Your plan is ready!
+/// Screen 8: Your plan is ready!
 ///
 /// Confetti burst on entrance. Progress ring fills 0→100%.
-/// Personalized stats stagger in from the left.
+/// Personalized stats stagger in. Shows urgency messaging if exam
+/// is coming soon and material counts if material was uploaded.
 class OnboardingPlanReadyPage extends StatefulWidget {
   final bool isActive;
   final String? studyArea;
   final String? challenge;
   final String studyTime;
+  final int? examUrgency;
+  final bool materialUploaded;
+  final int flashcardCount;
+  final int quizCount;
 
   const OnboardingPlanReadyPage({
     super.key,
@@ -24,6 +29,10 @@ class OnboardingPlanReadyPage extends StatefulWidget {
     this.studyArea,
     this.challenge,
     required this.studyTime,
+    this.examUrgency,
+    this.materialUploaded = false,
+    this.flashcardCount = 0,
+    this.quizCount = 0,
   });
 
   @override
@@ -61,18 +70,15 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
 
   void _animate() {
     _hasAnimated = true;
-    // Fire confetti after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && !_confettiFired) {
         _confettiFired = true;
         ConfettiOverlay.show(context);
       }
     });
-    // Start ring fill after brief delay
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) _ringController.forward();
     });
-    // Start stats stagger after ring is mostly done
     Future.delayed(const Duration(milliseconds: 1400), () {
       if (mounted) _statsController.forward();
     });
@@ -85,18 +91,35 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
     super.dispose();
   }
 
-  List<(String, String)> get _stats => [
-        ('📚', 'Study area: ${widget.studyArea ?? 'Not set'}'),
-        ('⚡', 'Focus: ${widget.challenge ?? 'Not set'}'),
-        ('⏰', 'Time: ${widget.studyTime} per day'),
-        ('🎯', 'AI tools tailored just for you'),
-      ];
+  List<(String, String)> get _stats {
+    final items = <(String, String)>[
+      ('\u{1F4DA}', 'Study area: ${widget.studyArea ?? 'Not set'}'),
+      ('\u{26A1}', 'Focus: ${widget.challenge ?? 'Not set'}'),
+      ('\u{23F0}', 'Time: ${widget.studyTime} per day'),
+      ('\u{1F3AF}', 'AI tools tailored just for you'),
+    ];
+
+    if (widget.materialUploaded && widget.flashcardCount > 0) {
+      items.add((
+        '\u{1F0CF}',
+        '${widget.flashcardCount} flashcards & ${widget.quizCount} quiz questions ready',
+      ));
+    }
+
+    return items;
+  }
+
+  bool get _hasUrgency =>
+      widget.examUrgency != null && widget.examUrgency! <= 1;
+
+  String get _urgencyLabel =>
+      widget.examUrgency == 0 ? 'this week' : 'this month';
 
   @override
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
     final screenH = MediaQuery.of(context).size.height;
-    final ringSize = (screenH * 0.18).clamp(120.0, 160.0);
+    final ringSize = (screenH * 0.16).clamp(110.0, 150.0);
     final ringStroke = ringSize * 0.08;
     final isDark = brightness == Brightness.dark;
 
@@ -121,7 +144,7 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
               textAlign: TextAlign.center,
             ),
 
-            const SizedBox(height: AppSpacing.xxl),
+            const SizedBox(height: AppSpacing.xl),
 
             // Progress ring with counter
             AnimatedBuilder(
@@ -168,7 +191,65 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
               },
             ),
 
-            const SizedBox(height: AppSpacing.xxl),
+            const SizedBox(height: AppSpacing.xl),
+
+            // Urgency banner
+            if (_hasUrgency)
+              AnimatedBuilder(
+                animation: _statsController,
+                builder: (context, _) {
+                  final progress = CurvedAnimation(
+                    parent: _statsController,
+                    curve: const Interval(0, 0.4,
+                        curve: Curves.easeOutCubic),
+                  ).value;
+                  final isThisWeek = widget.examUrgency == 0;
+                  final urgencyColor = isThisWeek
+                      ? const Color(0xFFEF4444)
+                      : const Color(0xFFF59E0B);
+
+                  return Opacity(
+                    opacity: progress,
+                    child: Transform.translate(
+                      offset: Offset(0, 12 * (1 - progress)),
+                      child: Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.sm,
+                        ),
+                        decoration: BoxDecoration(
+                          color: urgencyColor
+                              .withValues(alpha: isDark ? 0.15 : 0.08),
+                          borderRadius: AppRadius.borderRadiusMd,
+                          border: Border.all(
+                            color: urgencyColor.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              isThisWeek ? '\u{1F6A8}' : '\u{26A1}',
+                              style: const TextStyle(fontSize: 20),
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Text(
+                                'Your exam is $_urgencyLabel \u{2014} let\'s get you prepared!',
+                                style: AppTypography.bodyMedium.copyWith(
+                                  color: urgencyColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
 
             // Personalized stats
             AnimatedBuilder(
@@ -176,8 +257,8 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
               builder: (context, _) {
                 return Column(
                   children: List.generate(_stats.length, (i) {
-                    final start = (i * 0.3).clamp(0.0, 1.0);
-                    final end = (start + 0.5).clamp(0.0, 1.0);
+                    final start = (i * 0.25).clamp(0.0, 1.0);
+                    final end = (start + 0.45).clamp(0.0, 1.0);
                     final progress = CurvedAnimation(
                       parent: _statsController,
                       curve: Interval(start, end,
@@ -218,9 +299,11 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
                                 Expanded(
                                   child: Text(
                                     stat.$2,
-                                    style: AppTypography.bodyMedium.copyWith(
-                                      color: AppColors.textPrimaryFor(brightness),
-                                      fontWeight: FontWeight.w500,
+                                    style:
+                                        AppTypography.bodyMedium.copyWith(
+                                      color: AppColors.textPrimaryFor(
+                                          brightness),
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
@@ -235,13 +318,13 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
               },
             ),
 
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
 
             // Small mascot
             Image.asset(
               'assets/images/onboarding/onboarding_plan_ready.png',
-              width: (screenH * 0.1).clamp(60.0, 90.0),
-              height: (screenH * 0.1).clamp(60.0, 90.0),
+              width: (screenH * 0.08).clamp(50.0, 75.0),
+              height: (screenH * 0.08).clamp(50.0, 75.0),
               fit: BoxFit.contain,
             ),
 

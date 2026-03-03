@@ -14,12 +14,14 @@ import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/floating_orbs.dart';
 import '../../../../core/widgets/pulse_glow.dart';
 import '../widgets/onboarding_welcome_page.dart';
+import '../widgets/onboarding_exam_urgency_page.dart';
 import '../widgets/onboarding_study_area_page.dart';
 import '../widgets/onboarding_challenge_page.dart';
 import '../widgets/onboarding_study_time_page.dart';
-import '../widgets/onboarding_plan_ready_page.dart';
-import '../widgets/onboarding_features_page.dart';
+import '../widgets/onboarding_upload_material_page.dart';
+import '../widgets/onboarding_processing_page.dart';
 import '../widgets/onboarding_social_proof_page.dart';
+import '../widgets/onboarding_plan_ready_page.dart';
 import '../widgets/onboarding_rate_page.dart';
 import '../widgets/onboarding_paywall_page.dart';
 
@@ -27,7 +29,7 @@ import '../widgets/onboarding_paywall_page.dart';
 // Constants
 // ─────────────────────────────────────────────────────────────
 
-const _totalPages = 9;
+const _totalPages = 11;
 
 const _studyAreas = [
   'Sciences',
@@ -49,6 +51,19 @@ const _challenges = [
   'Getting started',
 ];
 
+// Page indices
+const _pageWelcome = 0;
+const _pageExamUrgency = 1;
+const _pageStudyArea = 2;
+const _pageChallenge = 3;
+const _pageStudyTime = 4;
+const _pageUploadMaterial = 5;
+const _pageProcessing = 6;
+const _pageSocialProof = 7;
+const _pagePlanReady = 8;
+const _pageRateUs = 9;
+const _pagePaywall = 10;
+
 // ─────────────────────────────────────────────────────────────
 // Main onboarding orchestrator
 // ─────────────────────────────────────────────────────────────
@@ -65,10 +80,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   int _currentPage = 0;
 
   // User selections
+  int? _selectedExamUrgency;
   int? _selectedArea;
   int? _selectedChallenge;
   int? _selectedTimeIndex;
   String _studyTimeLabel = '2 hours';
+
+  // Material upload
+  String? _materialPath;
+  String? _materialType;
+  int _estimatedFlashcards = 0;
+  int _estimatedQuizzes = 0;
+  bool get _materialUploaded => _materialPath != null;
 
   @override
   void dispose() {
@@ -76,11 +99,40 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     super.dispose();
   }
 
+  // ── Can continue (disabled button logic) ──
+
+  bool get _canContinue {
+    switch (_currentPage) {
+      case _pageExamUrgency:
+        return _selectedExamUrgency != null;
+      case _pageStudyArea:
+        return _selectedArea != null;
+      case _pageChallenge:
+        return _selectedChallenge != null;
+      case _pageStudyTime:
+        return _selectedTimeIndex != null;
+      default:
+        return true;
+    }
+  }
+
   // ── Navigation ──
 
   Future<void> _completeOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('has_seen_onboarding', true);
+
+    // Save onboarding selections
+    await prefs.setInt(
+        'onboarding_exam_urgency', _selectedExamUrgency ?? -1);
+    if (_materialPath != null) {
+      await prefs.setString('onboarding_material_path', _materialPath!);
+      await prefs.setString('onboarding_material_type', _materialType!);
+      await prefs.setInt(
+          'onboarding_flashcard_count', _estimatedFlashcards);
+      await prefs.setInt('onboarding_quiz_count', _estimatedQuizzes);
+    }
+
     if (mounted) {
       ref.read(hasSeenOnboardingProvider.notifier).state = true;
       context.go(Routes.login);
@@ -90,6 +142,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   void _goToPaywall() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('has_seen_onboarding', true);
+
+    // Save onboarding selections
+    await prefs.setInt(
+        'onboarding_exam_urgency', _selectedExamUrgency ?? -1);
+    if (_materialPath != null) {
+      await prefs.setString('onboarding_material_path', _materialPath!);
+      await prefs.setString('onboarding_material_type', _materialType!);
+      await prefs.setInt(
+          'onboarding_flashcard_count', _estimatedFlashcards);
+      await prefs.setInt('onboarding_quiz_count', _estimatedQuizzes);
+    }
+
     if (mounted) {
       // Set pending paywall flag so router redirects to paywall after login
       ref.read(pendingPaywallProvider.notifier).state = true;
@@ -99,14 +163,44 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
+  void _goToPage(int page) {
+    _pageController.animateToPage(
+      page,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOutCubic,
+    );
+  }
+
   void _nextPage() {
     if (_currentPage < _totalPages - 1) {
-      _pageController.animateToPage(
-        _currentPage + 1,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOutCubic,
-      );
+      _goToPage(_currentPage + 1);
     }
+  }
+
+  void _handleMaterialPicked(String path, String type, int fileSize) {
+    setState(() {
+      _materialPath = path;
+      _materialType = type;
+      // Estimate counts based on file type and size
+      if (type == 'pdf') {
+        _estimatedFlashcards = (fileSize / 50000).round().clamp(5, 50);
+        _estimatedQuizzes = (fileSize / 80000).round().clamp(3, 30);
+      } else {
+        // Camera/OCR — fixed estimates
+        _estimatedFlashcards = 8;
+        _estimatedQuizzes = 5;
+      }
+    });
+    _nextPage(); // Go to Processing page
+  }
+
+  void _handleMaterialSkip() {
+    // Skip Processing page, go directly to Social Proof
+    _goToPage(_pageSocialProof);
+  }
+
+  void _handleProcessingComplete() {
+    _nextPage(); // Go to Social Proof
   }
 
   Future<void> _handleRate() async {
@@ -129,8 +223,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isPaywallPage = _currentPage == _totalPages - 1;
-    final isRatePage = _currentPage == _totalPages - 2;
+    final isPaywallPage = _currentPage == _pagePaywall;
+    final isRatePage = _currentPage == _pageRateUs;
     final hideBottomBar = isPaywallPage || isRatePage;
     final brightness = Theme.of(context).brightness;
 
@@ -207,28 +301,36 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     children: [
                       // 0 — Welcome
                       OnboardingWelcomePage(
-                        isActive: _currentPage == 0,
+                        isActive: _currentPage == _pageWelcome,
                       ),
 
-                      // 1 — Study Area
+                      // 1 — Exam Urgency
+                      OnboardingExamUrgencyPage(
+                        isActive: _currentPage == _pageExamUrgency,
+                        selectedUrgency: _selectedExamUrgency,
+                        onSelect: (i) =>
+                            setState(() => _selectedExamUrgency = i),
+                      ),
+
+                      // 2 — Study Area
                       OnboardingStudyAreaPage(
-                        isActive: _currentPage == 1,
+                        isActive: _currentPage == _pageStudyArea,
                         selectedArea: _selectedArea,
                         onSelect: (i) =>
                             setState(() => _selectedArea = i),
                       ),
 
-                      // 2 — Challenge
+                      // 3 — Challenge
                       OnboardingChallengePage(
-                        isActive: _currentPage == 2,
+                        isActive: _currentPage == _pageChallenge,
                         selectedChallenge: _selectedChallenge,
                         onSelect: (i) =>
                             setState(() => _selectedChallenge = i),
                       ),
 
-                      // 3 — Study Time
+                      // 4 — Study Time
                       OnboardingStudyTimePage(
-                        isActive: _currentPage == 3,
+                        isActive: _currentPage == _pageStudyTime,
                         selectedIndex: _selectedTimeIndex,
                         onSelect: (index, hours, label) => setState(() {
                           _selectedTimeIndex = index;
@@ -236,9 +338,31 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         }),
                       ),
 
-                      // 4 — Plan Ready
+                      // 5 — Upload Material
+                      OnboardingUploadMaterialPage(
+                        isActive: _currentPage == _pageUploadMaterial,
+                        onMaterialPicked: _handleMaterialPicked,
+                        onSkip: _handleMaterialSkip,
+                      ),
+
+                      // 6 — Processing (conditional — only meaningful if material uploaded)
+                      OnboardingProcessingPage(
+                        isActive: _currentPage == _pageProcessing,
+                        estimatedFlashcards: _estimatedFlashcards,
+                        estimatedQuizzes: _estimatedQuizzes,
+                        onComplete: _handleProcessingComplete,
+                      ),
+
+                      // 7 — Social Proof
+                      OnboardingSocialProofPage(
+                        isActive: _currentPage == _pageSocialProof,
+                        materialUploaded: _materialUploaded,
+                        flashcardCount: _estimatedFlashcards,
+                      ),
+
+                      // 8 — Plan Ready
                       OnboardingPlanReadyPage(
-                        isActive: _currentPage == 4,
+                        isActive: _currentPage == _pagePlanReady,
                         studyArea: _selectedArea != null
                             ? _studyAreas[_selectedArea!]
                             : null,
@@ -246,28 +370,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             ? _challenges[_selectedChallenge!]
                             : null,
                         studyTime: _studyTimeLabel,
+                        examUrgency: _selectedExamUrgency,
+                        materialUploaded: _materialUploaded,
+                        flashcardCount: _estimatedFlashcards,
+                        quizCount: _estimatedQuizzes,
                       ),
 
-                      // 5 — Features
-                      OnboardingFeaturesPage(
-                        isActive: _currentPage == 5,
-                      ),
-
-                      // 6 — Social Proof
-                      OnboardingSocialProofPage(
-                        isActive: _currentPage == 6,
-                      ),
-
-                      // 7 — Rate Us
+                      // 9 — Rate Us
                       OnboardingRatePage(
-                        isActive: _currentPage == 7,
+                        isActive: _currentPage == _pageRateUs,
                         onRate: _handleRate,
                         onSkip: _nextPage,
                       ),
 
-                      // 8 — Paywall
+                      // 10 — Paywall
                       OnboardingPaywallPage(
-                        isActive: _currentPage == 8,
+                        isActive: _currentPage == _pagePaywall,
                         onTryPro: _goToPaywall,
                         onSkip: _completeOnboarding,
                       ),
@@ -275,26 +393,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
                 ),
 
-                // Page indicators + CTA (always in tree to prevent layout thrashing)
+                // CTA (always in tree to prevent layout thrashing)
                 IgnorePointer(
                   ignoring: hideBottomBar,
                   child: AnimatedOpacity(
                     opacity: hideBottomBar ? 0.0 : 1.0,
                     duration: const Duration(milliseconds: 300),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                          child: _buildPageIndicators(),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.xxl,
-                          ),
-                          child: _buildCTAButton(),
-                        ),
-                      ],
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, AppSpacing.xxl,
+                      ),
+                      child: _buildCTAButton(),
                     ),
                   ),
                 ),
@@ -306,29 +415,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  // ── Page indicators ──
-
-  Widget _buildPageIndicators() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(_totalPages, (i) {
-        final isActive = _currentPage == i;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          margin: const EdgeInsets.symmetric(horizontal: 2.5),
-          width: isActive ? 24 : 6,
-          height: 6,
-          decoration: BoxDecoration(
-            color: isActive
-                ? AppColors.primary
-                : AppColors.primary.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(100),
-          ),
-        );
-      }),
-    );
-  }
-
   // ── CTA button ──
 
   Widget _buildCTAButton() {
@@ -336,45 +422,55 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final bool showPulse;
 
     switch (_currentPage) {
-      case 0:
+      case _pageWelcome:
         buttonText = 'Get Started';
         showPulse = true;
-      case 6:
+      case _pageSocialProof:
         buttonText = 'Almost There';
         showPulse = false;
+      case _pagePlanReady:
+        buttonText = 'Start Studying \u{1F680}';
+        showPulse = true;
       default:
         buttonText = 'Continue';
         showPulse = false;
     }
 
-    final button = TapScale(
-      onTap: _nextPage,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(
-          gradient: AppGradients.primaryToIndigo,
-          borderRadius: BorderRadius.circular(100),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
+    final button = AnimatedOpacity(
+      duration: const Duration(milliseconds: 250),
+      opacity: _canContinue ? 1.0 : 0.4,
+      child: IgnorePointer(
+        ignoring: !_canContinue,
+        child: TapScale(
+          onTap: _nextPage,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            decoration: BoxDecoration(
+              gradient: AppGradients.primaryToIndigo,
+              borderRadius: BorderRadius.circular(100),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            buttonText,
-            style: AppTypography.button.copyWith(
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
+            child: Center(
+              child: Text(
+                buttonText,
+                style: AppTypography.button.copyWith(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
         ),
       ),
     );
 
-    return showPulse ? PulseGlow(child: button) : button;
+    return showPulse && _canContinue ? PulseGlow(child: button) : button;
   }
 }

@@ -7,39 +7,37 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import 'animated_checkmark.dart';
 
-/// Screen 2: What's your biggest challenge?
+/// Screen 1: Do you have an exam coming up?
 ///
-/// Cards stagger in from the right. Selected card gets an animated checkmark.
-/// Unselected cards dim when a selection is made.
-class OnboardingChallengePage extends StatefulWidget {
+/// Establishes urgency early. Cards stagger in from the right.
+/// Selected card gets animated checkmark + haptic feedback.
+class OnboardingExamUrgencyPage extends StatefulWidget {
   final bool isActive;
-  final int? selectedChallenge;
+  final int? selectedUrgency;
   final ValueChanged<int> onSelect;
 
-  const OnboardingChallengePage({
+  const OnboardingExamUrgencyPage({
     super.key,
     required this.isActive,
-    required this.selectedChallenge,
+    required this.selectedUrgency,
     required this.onSelect,
   });
 
   @override
-  State<OnboardingChallengePage> createState() =>
-      _OnboardingChallengePageState();
+  State<OnboardingExamUrgencyPage> createState() =>
+      _OnboardingExamUrgencyPageState();
 }
 
-class _OnboardingChallengePageState extends State<OnboardingChallengePage>
+class _OnboardingExamUrgencyPageState extends State<OnboardingExamUrgencyPage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   bool _hasAnimated = false;
 
-  static const _challenges = [
-    '😵 I struggle to memorize',
-    '📅 I don\'t have time',
-    '😴 I get bored studying',
-    '📝 I can\'t organize my notes',
-    '😰 Exams are coming soon',
-    '🤷 I don\'t know where to start',
+  static const _options = [
+    (emoji: '\u{1F6A8}', label: 'This week'),
+    (emoji: '\u{1F4C5}', label: 'This month'),
+    (emoji: '\u{1F4C6}', label: 'In a few months'),
+    (emoji: '\u{1F60C}', label: 'No exams yet'),
   ];
 
   @override
@@ -53,7 +51,7 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
   }
 
   @override
-  void didUpdateWidget(OnboardingChallengePage old) {
+  void didUpdateWidget(OnboardingExamUrgencyPage old) {
     super.didUpdateWidget(old);
     if (widget.isActive && !_hasAnimated) _animate();
   }
@@ -111,7 +109,7 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
                   child: Transform.translate(
                     offset: Offset(0, headerSlide),
                     child: Text(
-                      "What's your\nbiggest challenge?",
+                      'Do you have an\nexam coming up?',
                       style: AppTypography.h1.copyWith(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
@@ -129,7 +127,7 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
                 Opacity(
                   opacity: headerOpacity,
                   child: Text(
-                    "We'll figure out how to help you best.",
+                    "We'll prioritize what matters most.",
                     style: AppTypography.bodyMedium.copyWith(
                       color: AppColors.textSecondaryFor(brightness),
                       height: 1.55,
@@ -140,8 +138,9 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
 
                 const SizedBox(height: AppSpacing.lg),
 
-                // Challenge cards
-                ...List.generate(_challenges.length, (i) => _buildCard(i, brightness)),
+                // Option cards
+                ...List.generate(
+                    _options.length, (i) => _buildCard(i, brightness)),
 
                 const SizedBox(height: AppSpacing.md),
               ],
@@ -153,7 +152,7 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
   }
 
   Widget _buildCard(int i, Brightness brightness) {
-    final start = (0.25 + i * 0.08).clamp(0.0, 1.0);
+    final start = (0.25 + i * 0.10).clamp(0.0, 1.0);
     final end = (start + 0.35).clamp(0.0, 1.0);
     final progress = CurvedAnimation(
       parent: _controller,
@@ -161,8 +160,9 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
     ).value;
 
     final slideX = 60.0 * (1 - progress);
-    final isSelected = widget.selectedChallenge == i;
-    final hasSelection = widget.selectedChallenge != null;
+    final isSelected = widget.selectedUrgency == i;
+    final hasSelection = widget.selectedUrgency != null;
+    final option = _options[i];
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.xs),
@@ -183,7 +183,7 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm + 2,
+                  vertical: AppSpacing.sm + 4,
                 ),
                 decoration: BoxDecoration(
                   color: isSelected
@@ -203,9 +203,14 @@ class _OnboardingChallengePageState extends State<OnboardingChallengePage>
                 ),
                 child: Row(
                   children: [
+                    Text(
+                      option.emoji,
+                      style: const TextStyle(fontSize: 24),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: Text(
-                        _challenges[i],
+                        option.label,
                         style: AppTypography.bodyMedium.copyWith(
                           color: isSelected
                               ? AppColors.primary

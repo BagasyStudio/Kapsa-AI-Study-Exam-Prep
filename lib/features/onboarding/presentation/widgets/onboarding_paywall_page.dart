@@ -22,6 +22,27 @@ class OnboardingPaywallPage extends StatelessWidget {
     required this.onSkip,
   });
 
+  static Widget _paywallAvatar(int index, String filename) {
+    return Positioned(
+      left: index * 18.0,
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: const Color(0xFF1A1A2E),
+            width: 2,
+          ),
+          image: DecorationImage(
+            image: AssetImage('assets/images/avatars/$filename'),
+            fit: BoxFit.cover,
+          ),
+        ),
+      ),
+    );
+  }
+
   static const _proFeatures = [
     (icon: Icons.chat_bubble_outline, text: 'Unlimited AI Oracle Chat'),
     (icon: Icons.style_outlined, text: 'Unlimited Flashcards & Quizzes'),
@@ -142,48 +163,65 @@ class OnboardingPaywallPage extends StatelessWidget {
 
             const SizedBox(height: AppSpacing.md),
 
-            // Social proof bar
+            // Social proof bar with real avatars
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: Colors.white.withValues(alpha: 0.08),
                 ),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Text(
-                    '50K+ students',
-                    style: AppTypography.caption.copyWith(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      fontWeight: FontWeight.w500,
-                      fontSize: 11,
+                  // Overlapping avatars
+                  SizedBox(
+                    width: 88,
+                    height: 28,
+                    child: Stack(
+                      children: [
+                        _paywallAvatar(0, 'avatar_social_04_female.png'),
+                        _paywallAvatar(1, 'avatar_social_04_male.png'),
+                        _paywallAvatar(2, 'avatar_social_01_female.png'),
+                        _paywallAvatar(3, 'avatar_social_02_female.png'),
+                      ],
                     ),
                   ),
-                  Text(
-                    '·',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.star_rounded,
-                          size: 12, color: Color(0xFFFBBF24)),
-                      const SizedBox(width: 3),
-                      Text(
-                        '4.8 rating',
-                        style: AppTypography.caption.copyWith(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontWeight: FontWeight.w500,
-                          fontSize: 11,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '50K+ students',
+                          style: AppTypography.caption.copyWith(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 1),
+                        Row(
+                          children: [
+                            ...List.generate(
+                              5,
+                              (_) => const Icon(Icons.star_rounded,
+                                  size: 10, color: Color(0xFFFBBF24)),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '4.8',
+                              style: AppTypography.caption.copyWith(
+                                color: Colors.white.withValues(alpha: 0.6),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
