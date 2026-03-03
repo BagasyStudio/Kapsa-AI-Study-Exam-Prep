@@ -3,19 +3,21 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/theme/app_gradients.dart';
 
-/// Gradient-styled user message bubble.
+/// Gradient-styled user message bubble with grouping support.
 ///
-/// Displays a primary-to-indigo gradient bubble aligned to the right.
+/// Displays a refined three-stop gradient bubble aligned to the right.
+/// When [isLastInGroup] is true (default), the optional [timestamp] is shown.
 class UserMessageBubble extends StatelessWidget {
   final String text;
   final String? timestamp;
+  final bool isLastInGroup;
 
   const UserMessageBubble({
     super.key,
     required this.text,
     this.timestamp,
+    this.isLastInGroup = true,
   });
 
   @override
@@ -37,18 +39,26 @@ class UserMessageBubble extends StatelessWidget {
                 vertical: AppSpacing.md,
               ),
               decoration: BoxDecoration(
-                gradient: AppGradients.primaryToIndigo,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF6467F2),
+                    Color(0xFF5B5FE6),
+                    Color(0xFF5558DB),
+                  ],
+                ),
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(AppRadius.xxl),
-                  topRight: Radius.circular(AppRadius.xxl),
-                  bottomLeft: Radius.circular(AppRadius.xxl),
+                  topLeft: Radius.circular(AppRadius.card),
+                  topRight: Radius.circular(AppRadius.card),
+                  bottomLeft: Radius.circular(AppRadius.card),
                   bottomRight: Radius.circular(6),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
@@ -61,8 +71,8 @@ class UserMessageBubble extends StatelessWidget {
               ),
             ),
 
-            // Timestamp
-            if (timestamp != null)
+            // Timestamp (only shown for the last message in a group)
+            if (isLastInGroup && timestamp != null)
               Padding(
                 padding: const EdgeInsets.only(
                   right: AppSpacing.sm,

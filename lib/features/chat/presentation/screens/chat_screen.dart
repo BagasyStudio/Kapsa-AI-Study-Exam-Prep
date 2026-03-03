@@ -12,6 +12,7 @@ import '../widgets/citation_chip.dart';
 import '../widgets/suggestion_chips_row.dart';
 import '../widgets/chat_input_bar.dart';
 import '../widgets/action_card_parser.dart';
+import '../widgets/animated_orb_avatar.dart';
 import '../../../../core/widgets/staggered_list.dart';
 import '../../../../core/widgets/typing_indicator.dart';
 import '../../../../core/widgets/message_bubble_entrance.dart';
@@ -98,6 +99,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     final chatState = ref.watch(chatMessagesProvider(widget.courseId));
     final messages = chatState.messages;
 
@@ -107,7 +109,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: AppColors.backgroundFor(brightness),
       body: Stack(
         children: [
           // Animated ambient orbs
@@ -137,7 +139,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   child: chatState.isLoading && messages.isEmpty
                       ? const Center(child: CircularProgressIndicator())
                       : messages.isEmpty
-                          ? _EmptyChatState()
+                          ? _EmptyChatState(
+                              textController: _textController,
+                            )
                           : ListView.builder(
                               controller: _scrollController,
                               padding: const EdgeInsets.fromLTRB(
@@ -165,12 +169,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                           vertical: 6,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: Colors.white
-                                              .withValues(alpha: 0.3),
+                                          color: AppColors.surfaceFor(brightness)
+                                              .withValues(alpha: 0.6),
                                           borderRadius:
                                               BorderRadius.circular(100),
                                           border: Border.all(
-                                            color: Colors.white
+                                            color: AppColors.surfaceFor(brightness)
                                                 .withValues(alpha: 0.2),
                                           ),
                                         ),
@@ -180,6 +184,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                               AppTypography.caption.copyWith(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w500,
+                                            color: AppColors.textMutedFor(brightness),
                                           ),
                                         ),
                                       ),
@@ -190,24 +195,56 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                 // Typing indicator at the end
                                 if (chatState.isLoading &&
                                     index == messages.length + 1) {
-                                  return _TypingIndicator();
+                                  return _TypingIndicator(
+                                    brightness: brightness,
+                                  );
                                 }
 
-                                final msg = messages[index - 1];
+                                // Message grouping logic
+                                final realIndex = index - 1;
+                                final msg = messages[realIndex];
+                                final prevMsg = realIndex > 0
+                                    ? messages[realIndex - 1]
+                                    : null;
+                                final nextMsg =
+                                    realIndex < messages.length - 1
+                                        ? messages[realIndex + 1]
+                                        : null;
+                                final isFirstInGroup = prevMsg == null ||
+                                    prevMsg.isUser != msg.isUser;
+                                final isLastInGroup = nextMsg == null ||
+                                    nextMsg.isUser != msg.isUser;
+
+                                // Spacing logic
+                                final double bottomSpacing;
+                                if (nextMsg == null) {
+                                  // Truly last message
+                                  bottomSpacing = AppSpacing.xxl;
+                                } else if (isLastInGroup) {
+                                  // Inter-group (different sender next)
+                                  bottomSpacing = AppSpacing.md;
+                                } else {
+                                  // Intra-group (same sender consecutive)
+                                  bottomSpacing = AppSpacing.xs;
+                                }
+
                                 return MessageBubbleEntrance(
                                   fromLeft: !msg.isUser,
                                   child: Padding(
-                                    padding: const EdgeInsets.only(
-                                      bottom: AppSpacing.xxl,
+                                    padding: EdgeInsets.only(
+                                      bottom: bottomSpacing,
                                     ),
                                     child: msg.isUser
                                         ? UserMessageBubble(
                                             text: msg.content,
                                             timestamp: msg.timestamp,
+                                            isLastInGroup: isLastInGroup,
                                           )
                                         : AiMessageBubble(
                                             text: msg.content,
                                             timestamp: msg.timestamp,
+                                            showAvatar: isFirstInGroup,
+                                            isLastInGroup: isLastInGroup,
                                             actionCards:
                                                 ActionCardsFromMessage(
                                               messageText: msg.content,
@@ -243,18 +280,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     child: Text(
                       chatState.error!,
                       style: AppTypography.caption.copyWith(
-                        color: const Color(0xFFEF4444),
+                        color: AppColors.error,
                       ),
                     ),
                   ),
 
-                // Suggestion chips
-                SuggestionChipsRow(
-                  items: _defaultSuggestions,
-                  onTap: (suggestion) {
-                    _textController.text = suggestion;
-                  },
-                ),
+                // Suggestion chips: only show inline row when messages exist
+                if (messages.isNotEmpty)
+                  SuggestionChipsRow(
+                    items: _defaultSuggestions,
+                    onTap: (suggestion) {
+                      _textController.text = suggestion;
+                    },
+                  ),
 
                 const SizedBox(height: AppSpacing.xs),
 
@@ -262,11 +300,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ChatInputBar(
                   controller: _textController,
                   onSend: _sendMessage,
-                  onMic: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Voice input coming soon')),
-                    );
+                  isLoading: chatState.isLoading,
+                  onStop: () {
+                    // For now, no-op -- future: cancel streaming
                   },
                 ),
               ],
@@ -278,7 +314,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 }
 
+/// Empty state with hero section: orb avatar, title, description,
+/// and suggestion chips in grid mode.
 class _EmptyChatState extends StatelessWidget {
+  final TextEditingController textController;
+
+  const _EmptyChatState({required this.textController});
+
   @override
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
@@ -288,24 +330,30 @@ class _EmptyChatState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.auto_awesome,
-              size: 48,
-              color: AppColors.primary.withValues(alpha: 0.4),
-            ),
-            const SizedBox(height: AppSpacing.md),
+            const AnimatedOrbAvatar(size: 72),
+            const SizedBox(height: 20),
             Text(
-              'Ask me anything about your course',
-              style:
-                  AppTypography.h3.copyWith(color: AppColors.textSecondaryFor(brightness)),
+              'Your AI study companion',
+              style: AppTypography.h3.copyWith(
+                color: AppColors.textSecondaryFor(brightness),
+              ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: 8),
             Text(
-              'I can explain concepts, create quizzes, and help you study more effectively.',
-              style: AppTypography.bodyMedium
-                  .copyWith(color: AppColors.textMutedFor(brightness)),
+              'Ask questions, get explanations, and ace your exams.',
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textMutedFor(brightness),
+              ),
               textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            SuggestionChipsRow(
+              items: _defaultSuggestions,
+              showAsGrid: true,
+              onTap: (suggestion) {
+                textController.text = suggestion;
+              },
             ),
           ],
         ),
@@ -314,7 +362,12 @@ class _EmptyChatState extends StatelessWidget {
   }
 }
 
+/// Typing indicator bubble with theme-aware styling.
 class _TypingIndicator extends StatelessWidget {
+  final Brightness brightness;
+
+  const _TypingIndicator({required this.brightness});
+
   @override
   Widget build(BuildContext context) {
     return MessageBubbleEntrance(
@@ -329,7 +382,7 @@ class _TypingIndicator extends StatelessWidget {
               vertical: AppSpacing.md,
             ),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.75),
+              color: AppColors.cardFor(brightness),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
@@ -337,7 +390,7 @@ class _TypingIndicator extends StatelessWidget {
                 bottomRight: Radius.circular(20),
               ),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.9),
+                color: AppColors.primary.withValues(alpha: 0.15),
               ),
             ),
             child: const TypingIndicator(),

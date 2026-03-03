@@ -23,6 +23,7 @@ import '../../../courses/data/models/course_model.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
 import '../../../../core/utils/error_handler.dart';
+import '../../../../core/widgets/animated_counter.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 /// Bottom sheet modal for capturing new study materials.
@@ -392,6 +393,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
       if (mounted) {
         SoundService.playProcessingComplete();
+        setState(() => _isProcessing = false);
         Navigator.of(context)
             .pop('Saved: ${material.title}');
       }
@@ -487,8 +489,11 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
       canPop: !_isProcessing,
       child: DraggableScrollableSheet(
         initialChildSize: 0.92,
-        minChildSize: _isProcessing ? 0.92 : 0.5,
+        minChildSize: _isProcessing ? 0.92 : 0.3,
         maxChildSize: 0.92,
+        snap: !_isProcessing,
+        snapSizes: _isProcessing ? const [] : const [0.92],
+        shouldCloseOnMinExtent: true,
         builder: (context, scrollController) {
           final isDark = Theme.of(context).brightness == Brightness.dark;
           final brightness = Theme.of(context).brightness;
@@ -537,6 +542,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                 pulseAnimation: _pulseController,
                                 onAnimationComplete: () {
                                   if (mounted && _pendingPopMessage != null) {
+                                    setState(() => _isProcessing = false);
                                     Navigator.of(context).pop(_pendingPopMessage);
                                   }
                                 },
@@ -934,6 +940,160 @@ class _SimplePasteProgress extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════
+// Floating Particles (ambient processing effect)
+// ═══════════════════════════════════════════
+
+class _Particle {
+  double x, y, speed, size, alpha, drift;
+  _Particle({
+    required this.x,
+    required this.y,
+    required this.speed,
+    required this.size,
+    required this.alpha,
+    required this.drift,
+  });
+}
+
+class _ParticlePainter extends CustomPainter {
+  final List<_Particle> particles;
+  final Color color;
+  _ParticlePainter({required this.particles, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final p in particles) {
+      final paint = Paint()..color = color.withValues(alpha: p.alpha);
+      canvas.drawCircle(Offset(p.x * size.width, p.y * size.height), p.size, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ParticlePainter old) => true;
+}
+
+class _FloatingParticles extends StatefulWidget {
+  final double width;
+  final double height;
+  const _FloatingParticles({this.width = 160, this.height = 160});
+
+  @override
+  State<_FloatingParticles> createState() => _FloatingParticlesState();
+}
+
+class _FloatingParticlesState extends State<_FloatingParticles>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late List<_Particle> _particles;
+  static const _count = 14;
+
+  @override
+  void initState() {
+    super.initState();
+    _particles = List.generate(_count, (_) => _randomParticle());
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 50),
+    )..addListener(_tick)..repeat();
+  }
+
+  _Particle _randomParticle() {
+    final r = DateTime.now().microsecondsSinceEpoch;
+    return _Particle(
+      x: 0.3 + ((r % 100) / 250),
+      y: 0.7 + ((r % 73) / 250),
+      speed: 0.003 + ((r % 50) / 10000),
+      size: 1.5 + ((r % 40) / 20),
+      alpha: 0.15 + ((r % 60) / 150),
+      drift: ((r % 100) - 50) / 8000,
+    );
+  }
+
+  void _tick() {
+    if (!mounted) return;
+    for (var i = 0; i < _particles.length; i++) {
+      final p = _particles[i];
+      p.y -= p.speed;
+      p.x += p.drift + 0.001 * (0.5 - p.x).sign * ((i % 3) == 0 ? 1 : -1);
+      p.alpha = (p.alpha - 0.001).clamp(0.05, 0.6);
+      if (p.y < 0.05 || p.alpha <= 0.05) {
+        _particles[i] = _Particle(
+          x: 0.3 + ((DateTime.now().microsecondsSinceEpoch + i * 17) % 100) / 250,
+          y: 0.85 + ((DateTime.now().microsecondsSinceEpoch + i * 31) % 30) / 200,
+          speed: 0.003 + ((DateTime.now().microsecondsSinceEpoch + i * 7) % 50) / 10000,
+          size: 1.5 + ((DateTime.now().microsecondsSinceEpoch + i * 13) % 40) / 20,
+          alpha: 0.2 + ((DateTime.now().microsecondsSinceEpoch + i * 23) % 60) / 150,
+          drift: ((DateTime.now().microsecondsSinceEpoch + i * 11) % 100 - 50) / 8000,
+        );
+      }
+    }
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: Size(widget.width, widget.height),
+      painter: _ParticlePainter(
+        particles: _particles,
+        color: AppColors.primaryLight,
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════
+// Rotating Ring (dashed circle around orb)
+// ═══════════════════════════════════════════
+
+class _RingPainter extends CustomPainter {
+  final double rotation;
+  final Color color;
+  _RingPainter({required this.rotation, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 2;
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(rotation * 2 * 3.14159);
+    canvas.translate(-center.dx, -center.dy);
+
+    // Draw 8 arcs with gaps
+    const arcCount = 8;
+    const sweepAngle = 0.55; // radians per arc
+    const gapAngle = (2 * 3.14159 - arcCount * sweepAngle) / arcCount;
+    for (var i = 0; i < arcCount; i++) {
+      final startAngle = i * (sweepAngle + gapAngle);
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        false,
+        paint,
+      );
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _RingPainter old) => old.rotation != rotation;
+}
+
+// ═══════════════════════════════════════════
 // Enhanced Processing View (mega animation)
 // ═══════════════════════════════════════════
 
@@ -957,11 +1117,13 @@ class _EnhancedProcessingView extends StatefulWidget {
       _EnhancedProcessingViewState();
 }
 
-class _EnhancedProcessingViewState extends State<_EnhancedProcessingView> {
+class _EnhancedProcessingViewState extends State<_EnhancedProcessingView>
+    with SingleTickerProviderStateMixin {
   static const _stepCount = 7;
   int _currentStep = 0;
   bool _realDone = false;
   Timer? _stepTimer;
+  late AnimationController _ringController;
 
   // Icons per step
   static const _stepIcons = <IconData>[
@@ -1023,6 +1185,10 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView> {
   @override
   void initState() {
     super.initState();
+    _ringController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    )..repeat();
     _startStepTimer();
   }
 
@@ -1089,6 +1255,7 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView> {
   @override
   void dispose() {
     _stepTimer?.cancel();
+    _ringController.dispose();
     super.dispose();
   }
 
@@ -1107,63 +1274,123 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView> {
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
         child: Column(
           children: [
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.lg),
 
-            // Neural orb
-            AnimatedBuilder(
-              animation: widget.pulseAnimation,
-              builder: (_, __) {
-                final pulse = widget.pulseAnimation.value;
-                final scale = 0.92 + (pulse * 0.08);
-                final glowAlpha = 0.15 + (pulse * 0.15) + (_progress * 0.1);
+            // ── Multi-layered Neural Orb ──
+            SizedBox(
+              width: 160,
+              height: 160,
+              child: AnimatedBuilder(
+                animation: Listenable.merge([widget.pulseAnimation, _ringController]),
+                builder: (_, __) {
+                  final pulse = widget.pulseAnimation.value;
+                  final scale = 0.93 + (pulse * 0.07);
+                  final glowAlpha = 0.10 + (pulse * 0.12) + (_progress * 0.08);
 
-                return Container(
-                  width: 110,
-                  height: 110,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: glowAlpha),
-                        blurRadius: 40 + pulse * 15,
-                        spreadRadius: 5 + _progress * 10,
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Layer 1: Outer ambient glow
+                      Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: glowAlpha * 0.6),
+                              blurRadius: 60 + pulse * 20,
+                              spreadRadius: 10 + _progress * 15,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Layer 2: Rotating dashed ring
+                      SizedBox(
+                        width: 134,
+                        height: 134,
+                        child: CustomPaint(
+                          painter: _RingPainter(
+                            rotation: _ringController.value,
+                            color: AppColors.primary.withValues(alpha: 0.20 + pulse * 0.10),
+                          ),
+                        ),
+                      ),
+
+                      // Layer 3: Floating particles
+                      const _FloatingParticles(width: 160, height: 160),
+
+                      // Layer 4: Main orb body
+                      Transform.scale(
+                        scale: scale,
+                        child: Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              center: const Alignment(-0.2, -0.3),
+                              colors: [
+                                Colors.white.withValues(alpha: 0.22),
+                                AppColors.primaryLight,
+                                AppColors.primary,
+                                AppColors.primaryDark,
+                              ],
+                              stops: const [0.0, 0.25, 0.6, 1.0],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.35 + _progress * 0.15),
+                                blurRadius: 25,
+                                spreadRadius: 2,
+                              ),
+                              BoxShadow(
+                                color: AppColors.primaryDark.withValues(alpha: 0.25),
+                                blurRadius: 20,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 400),
+                            transitionBuilder: (child, animation) {
+                              return ScaleTransition(
+                                scale: Tween(begin: 0.6, end: 1.0).animate(
+                                  CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+                                ),
+                                child: FadeTransition(opacity: animation, child: child),
+                              );
+                            },
+                            child: Icon(
+                              _stepIcons[_currentStep.clamp(0, _stepIcons.length - 1)],
+                              key: ValueKey(_currentStep),
+                              color: Colors.white,
+                              size: 42,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
-                  ),
-                  child: Transform.scale(
-                    scale: scale,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            AppColors.primaryLight.withValues(alpha: 0.8),
-                            AppColors.primary,
-                            AppColors.primaryDark,
-                          ],
-                          stops: const [0.0, 0.5, 1.0],
-                        ),
-                      ),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        child: Icon(
-                          _stepIcons[_currentStep.clamp(0, _stepIcons.length - 1)],
-                          key: ValueKey(_currentStep),
-                          color: Colors.white,
-                          size: 44,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
 
             const SizedBox(height: AppSpacing.lg),
 
-            // Title
+            // ── Title with slide-fade transition ──
             AnimatedSwitcher(
-              duration: const Duration(milliseconds: 400),
+              duration: const Duration(milliseconds: 500),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeIn,
+              transitionBuilder: (child, animation) {
+                return SlideTransition(
+                  position: Tween(begin: const Offset(0, 0.3), end: Offset.zero)
+                      .animate(animation),
+                  child: FadeTransition(opacity: animation, child: child),
+                );
+              },
               child: Text(
                 _currentStep == steps.length - 1 && _realDone
                     ? l.captureProcessingDone
@@ -1179,9 +1406,18 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView> {
 
             const SizedBox(height: 4),
 
-            // Subtitle
+            // ── Subtitle with slide-fade ──
             AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
+              duration: const Duration(milliseconds: 400),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeIn,
+              transitionBuilder: (child, animation) {
+                return SlideTransition(
+                  position: Tween(begin: const Offset(0, 0.2), end: Offset.zero)
+                      .animate(animation),
+                  child: FadeTransition(opacity: animation, child: child),
+                );
+              },
               child: Text(
                 steps[_currentStep].loading,
                 key: ValueKey('sub_$_currentStep'),
@@ -1194,122 +1430,224 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView> {
 
             const SizedBox(height: AppSpacing.lg),
 
-            // Progress bar
-            ClipRRect(
-              borderRadius: BorderRadius.circular(100),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 600),
-                curve: Curves.easeOutCubic,
-                height: 6,
-                child: LinearProgressIndicator(
-                  value: _progress,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-                ),
+            // ── Shimmer gradient progress bar ──
+            SizedBox(
+              height: 8,
+              child: Stack(
+                children: [
+                  // Background track
+                  Container(
+                    height: 8,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(100),
+                      color: AppColors.primary.withValues(alpha: isDark ? 0.10 : 0.08),
+                    ),
+                  ),
+                  // Animated fill
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: _progress),
+                    duration: const Duration(milliseconds: 600),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, value, child) {
+                      return FractionallySizedBox(
+                        widthFactor: value.clamp(0.0, 1.0),
+                        child: Container(
+                          height: 8,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(100),
+                            gradient: const LinearGradient(
+                              colors: [
+                                AppColors.primary,
+                                AppColors.primaryLight,
+                                AppColors.primary,
+                              ],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.35),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(100),
+                            child: ShaderMask(
+                              shaderCallback: (bounds) {
+                                return LinearGradient(
+                                  begin: Alignment(-1.0 + (DateTime.now().millisecondsSinceEpoch % 2000) / 1000, 0),
+                                  end: Alignment(-0.5 + (DateTime.now().millisecondsSinceEpoch % 2000) / 1000, 0),
+                                  colors: [
+                                    Colors.white.withValues(alpha: 0.0),
+                                    Colors.white.withValues(alpha: 0.3),
+                                    Colors.white.withValues(alpha: 0.0),
+                                  ],
+                                ).createShader(bounds);
+                              },
+                              blendMode: BlendMode.srcATop,
+                              child: Container(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
 
             const SizedBox(height: 6),
 
-            // Percentage
+            // ── Animated percentage counter ──
             Align(
               alignment: Alignment.centerRight,
-              child: Text(
-                '${(_progress * 100).round()}%',
+              child: AnimatedCounter(
+                value: (_progress * 100).round(),
+                suffix: '%',
+                duration: const Duration(milliseconds: 600),
                 style: AppTypography.caption.copyWith(
                   color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
                 ),
               ),
             ),
 
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
 
-            // Step cards
+            // ── Enhanced step cards ──
             ...List.generate(steps.length, (i) {
               final isComplete = i < _currentStep;
               final isCurrent = i == _currentStep;
               final step = steps[i];
+              final pulseVal = widget.pulseAnimation.value;
 
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 350),
-                curve: Curves.easeOutCubic,
-                margin: const EdgeInsets.only(bottom: AppSpacing.xs),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
-                ),
-                decoration: BoxDecoration(
-                  color: isComplete
-                      ? AppColors.success.withValues(alpha: isDark ? 0.10 : 0.06)
-                      : isCurrent
-                          ? AppColors.primary.withValues(alpha: isDark ? 0.10 : 0.05)
-                          : isDark
-                              ? Colors.white.withValues(alpha: 0.03)
-                              : Colors.black.withValues(alpha: 0.02),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isComplete
-                        ? AppColors.success.withValues(alpha: 0.25)
-                        : isCurrent
-                            ? AppColors.primary.withValues(alpha: 0.2)
-                            : Colors.transparent,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    // Status icon
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      child: isComplete
-                          ? const Icon(
-                              Icons.check_circle_rounded,
-                              key: ValueKey('check'),
-                              size: 20,
-                              color: AppColors.success,
-                            )
-                          : isCurrent
-                              ? SizedBox(
-                                  key: const ValueKey('spinner'),
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: AppColors.primary,
-                                  ),
-                                )
-                              : Icon(
-                                  Icons.circle_outlined,
-                                  key: const ValueKey('pending'),
-                                  size: 20,
-                                  color: AppColors.textMutedFor(brightness)
-                                      .withValues(alpha: 0.3),
-                                ),
+              return AnimatedBuilder(
+                animation: widget.pulseAnimation,
+                builder: (_, __) {
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 350),
+                    curve: Curves.easeOutCubic,
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: 10,
                     ),
-                    const SizedBox(width: AppSpacing.sm),
-                    // Text
-                    Expanded(
-                      child: AnimatedDefaultTextStyle(
-                        duration: const Duration(milliseconds: 300),
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: isComplete
-                              ? AppColors.success
-                              : isCurrent
-                                  ? AppColors.textPrimaryFor(brightness)
-                                  : AppColors.textMutedFor(brightness)
-                                      .withValues(alpha: 0.5),
-                          fontWeight: isCurrent || isComplete
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                        ),
-                        child: Text(
-                          isComplete ? step.done : step.loading,
-                          key: ValueKey('text_${i}_$isComplete'),
-                        ),
+                    decoration: BoxDecoration(
+                      gradient: isComplete
+                          ? LinearGradient(colors: [
+                              AppColors.success.withValues(alpha: isDark ? 0.08 : 0.05),
+                              AppColors.success.withValues(alpha: isDark ? 0.03 : 0.01),
+                            ])
+                          : null,
+                      color: isComplete
+                          ? null
+                          : isCurrent
+                              ? AppColors.primary.withValues(alpha: isDark ? 0.08 : 0.04)
+                              : isDark
+                                  ? Colors.white.withValues(alpha: 0.025)
+                                  : Colors.black.withValues(alpha: 0.015),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isComplete
+                            ? AppColors.success.withValues(alpha: 0.20)
+                            : isCurrent
+                                ? AppColors.primary.withValues(
+                                    alpha: 0.12 + pulseVal * 0.12,
+                                  )
+                                : Colors.transparent,
+                        width: isCurrent ? 1.5 : 1.0,
                       ),
                     ),
-                  ],
-                ),
+                    child: Row(
+                      children: [
+                        // Status icon with bounce animation
+                        SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 350),
+                            transitionBuilder: (child, anim) {
+                              return ScaleTransition(
+                                scale: CurvedAnimation(
+                                  parent: anim,
+                                  curve: Curves.easeOutBack,
+                                ),
+                                child: child,
+                              );
+                            },
+                            child: isComplete
+                                ? Container(
+                                    key: ValueKey('done_$i'),
+                                    width: 22,
+                                    height: 22,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: AppColors.success,
+                                    ),
+                                    child: const Icon(
+                                      Icons.check_rounded,
+                                      size: 14,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : isCurrent
+                                    ? SizedBox(
+                                        key: ValueKey('spin_$i'),
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: AppColors.primary,
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.circle_outlined,
+                                        key: ValueKey('wait_$i'),
+                                        size: 20,
+                                        color: AppColors.textMutedFor(brightness)
+                                            .withValues(alpha: 0.25),
+                                      ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        // Text
+                        Expanded(
+                          child: AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 300),
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: isComplete
+                                  ? AppColors.success
+                                  : isCurrent
+                                      ? AppColors.textPrimaryFor(brightness)
+                                      : AppColors.textMutedFor(brightness)
+                                          .withValues(alpha: 0.45),
+                              fontWeight: isCurrent || isComplete
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                            child: Text(
+                              isComplete ? step.done : step.loading,
+                              key: ValueKey('text_${i}_$isComplete'),
+                            ),
+                          ),
+                        ),
+                        // Trailing step icon
+                        if (isComplete || isCurrent)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8),
+                            child: Icon(
+                              _stepIcons[i],
+                              size: 14,
+                              color: isComplete
+                                  ? AppColors.success.withValues(alpha: 0.45)
+                                  : AppColors.primary.withValues(alpha: 0.35),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
               );
             }),
 
