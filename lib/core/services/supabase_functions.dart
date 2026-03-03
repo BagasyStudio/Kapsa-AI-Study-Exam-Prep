@@ -89,12 +89,14 @@ class SupabaseFunctions {
           throw const SessionExpiredException();
         }
         // Retry the call with the fresh token.
-        return _client.functions.invoke(
-          functionName,
-          headers: headers,
-          body: body,
-          method: method,
-        );
+        return await _client.functions
+            .invoke(
+              functionName,
+              headers: headers,
+              body: body,
+              method: method,
+            )
+            .timeout(const Duration(seconds: 180));
       }
       rethrow;
     }

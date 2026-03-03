@@ -8,7 +8,11 @@ class XpRepository {
 
   XpRepository(this._client);
 
-  String get _userId => _client.auth.currentUser!.id;
+  String get _userId {
+    final user = _client.auth.currentUser;
+    if (user == null) throw StateError('No authenticated user');
+    return user.id;
+  }
 
   /// Award XP for an action and update profile totals.
   ///

@@ -44,6 +44,7 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
     body: JSON.stringify({
       input: {
         prompt: buildLlamaPrompt(systemPrompt, prompt),
+        max_tokens: maxTokens,
       },
     }),
   });
@@ -60,6 +61,9 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
     const pollRes = await fetch(result.urls.get, {
       headers: { "Authorization": `Bearer ${apiKey}` },
     });
+    if (!pollRes.ok) {
+      throw new Error("AI service unavailable during polling");
+    }
     result = await pollRes.json();
     attempts++;
   }
@@ -287,7 +291,7 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation, just the
     }
 
     // Create deck
-    const { data: deck } = await supabase
+    const { data: deck, error: deckError } = await supabase
       .from("flashcard_decks")
       .insert({
         course_id: courseId,
@@ -297,6 +301,11 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation, just the
       })
       .select()
       .single();
+
+    if (deckError || !deck) {
+      console.error("Failed to create deck:", deckError);
+      throw new Error("Failed to create flashcard deck. Please try again.");
+    }
 
     // Insert cards (sanitize AI output fields)
     const cardRows = cards.map((c: any) => ({
@@ -318,7 +327,8 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation, just the
       error.message.includes("unavailable") ||
       error.message.includes("timed out") ||
       error.message.includes("failed. Please") ||
-      error.message.includes("Failed to generate")
+      error.message.includes("Failed to generate") ||
+      error.message.includes("Failed to create")
     ) ? error.message : sanitizeErrorMessage(error);
 
     return new Response(JSON.stringify({ error: message }), {

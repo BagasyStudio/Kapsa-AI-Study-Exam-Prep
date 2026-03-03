@@ -259,11 +259,16 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
   Widget build(BuildContext context) {
     final questionsAsync = ref.watch(quizQuestionsProvider(widget.testId));
 
+    final brightness = Theme.of(context).brightness;
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: AppColors.backgroundFor(brightness),
       resizeToAvoidBottomInset: true,
       body: Container(
-        decoration: const BoxDecoration(gradient: AppGradients.darkImmersive),
+        decoration: BoxDecoration(
+          gradient: brightness == Brightness.dark
+              ? AppGradients.darkImmersive
+              : null,
+        ),
         child: questionsAsync.when(
           loading: () => const Center(
             child: CircularProgressIndicator(color: AppColors.primary),
@@ -279,6 +284,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
   }
 
   Widget _buildError(Object error) {
+    final brightness = Theme.of(context).brightness;
     return SafeArea(
       child: Center(
         child: Padding(
@@ -287,14 +293,16 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.error_outline,
-                  size: 48, color: Colors.white.withValues(alpha: 0.6)),
+                  size: 48, color: AppColors.textMutedFor(brightness)),
               const SizedBox(height: AppSpacing.md),
               Text('Could not load quiz',
-                  style: AppTypography.h3.copyWith(color: Colors.white)),
+                  style: AppTypography.h3.copyWith(
+                    color: AppColors.textPrimaryFor(brightness),
+                  )),
               const SizedBox(height: AppSpacing.sm),
               Text(AppErrorHandler.friendlyMessage(error),
                   style: AppTypography.bodySmall.copyWith(
-                    color: Colors.white.withValues(alpha: 0.6),
+                    color: AppColors.textMutedFor(brightness),
                   ),
                   textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.xl),
@@ -726,21 +734,25 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
   }
 
   void _showExitDialog() {
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1B3A),
+        backgroundColor: isDark ? AppColors.cardDark : const Color(0xFFF8FAFC),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
         title: Text(
           widget.isPracticeExam ? 'Leave Exam?' : 'Leave Quiz?',
-          style: AppTypography.h3.copyWith(color: Colors.white),
+          style: AppTypography.h3.copyWith(
+            color: AppColors.textPrimaryFor(brightness),
+          ),
         ),
         content: Text(
           'Your progress will be lost. Are you sure you want to leave?',
           style: AppTypography.bodyMedium.copyWith(
-            color: Colors.white.withValues(alpha: 0.7),
+            color: AppColors.textSecondaryFor(brightness),
           ),
         ),
         actions: [
@@ -761,7 +773,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
             child: Text(
               'Leave',
               style: AppTypography.labelLarge.copyWith(
-                color: const Color(0xFFEF4444),
+                color: AppColors.error,
               ),
             ),
           ),

@@ -244,7 +244,7 @@ Deno.serve(async (req: Request) => {
       // Get original cards
       const { data: originalCards } = await adminClient
         .from("flashcards")
-        .select("front, back, mastery")
+        .select("topic, question_before, keyword, question_after, answer, mastery, card_type, image_url, occlusion_data")
         .eq("deck_id", share.deck_id)
         .order("created_at", { ascending: true });
 
@@ -284,9 +284,15 @@ Deno.serve(async (req: Request) => {
       // Create copies of all cards (SRS reset)
       const newCards = originalCards.map((card: any) => ({
         deck_id: newDeck.id,
-        front: card.front,
-        back: card.back,
+        topic: card.topic || "",
+        question_before: card.question_before || "",
+        keyword: card.keyword || "",
+        question_after: card.question_after || "",
+        answer: card.answer || "",
         mastery: "new",
+        card_type: card.card_type || "text",
+        image_url: card.image_url || null,
+        occlusion_data: card.occlusion_data || null,
         // SRS fields reset to defaults
         stability: 0,
         difficulty: 0,
@@ -294,7 +300,7 @@ Deno.serve(async (req: Request) => {
         scheduled_days: 0,
         reps: 0,
         lapses: 0,
-        state: 0,
+        srs_state: 0,
         due: new Date().toISOString(),
         last_review: null,
       }));

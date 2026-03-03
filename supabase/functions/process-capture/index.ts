@@ -66,6 +66,9 @@ async function runOCR(apiKey: string, imageUrl: string): Promise<string> {
     const pollRes = await fetch(result.urls.get, {
       headers: { "Authorization": `Bearer ${apiKey}` },
     });
+    if (!pollRes.ok) {
+      throw new Error("AI service unavailable during polling");
+    }
     result = await pollRes.json();
     attempts++;
   }
@@ -117,6 +120,9 @@ async function runWhisper(apiKey: string, audioUrl: string): Promise<string> {
     const pollRes = await fetch(result.urls.get, {
       headers: { "Authorization": `Bearer ${apiKey}` },
     });
+    if (!pollRes.ok) {
+      throw new Error("AI service unavailable during polling");
+    }
     result = await pollRes.json();
     attempts++;
   }

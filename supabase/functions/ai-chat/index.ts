@@ -25,7 +25,7 @@ function buildLlamaPrompt(systemPrompt: string, userPrompt: string): string {
   return `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemPrompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n${userPrompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`;
 }
 
-async function callReplicate(apiKey: string, prompt: string, systemPrompt: string): Promise<string> {
+async function callReplicate(apiKey: string, prompt: string, systemPrompt: string, maxTokens = 1024): Promise<string> {
   const createRes = await fetch(`https://api.replicate.com/v1/models/${LLAMA_MODEL}/predictions`, {
     method: "POST",
     headers: {
@@ -35,6 +35,7 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
     body: JSON.stringify({
       input: {
         prompt: buildLlamaPrompt(systemPrompt, prompt),
+        max_tokens: maxTokens,
       },
     }),
   });
@@ -51,6 +52,9 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
     const pollRes = await fetch(result.urls.get, {
       headers: { "Authorization": `Bearer ${apiKey}` },
     });
+    if (!pollRes.ok) {
+      throw new Error("AI service unavailable during polling");
+    }
     result = await pollRes.json();
     attempts++;
   }

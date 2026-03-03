@@ -28,6 +28,7 @@ async function callReplicate(
     body: JSON.stringify({
       input: {
         prompt: buildLlamaPrompt(systemPrompt, userPrompt),
+        max_tokens: maxTokens,
       },
     }),
   });
@@ -50,6 +51,9 @@ async function callReplicate(
     const pollRes = await fetch(result.urls.get, {
       headers: { Authorization: `Bearer ${apiKey}` },
     });
+    if (!pollRes.ok) {
+      throw new Error("AI service unavailable during polling");
+    }
     result = await pollRes.json();
     attempts++;
   }
@@ -116,11 +120,30 @@ Deno.serve(async (req: Request) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Fetch material content
+    // Verify course ownership
+    const { data: course, error: courseError } = await adminClient
+      .from("courses")
+      .select("id")
+      .eq("id", courseId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (courseError || !course) {
+      return new Response(
+        JSON.stringify({ error: "Course not found or not owned by user" }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Fetch material content (scoped to the verified course)
     const { data: material, error: materialError } = await adminClient
       .from("course_materials")
       .select("title, content, type")
       .eq("id", materialId)
+      .eq("course_id", courseId)
       .single();
 
     if (materialError || !material) {

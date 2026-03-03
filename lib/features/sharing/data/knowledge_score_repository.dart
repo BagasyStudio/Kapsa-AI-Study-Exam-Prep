@@ -8,7 +8,9 @@ class KnowledgeScoreRepository {
   KnowledgeScoreRepository(this._client);
 
   Future<KnowledgeScoreModel> calculateScore() async {
-    final userId = _client.auth.currentUser!.id;
+    final user = _client.auth.currentUser;
+    if (user == null) throw StateError('No authenticated user');
+    final userId = user.id;
 
     // Run all queries in parallel
     final results = await Future.wait([

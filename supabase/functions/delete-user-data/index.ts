@@ -90,9 +90,22 @@ Deno.serve(async (req: Request) => {
     // 6. Audio summaries
     await adminClient.from("audio_summaries").delete().eq("user_id", userId);
 
-    // 6b. Group data (activities, memberships)
+    // 6b. Group data (activities, memberships, owned groups)
     await adminClient.from("group_activities").delete().eq("user_id", userId);
     await adminClient.from("group_members").delete().eq("user_id", userId);
+
+    // Delete groups owned by this user (members/activities already cleaned by cascade or above)
+    const { data: ownedGroups } = await adminClient
+      .from("study_groups")
+      .select("id")
+      .eq("owner_id", userId);
+    const groupIds = (ownedGroups || []).map((g: any) => g.id);
+    if (groupIds.length > 0) {
+      // Clean remaining members/activities from other users in owned groups
+      await adminClient.from("group_activities").delete().in("group_id", groupIds);
+      await adminClient.from("group_members").delete().in("group_id", groupIds);
+    }
+    await adminClient.from("study_groups").delete().eq("owner_id", userId);
 
     // 7. XP events
     await adminClient.from("xp_events").delete().eq("user_id", userId);

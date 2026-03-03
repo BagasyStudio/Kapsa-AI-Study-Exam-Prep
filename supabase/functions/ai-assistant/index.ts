@@ -25,6 +25,7 @@ async function callReplicate(apiKey: string, systemPrompt: string, userPrompt: s
     body: JSON.stringify({
       input: {
         prompt: buildLlamaPrompt(systemPrompt, userPrompt),
+        max_tokens: maxTokens,
       },
     }),
   });
@@ -43,6 +44,9 @@ async function callReplicate(apiKey: string, systemPrompt: string, userPrompt: s
     const pollRes = await fetch(result.urls.get, {
       headers: { "Authorization": `Bearer ${apiKey}` },
     });
+    if (!pollRes.ok) {
+      throw new Error("AI service unavailable during polling");
+    }
     result = await pollRes.json();
     attempts++;
   }

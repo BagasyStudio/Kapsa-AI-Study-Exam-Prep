@@ -20,7 +20,9 @@ class MonthReviewRepository {
     final startStr = startDate.toIso8601String();
     final endStr = endDate.toIso8601String();
 
-    final userId = _client.auth.currentUser!.id;
+    final user = _client.auth.currentUser;
+    if (user == null) throw StateError('No authenticated user');
+    final userId = user.id;
     final monthName = DateFormat('MMMM').format(startDate);
 
     // Run all queries in parallel

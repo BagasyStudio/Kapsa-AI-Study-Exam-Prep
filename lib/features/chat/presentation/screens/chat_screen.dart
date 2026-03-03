@@ -70,7 +70,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       feature: 'chat',
       context: context,
     );
-    if (!canUse) return;
+    if (!canUse || !mounted) return;
 
     _textController.clear();
     ref.read(chatMessagesProvider(widget.courseId).notifier).sendMessage(text);
