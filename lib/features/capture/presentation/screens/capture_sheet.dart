@@ -493,23 +493,18 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     final coursesAsync = ref.watch(coursesProvider);
     final recentAsync = ref.watch(recentMaterialsProvider);
 
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brightness = Theme.of(context).brightness;
+
     return PopScope(
       canPop: !_isProcessing,
       onPopInvokedWithResult: (didPop, result) {
         // When processing, system back press is blocked by canPop.
-        // Show nothing — user can use the cancel button we added to
-        // the processing view.
       },
-      child: DraggableScrollableSheet(
-        initialChildSize: 0.92,
-        minChildSize: _isProcessing ? 0.92 : 0.3,
-        maxChildSize: 0.92,
-        snap: false,
-        shouldCloseOnMinExtent: true,
-        builder: (context, scrollController) {
-          final isDark = Theme.of(context).brightness == Brightness.dark;
-          final brightness = Theme.of(context).brightness;
-          return ClipRRect(
+      child: SizedBox(
+        height: screenHeight * 0.92,
+        child: ClipRRect(
           borderRadius: AppRadius.borderRadiusSheet,
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
@@ -525,69 +520,51 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                       : Colors.white.withValues(alpha: 0.5),
                 ),
               ),
-              child: _isProcessing
-                  ? Column(
-                      children: [
-                        // Drag handle (static when processing)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 20, bottom: 8),
-                          child: Container(
-                            width: 48,
-                            height: 5,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.withValues(alpha: 0.3),
-                              borderRadius: AppRadius.borderRadiusPill,
-                            ),
-                          ),
+              child: Column(
+                children: [
+                  // Drag handle — outside the scrollable so the
+                  // showModalBottomSheet built-in drag can grab it.
+                  Padding(
+                    padding: const EdgeInsets.only(top: 20, bottom: 8),
+                    child: Center(
+                      child: Container(
+                        width: 48,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withValues(alpha: 0.3),
+                          borderRadius: AppRadius.borderRadiusPill,
                         ),
-                        Expanded(
-                          child: _processingType == 'paste'
-                              ? _SimplePasteProgress(
-                                  pulseAnimation: _pulseController,
-                                )
-                              : _EnhancedProcessingView(
-                                  type: _processingType,
-                                  realPhase: _realPhase,
-                                  materialName: _materialName,
-                                  pulseAnimation: _pulseController,
-                                  onCancel: _cancelProcessing,
-                                  onAnimationComplete: () {
-                                    if (mounted && _pendingPopMessage != null) {
-                                      // Pop directly — don't setState first,
-                                      // rebuilding the tree before pop causes
-                                      // black screen because the builder context
-                                      // becomes stale.
-                                      final msg = _pendingPopMessage;
-                                      _pendingPopMessage = null;
-                                      Navigator.of(context).pop(msg);
-                                    }
-                                  },
-                                ),
-                        ),
-                      ],
-                    )
-                  : ListView(
-                      controller: scrollController,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xl,
                       ),
-                      children: [
-                        // Drag handle — INSIDE ListView so scrollController
-                        // receives the drag gesture for dismiss.
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 20, bottom: 8),
-                            child: Container(
-                              width: 48,
-                              height: 5,
-                              decoration: BoxDecoration(
-                                color: Colors.grey.withValues(alpha: 0.3),
-                                borderRadius: AppRadius.borderRadiusPill,
-                              ),
+                    ),
+                  ),
+
+                  // Content
+                  Expanded(
+                    child: _isProcessing
+                        ? _processingType == 'paste'
+                            ? _SimplePasteProgress(
+                                pulseAnimation: _pulseController,
+                              )
+                            : _EnhancedProcessingView(
+                                type: _processingType,
+                                realPhase: _realPhase,
+                                materialName: _materialName,
+                                pulseAnimation: _pulseController,
+                                onCancel: _cancelProcessing,
+                                onAnimationComplete: () {
+                                  if (mounted && _pendingPopMessage != null) {
+                                    final msg = _pendingPopMessage;
+                                    _pendingPopMessage = null;
+                                    Navigator.of(context).pop(msg);
+                                  }
+                                },
+                              )
+                        : ListView(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xl,
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
+                            children: [
+                              const SizedBox(height: AppSpacing.md),
 
                               // Header
                               Center(
@@ -748,13 +725,15 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                 ),
                               ),
 
-                        const SizedBox(height: AppSpacing.xl),
-                      ],
-                    ),
+                              const SizedBox(height: AppSpacing.xl),
+                            ],
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
-        );
-        },
+        ),
       ),
     );
   }
