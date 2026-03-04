@@ -6,7 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GEMMA_VERSION = "c0f0aebe8e578c15a7531e08a62cf01206f5870e9d0a67804b8152822db58c54";
+// Llama 3.2 Vision 11B — ~$0.008/run (54x cheaper than Gemma 3 27B)
+const VISION_MODEL_VERSION = "d4e81fc1472556464f1ee5cea4de177b2fe95a6eaadb5f63335df1ba654597af";
 
 // ── Input validation helpers ──────────────────────────────────────
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -32,7 +33,7 @@ function sanitizeErrorMessage(error: unknown): string {
 
 // ── Language detection ────────────────────────────────────────────
 function detectLanguageFromPrompt(): string {
-  // The Gemma model will auto-detect language from the image content.
+  // The vision model will auto-detect language from the image content.
   // We instruct it to respond in the same language as the problem.
   return "Detect the language of the problem in the image and respond ENTIRELY in that same language. If the problem is in Spanish, respond in Spanish. If in English, respond in English. If in Portuguese, respond in Portuguese. Match the language exactly.";
 }
@@ -61,7 +62,7 @@ function parseJsonObject(raw: string): any {
 }
 
 // ── AI solve function ────────────────────────────────────────────
-async function solveWithGemma(apiKey: string, imageUrl: string): Promise<any> {
+async function solveWithVisionModel(apiKey: string, imageUrl: string): Promise<any> {
   const langInstruction = detectLanguageFromPrompt();
 
   const prompt = `You are an expert tutor that solves academic problems step by step.
@@ -107,7 +108,7 @@ Important rules:
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      version: GEMMA_VERSION,
+      version: VISION_MODEL_VERSION,
       input: {
         image: imageUrl,
         prompt: prompt,
@@ -119,7 +120,7 @@ Important rules:
 
   if (!createRes.ok) {
     const errBody = await createRes.text();
-    console.error("Gemma API error:", createRes.status, errBody);
+    console.error("Vision model API error:", createRes.status, errBody);
     throw new Error(`AI solver unavailable (${createRes.status}): ${errBody.substring(0, 200)}`);
   }
 
@@ -142,7 +143,7 @@ Important rules:
 
   if (result.status === "failed") {
     const failMsg = result.error || "Unknown prediction error";
-    console.error("Gemma prediction failed:", failMsg);
+    console.error("Vision prediction failed:", failMsg);
     throw new Error(`Problem solving failed: ${String(failMsg).substring(0, 200)}`);
   }
 
@@ -206,7 +207,7 @@ Format:
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      version: GEMMA_VERSION,
+      version: VISION_MODEL_VERSION,
       input: {
         image: imageUrl,
         prompt: prompt,
@@ -218,7 +219,7 @@ Format:
 
   if (!createRes.ok) {
     const errBody = await createRes.text();
-    console.error("Gemma retry API error:", createRes.status, errBody);
+    console.error("Vision retry API error:", createRes.status, errBody);
     throw new Error(`AI solver unavailable on retry (${createRes.status}): ${errBody.substring(0, 200)}`);
   }
 
@@ -304,7 +305,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Solve the problem ─────────────────────────────────────────
-    const solution = await solveWithGemma(replicateKey, imageUrl);
+    const solution = await solveWithVisionModel(replicateKey, imageUrl);
 
     // ── Save to database ──────────────────────────────────────────
     const insertData: any = {
