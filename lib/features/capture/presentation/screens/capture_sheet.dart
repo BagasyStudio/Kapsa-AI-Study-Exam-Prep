@@ -502,10 +502,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
       },
       child: DraggableScrollableSheet(
         initialChildSize: 0.92,
-        minChildSize: _isProcessing ? 0.92 : 0.4,
+        minChildSize: _isProcessing ? 0.92 : 0.3,
         maxChildSize: 0.92,
-        snap: !_isProcessing,
-        snapSizes: _isProcessing ? const [] : const [0.92],
+        snap: false,
         shouldCloseOnMinExtent: true,
         builder: (context, scrollController) {
           final isDark = Theme.of(context).brightness == Brightness.dark;
