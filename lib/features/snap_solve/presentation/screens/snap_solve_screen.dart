@@ -116,12 +116,11 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
     final user = ref.read(currentUserProvider);
     if (user == null) return;
 
-    // Clear any history view so the screen shows the global job state
-    setState(() => _historySolution = null);
-
-    // Delegate to global notifier — does NOT await, the screen
-    // updates reactively via ref.watch(snapSolveJobProvider).
+    // Fire-and-forget: start the solve in the global notifier
     ref.read(snapSolveJobProvider.notifier).startSolve(imageBytes, user.id);
+
+    // Go back to home immediately — the SnapSolveBanner will show progress
+    if (mounted) context.pop();
   }
 
   void _resetToInitial() {
