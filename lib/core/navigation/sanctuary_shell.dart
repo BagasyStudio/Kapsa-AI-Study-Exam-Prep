@@ -25,7 +25,7 @@ class KapsaShell extends ConsumerStatefulWidget {
 }
 
 class _KapsaShellState extends ConsumerState<KapsaShell>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
@@ -96,22 +96,20 @@ class _KapsaShellState extends ConsumerState<KapsaShell>
   void _showCaptureSheet(BuildContext context) async {
     SoundService.playCaptureStart();
 
-    final animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 450),
-      reverseDuration: const Duration(milliseconds: 300),
-    );
-
     final result = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.3),
-      transitionAnimationController: animController,
-      builder: (_) => const CaptureSheet(),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.92,
+        minChildSize: 0.4,
+        maxChildSize: 0.92,
+        expand: false,
+        builder: (_, __) => const CaptureSheet(),
+      ),
     );
-
-    animController.dispose();
 
     if (result != null && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

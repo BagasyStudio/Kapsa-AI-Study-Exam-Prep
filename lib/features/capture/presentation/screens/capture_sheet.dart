@@ -493,7 +493,6 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     final coursesAsync = ref.watch(coursesProvider);
     final recentAsync = ref.watch(recentMaterialsProvider);
 
-    final screenHeight = MediaQuery.of(context).size.height;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final brightness = Theme.of(context).brightness;
 
@@ -502,9 +501,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
       onPopInvokedWithResult: (didPop, result) {
         // When processing, system back press is blocked by canPop.
       },
-      child: SizedBox(
-        height: screenHeight * 0.92,
-        child: ClipRRect(
+      child: ClipRRect(
           borderRadius: AppRadius.borderRadiusSheet,
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
@@ -522,21 +519,47 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
               ),
               child: Column(
                 children: [
-                  // Drag handle — outside the scrollable so the
-                  // showModalBottomSheet built-in drag can grab it.
+                  // Close button + drag handle row
                   Padding(
-                    padding: const EdgeInsets.only(top: 20, bottom: 8),
-                    child: Center(
-                      child: Container(
-                        width: 48,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.withValues(alpha: 0.3),
-                          borderRadius: AppRadius.borderRadiusPill,
+                    padding: const EdgeInsets.only(top: 12, left: 16, right: 16),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Drag handle centered
+                        Container(
+                          width: 48,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.withValues(alpha: 0.3),
+                            borderRadius: AppRadius.borderRadiusPill,
+                          ),
                         ),
-                      ),
+                        // Close button right-aligned
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () => Navigator.of(context).pop(),
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: 18,
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.6)
+                                    : Colors.black.withValues(alpha: 0.5),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  const SizedBox(height: 8),
 
                   // Content
                   Expanded(
@@ -734,7 +757,6 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
             ),
           ),
         ),
-      ),
     );
   }
 
