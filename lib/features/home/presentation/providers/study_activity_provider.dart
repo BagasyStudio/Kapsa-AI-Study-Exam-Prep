@@ -19,8 +19,10 @@ class StudyActivity {
 }
 
 /// Fetches recent study activity (quizzes + flashcard decks) for the home screen.
+///
+/// NOT autoDispose — keeps cached data across navigation to avoid refetch flicker.
 final studyActivityProvider =
-    FutureProvider.autoDispose<StudyActivity>((ref) async {
+    FutureProvider<StudyActivity>((ref) async {
   final client = ref.watch(supabaseClientProvider);
   final userId = client.auth.currentUser?.id;
   if (userId == null) return const StudyActivity(tests: [], decks: []);

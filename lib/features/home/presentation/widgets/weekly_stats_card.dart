@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/providers/theme_provider.dart';
+import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../gamification/presentation/providers/heatmap_provider.dart';
 
 /// Compact weekly stats card showing study activity this week vs last week.
@@ -17,7 +18,7 @@ class WeeklyStatsCard extends ConsumerWidget {
     final isDark = context.isDark;
 
     return heatmapAsync.when(
-      loading: () => const SizedBox.shrink(),
+      loading: () => ShimmerCard(height: 110, borderRadius: BorderRadius.circular(20)),
       error: (_, __) => const SizedBox.shrink(),
       data: (data) {
         final now = DateTime.now();

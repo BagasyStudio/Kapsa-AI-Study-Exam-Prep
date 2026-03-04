@@ -7,6 +7,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/empty_state.dart';
+import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../core/providers/theme_provider.dart';
 import '../../../test_results/data/models/test_model.dart';
 import '../../../flashcards/data/models/deck_model.dart';
@@ -23,7 +24,10 @@ class StudyActivityCard extends ConsumerWidget {
     final activityAsync = ref.watch(studyActivityProvider);
 
     return activityAsync.when(
-      loading: () => const SizedBox.shrink(),
+      loading: () => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+        child: ShimmerList(count: 2, itemHeight: 72, spacing: AppSpacing.sm),
+      ),
       error: (_, __) => const SizedBox.shrink(),
       data: (activity) {
         if (activity.decks.isEmpty && activity.tests.isEmpty) {

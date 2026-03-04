@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/glass_panel.dart';
+import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../data/models/study_task_model.dart';
 import '../providers/study_plan_provider.dart';
@@ -42,7 +43,10 @@ class _StudyPlanCardState extends ConsumerState<StudyPlanCard> {
     final brightness = Theme.of(context).brightness;
 
     return planAsync.when(
-      loading: () => const SizedBox.shrink(),
+      loading: () => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+        child: ShimmerCard(height: 200, borderRadius: BorderRadius.circular(20)),
+      ),
       error: (_, __) => const SizedBox.shrink(),
       data: (tasks) {
         if (tasks.isEmpty) return const SizedBox.shrink();

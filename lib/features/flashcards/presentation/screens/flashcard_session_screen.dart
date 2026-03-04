@@ -24,6 +24,7 @@ import '../../../sharing/presentation/widgets/share_preview_sheet.dart';
 import '../../../sharing/presentation/widgets/flashcard_share_card.dart';
 import '../../../sharing/data/milestone_service.dart';
 import '../../../sharing/presentation/widgets/micro_cards/course_mastery_card.dart';
+import '../../../../core/services/review_service.dart';
 
 class FlashcardSessionScreen extends ConsumerStatefulWidget {
   final String sessionId;
@@ -119,6 +120,7 @@ class _FlashcardSessionScreenState
       setState(() => _showCompleted = true);
       ConfettiOverlay.show(context);
       _recalculateCourseProgress();
+      ReviewService.recordPositiveEvent();
     }
   }
 
@@ -191,7 +193,14 @@ class _FlashcardSessionScreenState
     final cardsAsync = ref.watch(flashcardsProvider(widget.sessionId));
     final brightness = Theme.of(context).brightness;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldLeave = await _confirmExit();
+        if (shouldLeave && context.mounted) Navigator.of(context).pop();
+      },
+      child: Scaffold(
       backgroundColor: AppColors.backgroundFor(brightness),
       body: cardsAsync.when(
         loading: () => const Center(
@@ -271,7 +280,30 @@ class _FlashcardSessionScreenState
           return _buildCardSession(cards);
         },
       ),
+    ),
     );
+  }
+
+  Future<bool> _confirmExit() async {
+    if (_showCompleted) return true; // Session already done
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Leave session?'),
+        content: const Text('Your progress in this session will be lost.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Stay'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Leave'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   Widget _buildCardSession(List<FlashcardModel> cards) {

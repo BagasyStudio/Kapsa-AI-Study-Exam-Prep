@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -68,11 +67,7 @@ class _SnapSolveCardState extends State<SnapSolveCard>
               child: child,
             );
           },
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: Container(
+          child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 decoration: BoxDecoration(
@@ -195,8 +190,6 @@ class _SnapSolveCardState extends State<SnapSolveCard>
                     ),
                   ],
                 ),
-              ),
-            ),
           ),
         ),
       ),

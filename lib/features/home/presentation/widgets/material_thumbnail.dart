@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -40,15 +39,11 @@ class MaterialThumbnail extends StatelessWidget {
     final brightness = Theme.of(context).brightness;
     return GestureDetector(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: AppRadius.borderRadiusXxl,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
+      child: Container(
             decoration: BoxDecoration(
               color: isDark
                   ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.white.withValues(alpha: 0.45),
+                  : Colors.white.withValues(alpha: 0.55),
               borderRadius: AppRadius.borderRadiusXxl,
               border: Border.all(
                 color: isDark
@@ -81,13 +76,10 @@ class MaterialThumbnail extends StatelessWidget {
                         Positioned(
                           top: 8,
                           right: 8,
-                          child: ClipOval(
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                              child: Container(
+                          child: Container(
                                 padding: const EdgeInsets.all(5),
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.2),
+                                  color: Colors.black.withValues(alpha: 0.35),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
@@ -95,8 +87,6 @@ class MaterialThumbnail extends StatelessWidget {
                                   size: 12,
                                   color: Colors.white,
                                 ),
-                              ),
-                            ),
                           ),
                         ),
                       ],
@@ -130,8 +120,6 @@ class MaterialThumbnail extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        ),
       ),
     );
   }
@@ -391,15 +379,11 @@ class _NewFolderCard extends StatelessWidget {
     final brightness = Theme.of(context).brightness;
     return GestureDetector(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: AppRadius.borderRadiusXxl,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
+      child: Container(
             decoration: BoxDecoration(
               color: isDark
                   ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.white.withValues(alpha: 0.45),
+                  : Colors.white.withValues(alpha: 0.55),
               borderRadius: AppRadius.borderRadiusXxl,
               border: Border.all(
                 color: isDark
@@ -435,8 +419,6 @@ class _NewFolderCard extends StatelessWidget {
                 ],
               ),
             ),
-          ),
-        ),
       ),
     );
   }

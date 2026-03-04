@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -36,11 +35,7 @@ class SnapSolveBanner extends ConsumerWidget {
           padding: const EdgeInsets.only(bottom: AppSpacing.md),
           child: TapScale(
             onTap: () => context.push(Routes.snapSolve),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                child: Container(
+            child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.md,
@@ -91,8 +86,6 @@ class SnapSolveBanner extends ConsumerWidget {
                     ],
                   ),
                 ),
-              ),
-            ),
           ),
         ),
       ),

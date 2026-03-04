@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -47,11 +46,7 @@ class FocusFlowCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final brightness = Theme.of(context).brightness;
-    return ClipRRect(
-      borderRadius: AppRadius.borderRadiusXxl,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
+    return Container(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.xl,
             vertical: AppSpacing.lg,
@@ -59,7 +54,7 @@ class FocusFlowCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: isDark
                 ? Colors.white.withValues(alpha: 0.08)
-                : Colors.white.withValues(alpha: 0.45),
+                : Colors.white.withValues(alpha: 0.55),
             borderRadius: AppRadius.borderRadiusXxl,
             border: Border.all(
               color: isDark
@@ -288,8 +283,6 @@ class FocusFlowCard extends StatelessWidget {
                 ),
             ],
           ),
-        ),
-      ),
     );
   }
 }

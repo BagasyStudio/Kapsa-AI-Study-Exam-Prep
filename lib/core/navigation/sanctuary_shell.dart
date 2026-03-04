@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/capture/presentation/screens/capture_sheet.dart';
+import '../../features/profile/presentation/providers/profile_provider.dart';
 import '../services/sound_service.dart';
 import 'sanctuary_bottom_nav.dart';
 
@@ -8,17 +11,66 @@ import 'sanctuary_bottom_nav.dart';
 ///
 /// Uses [StatefulNavigationShell] from GoRouter to maintain tab state.
 /// The bottom navigation bar and Capture FAB overlay on top of content.
-class KapsaShell extends StatefulWidget {
+///
+/// Also acts as an [AppLifecycleState] observer: when the app resumes from
+/// background, it refreshes the Supabase auth session to prevent
+/// "session expired" errors after extended periods in the background.
+class KapsaShell extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   const KapsaShell({super.key, required this.navigationShell});
 
   @override
-  State<KapsaShell> createState() => _KapsaShellState();
+  ConsumerState<KapsaShell> createState() => _KapsaShellState();
 }
 
-class _KapsaShellState extends State<KapsaShell>
-    with SingleTickerProviderStateMixin {
+class _KapsaShellState extends ConsumerState<KapsaShell>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshSessionOnResume();
+    }
+  }
+
+  /// Silently refresh the auth session when the app returns to foreground.
+  ///
+  /// This prevents stale JWTs from causing "session expired" errors.
+  /// Also invalidates the profile provider so any changes (e.g. streak)
+  /// are reflected when the user returns.
+  Future<void> _refreshSessionOnResume() async {
+    try {
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session == null) return;
+
+      // Only refresh if the token is close to expiring (within 5 min)
+      final expiresAt = session.expiresAt;
+      if (expiresAt != null) {
+        final expiresDate =
+            DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000);
+        final remaining = expiresDate.difference(DateTime.now());
+        if (remaining.inMinutes > 5) return; // Still fresh
+      }
+
+      await Supabase.instance.client.auth.refreshSession();
+      ref.invalidate(profileProvider);
+    } catch (_) {
+      // Best-effort — don't crash the app
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,9 +96,6 @@ class _KapsaShellState extends State<KapsaShell>
   void _showCaptureSheet(BuildContext context) async {
     SoundService.playCaptureStart();
 
-    // Spring-like animation controller for the bottom sheet entrance.
-    // Uses a slightly longer duration with an easeOutBack curve to give
-    // a subtle bounce / spring feel when the sheet appears.
     final animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 450),

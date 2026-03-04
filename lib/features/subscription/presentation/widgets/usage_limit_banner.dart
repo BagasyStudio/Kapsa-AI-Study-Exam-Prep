@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -51,14 +50,10 @@ class UsageLimitBanner extends ConsumerWidget {
 
             return TapScale(
                 onTap: () => context.push(Routes.paywall),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                    child: Container(
+                child: Container(
                       padding: const EdgeInsets.all(AppSpacing.md),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.55),
+                        color: Colors.white.withValues(alpha: 0.65),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: progressColor.withValues(alpha: 0.2),
@@ -138,8 +133,6 @@ class UsageLimitBanner extends ConsumerWidget {
                         ],
                       ),
                     ),
-                  ),
-                ),
             );
           },
         );

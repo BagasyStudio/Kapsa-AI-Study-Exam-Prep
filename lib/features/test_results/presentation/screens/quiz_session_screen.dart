@@ -19,6 +19,7 @@ import '../../../gamification/presentation/providers/xp_provider.dart';
 import '../../../gamification/presentation/widgets/xp_popup.dart';
 import '../../../../core/constants/xp_config.dart';
 import '../../../../core/widgets/celebration_overlay.dart';
+import '../../../../core/services/review_service.dart';
 
 /// Full-screen quiz session where users answer AI-generated questions.
 ///
@@ -246,6 +247,8 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
       }
 
       if (!mounted) return;
+      // Trigger in-app review at strategic moments
+      ReviewService.recordPositiveEvent();
       // Navigate to results, replacing this screen
       context.pushReplacement(Routes.testResultsPath(result.test.id));
     } catch (e) {
@@ -260,7 +263,14 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
     final questionsAsync = ref.watch(quizQuestionsProvider(widget.testId));
 
     final brightness = Theme.of(context).brightness;
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldLeave = await _confirmExit();
+        if (shouldLeave && context.mounted) Navigator.of(context).pop();
+      },
+      child: Scaffold(
       backgroundColor: AppColors.backgroundFor(brightness),
       resizeToAvoidBottomInset: true,
       body: Container(
@@ -280,7 +290,30 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
           },
         ),
       ),
+    ),
     );
+  }
+
+  Future<bool> _confirmExit() async {
+    if (_isSubmitting) return false; // Don't leave while submitting
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Leave quiz?'),
+        content: const Text('Your answers will be lost if you leave now.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Stay'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Leave'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   Widget _buildError(Object error) {

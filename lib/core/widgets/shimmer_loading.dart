@@ -6,6 +6,7 @@ import '../theme/app_spacing.dart';
 ///
 /// Displays a rectangular shimmer effect matching the app's
 /// glassmorphism card style for seamless loading transitions.
+/// Adapts colors automatically to light and dark mode.
 class ShimmerCard extends StatelessWidget {
   final double height;
   final double? width;
@@ -20,14 +21,21 @@ class ShimmerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Shimmer.fromColors(
-      baseColor: Colors.white.withValues(alpha: 0.4),
-      highlightColor: Colors.white.withValues(alpha: 0.8),
+      baseColor: isDark
+          ? Colors.white.withValues(alpha: 0.06)
+          : Colors.grey.shade300.withValues(alpha: 0.5),
+      highlightColor: isDark
+          ? Colors.white.withValues(alpha: 0.12)
+          : Colors.grey.shade100.withValues(alpha: 0.8),
       child: Container(
         height: height,
         width: width,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.5),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.6),
           borderRadius: borderRadius ?? BorderRadius.circular(20),
         ),
       ),
@@ -70,42 +78,14 @@ class ShimmerStats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Shimmer.fromColors(
-      baseColor: Colors.white.withValues(alpha: 0.4),
-      highlightColor: Colors.white.withValues(alpha: 0.8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              height: 90,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Container(
-              height: 90,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Container(
-              height: 90,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ),
-        ],
-      ),
+    return Row(
+      children: [
+        Expanded(child: ShimmerCard(height: 90, borderRadius: BorderRadius.circular(16))),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(child: ShimmerCard(height: 90, borderRadius: BorderRadius.circular(16))),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(child: ShimmerCard(height: 90, borderRadius: BorderRadius.circular(16))),
+      ],
     );
   }
 }

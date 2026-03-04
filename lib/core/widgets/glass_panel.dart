@@ -1,13 +1,15 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme/app_radius.dart';
 
 /// Defines the intensity tier of the glass effect.
 enum GlassTier { subtle, medium, strong }
 
-/// A reusable glassmorphism container.
+/// A reusable glassmorphism-styled container.
 ///
-/// Uses [BackdropFilter] with [ClipRRect] for performance.
+/// Uses a semi-transparent fill with border and subtle shadow to achieve
+/// a glass look **without** [BackdropFilter], which is GPU-expensive
+/// especially on scrollable surfaces and mid-range devices.
+///
 /// Three tiers: subtle (backgrounds), medium (cards/nav), strong (active buttons).
 ///
 /// Automatically adapts to dark mode — uses lighter tints in light mode
@@ -36,29 +38,29 @@ class GlassPanel extends StatelessWidget {
     final config = _configFor(tier, isDark);
     final radius = borderRadius ?? AppRadius.borderRadiusXl;
 
-    final baseTint = tintColor ?? (isDark ? Colors.white : Colors.white);
+    final baseTint = tintColor ?? Colors.white;
 
-    return ClipRRect(
-      borderRadius: radius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: config.blurSigma,
-          sigmaY: config.blurSigma,
-        ),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: baseTint.withValues(alpha: config.fillOpacity),
-            borderRadius: radius,
-            border: border ??
-                Border.all(
-                  color: Colors.white.withValues(alpha: config.borderOpacity),
-                  width: 1.0,
-                ),
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: baseTint.withValues(alpha: config.fillOpacity),
+        borderRadius: radius,
+        border: border ??
+            Border.all(
+              color: Colors.white.withValues(alpha: config.borderOpacity),
+              width: 1.0,
+            ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.15)
+                : Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
-          child: child,
-        ),
+        ],
       ),
+      child: child,
     );
   }
 
@@ -67,35 +69,29 @@ class GlassPanel extends StatelessWidget {
       return switch (tier) {
         GlassTier.subtle => (
             fillOpacity: 0.10,
-            blurSigma: 8.0,
             borderOpacity: 0.08
           ),
         GlassTier.medium => (
             fillOpacity: 0.12,
-            blurSigma: 12.0,
             borderOpacity: 0.10
           ),
         GlassTier.strong => (
             fillOpacity: 0.18,
-            blurSigma: 16.0,
             borderOpacity: 0.14
           ),
       };
     }
     return switch (tier) {
       GlassTier.subtle => (
-          fillOpacity: 0.50,
-          blurSigma: 8.0,
+          fillOpacity: 0.55,
           borderOpacity: 0.12
         ),
       GlassTier.medium => (
-          fillOpacity: 0.72,
-          blurSigma: 12.0,
+          fillOpacity: 0.78,
           borderOpacity: 0.18
         ),
       GlassTier.strong => (
-          fillOpacity: 0.82,
-          blurSigma: 16.0,
+          fillOpacity: 0.88,
           borderOpacity: 0.25
         ),
     };
@@ -104,6 +100,5 @@ class GlassPanel extends StatelessWidget {
 
 typedef _GlassConfig = ({
   double fillOpacity,
-  double blurSigma,
   double borderOpacity,
 });
