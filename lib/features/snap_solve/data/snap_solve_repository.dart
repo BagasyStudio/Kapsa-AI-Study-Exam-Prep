@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/supabase_functions.dart';
 import 'models/snap_solution_model.dart';
@@ -19,29 +20,52 @@ class SnapSolveRepository {
     required String imageUrl,
     String? courseId,
   }) async {
-    final response = await _functions.invoke(
-      'snap-solve',
-      body: {
-        'imageUrl': imageUrl,
-        if (courseId != null) 'courseId': courseId,
-      },
-    );
+    debugPrint('[SnapSolve] Calling snap-solve with imageUrl: $imageUrl');
+    final stopwatch = Stopwatch()..start();
 
-    final data = response.data;
-    if (data == null || data is! Map<String, dynamic>) {
-      throw Exception('Invalid response from solver');
+    try {
+      final response = await _functions.invoke(
+        'snap-solve',
+        body: {
+          'imageUrl': imageUrl,
+          if (courseId != null) 'courseId': courseId,
+        },
+      );
+
+      stopwatch.stop();
+      debugPrint('[SnapSolve] Response received in ${stopwatch.elapsedMilliseconds}ms');
+
+      final data = response.data;
+      debugPrint('[SnapSolve] Response data type: ${data.runtimeType}');
+
+      if (data == null || data is! Map<String, dynamic>) {
+        debugPrint('[SnapSolve] Invalid data: $data');
+        throw Exception('Invalid response from solver');
+      }
+
+      if (data['error'] != null) {
+        debugPrint('[SnapSolve] Server error: ${data['error']}');
+        throw Exception(data['error'] as String);
+      }
+
+      final userId = _client.auth.currentUser?.id ?? '';
+      return SnapSolutionModel.fromJson({
+        ...data,
+        'user_id': userId,
+        'image_url': imageUrl,
+      });
+    } on FunctionException catch (e) {
+      stopwatch.stop();
+      debugPrint('[SnapSolve] FunctionException after ${stopwatch.elapsedMilliseconds}ms: '
+          'status=${e.status}, details=${e.details} (${e.details.runtimeType}), '
+          'reasonPhrase=${e.reasonPhrase}');
+      rethrow;
+    } catch (e) {
+      stopwatch.stop();
+      debugPrint('[SnapSolve] Error after ${stopwatch.elapsedMilliseconds}ms: '
+          '${e.runtimeType}: $e');
+      rethrow;
     }
-
-    if (data['error'] != null) {
-      throw Exception(data['error'] as String);
-    }
-
-    final userId = _client.auth.currentUser?.id ?? '';
-    return SnapSolutionModel.fromJson({
-      ...data,
-      'user_id': userId,
-      'image_url': imageUrl,
-    });
   }
 
   /// Fetches the user's solution history, most recent first.

@@ -120,7 +120,7 @@ Important rules:
   if (!createRes.ok) {
     const errBody = await createRes.text();
     console.error("Gemma API error:", createRes.status, errBody);
-    throw new Error("AI solver unavailable. Please try again.");
+    throw new Error(`AI solver unavailable (${createRes.status}): ${errBody.substring(0, 200)}`);
   }
 
   const prediction = await createRes.json();
@@ -132,19 +132,22 @@ Important rules:
       headers: { "Authorization": `Bearer ${apiKey}` },
     });
     if (!pollRes.ok) {
-      throw new Error("AI service unavailable during polling");
+      const pollErr = await pollRes.text();
+      console.error("Polling error:", pollRes.status, pollErr);
+      throw new Error(`AI service unavailable during polling (${pollRes.status}): ${pollErr.substring(0, 200)}`);
     }
     result = await pollRes.json();
     attempts++;
   }
 
   if (result.status === "failed") {
-    console.error("Gemma prediction failed:", result.error);
-    throw new Error("Problem solving failed. Please try again with a clearer image.");
+    const failMsg = result.error || "Unknown prediction error";
+    console.error("Gemma prediction failed:", failMsg);
+    throw new Error(`Problem solving failed: ${String(failMsg).substring(0, 200)}`);
   }
 
   if (result.status !== "succeeded") {
-    throw new Error("Problem solving timed out. Please try again.");
+    throw new Error(`Problem solving timed out after ${attempts} attempts (status: ${result.status})`);
   }
 
   const output = Array.isArray(result.output) ? result.output.join("") : String(result.output);
@@ -214,7 +217,9 @@ Format:
   });
 
   if (!createRes.ok) {
-    throw new Error("AI solver unavailable on retry.");
+    const errBody = await createRes.text();
+    console.error("Gemma retry API error:", createRes.status, errBody);
+    throw new Error(`AI solver unavailable on retry (${createRes.status}): ${errBody.substring(0, 200)}`);
   }
 
   const prediction = await createRes.json();
@@ -226,14 +231,17 @@ Format:
       headers: { "Authorization": `Bearer ${apiKey}` },
     });
     if (!pollRes.ok) {
-      throw new Error("AI service unavailable during polling");
+      const pollErr = await pollRes.text();
+      console.error("Retry polling error:", pollRes.status, pollErr);
+      throw new Error(`AI service unavailable during retry polling (${pollRes.status}): ${pollErr.substring(0, 200)}`);
     }
     result = await pollRes.json();
     attempts++;
   }
 
   if (result.status !== "succeeded") {
-    throw new Error("Could not solve the problem after retry. Please try again.");
+    const failMsg = result.error || result.status || "unknown";
+    throw new Error(`Could not solve after retry (status: ${failMsg}). Please try again.`);
   }
 
   return Array.isArray(result.output) ? result.output.join("") : String(result.output);

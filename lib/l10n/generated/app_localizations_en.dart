@@ -1,3 +1,5 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -25,7 +27,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingStartStudying => 'Start Studying 🚀';
 
   @override
-  String get welcomeSubtitle => 'Your smart study companion.\nAI-powered tools to ace exams\nand boost your GPA.';
+  String get welcomeSubtitle =>
+      'Your smart study companion.\nAI-powered tools to ace exams\nand boost your GPA.';
 
   @override
   String get welcomeTo => 'Welcome ';
@@ -58,7 +61,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get studyAreaTitle => 'What do you\nstudy?';
 
   @override
-  String get studyAreaSubtitle => 'Customize your experience by choosing\nyour study area.';
+  String get studyAreaSubtitle =>
+      'Customize your experience by choosing\nyour study area.';
 
   @override
   String get studyAreaSciences => 'Sciences';
@@ -159,7 +163,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get uploadTitle => 'Upload your first\nstudy material';
 
   @override
-  String get uploadSubtitle => 'Kapsa will create flashcards, quizzes\nand a study plan from it.';
+  String get uploadSubtitle =>
+      'Kapsa will create flashcards, quizzes\nand a study plan from it.';
 
   @override
   String get uploadScanPages => 'Scan pages';
@@ -231,7 +236,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get testimonialSofiaRole => 'Med Student';
 
   @override
-  String get testimonialSofiaQuote => 'Kapsa changed the way I study. My grades improved so much in just one month.';
+  String get testimonialSofiaQuote =>
+      'Kapsa changed the way I study. My grades improved so much in just one month.';
 
   @override
   String get testimonialMarcoName => 'Marco L.';
@@ -240,7 +246,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get testimonialMarcoRole => 'Engineering';
 
   @override
-  String get testimonialMarcoQuote => 'I passed my finals thanks to the AI flashcards. Best study app ever.';
+  String get testimonialMarcoQuote =>
+      'I passed my finals thanks to the AI flashcards. Best study app ever.';
 
   @override
   String get testimonialLuciaName => 'Lucia R.';
@@ -249,7 +256,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get testimonialLuciaRole => 'Law Student';
 
   @override
-  String get testimonialLuciaQuote => 'The Oracle is like having a personal tutor 24/7. Can\'t study without it now.';
+  String get testimonialLuciaQuote =>
+      'The Oracle is like having a personal tutor 24/7. Can\'t study without it now.';
 
   @override
   String get planReadyTitle => 'Your plan is\nready!';
@@ -284,10 +292,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get planReadyNotSet => 'Not set';
 
   @override
-  String get planReadyUrgencyThisWeek => 'Your exam is this week — let\'s get you prepared!';
+  String get planReadyUrgencyThisWeek =>
+      'Your exam is this week — let\'s get you prepared!';
 
   @override
-  String get planReadyUrgencyThisMonth => 'Your exam is this month — let\'s get you prepared!';
+  String get planReadyUrgencyThisMonth =>
+      'Your exam is this month — let\'s get you prepared!';
 
   @override
   String get rateTitle => 'Are you enjoying\nKapsa?';
@@ -299,7 +309,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rateThankYou => 'Thank you for\nyour honesty';
 
   @override
-  String get rateFeedbackHelps => 'Your feedback helps us build a better\nstudy experience for everyone.';
+  String get rateFeedbackHelps =>
+      'Your feedback helps us build a better\nstudy experience for everyone.';
 
   @override
   String get rateLoveIt => 'Love it!';
@@ -311,7 +322,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rateAwesome => 'Awesome! 🎉';
 
   @override
-  String get rateAskStars => 'A 5-star rating helps us keep building\nAI tools that make studying easier.';
+  String get rateAskStars =>
+      'A 5-star rating helps us keep building\nAI tools that make studying easier.';
 
   @override
   String get rate5Stars => 'Rate 5 Stars ⭐';
@@ -323,13 +335,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rateHonestyAppreciated => 'We appreciate your honesty. 🙏';
 
   @override
-  String get rateAlwaysImproving => 'We\'re always improving Kapsa.\nYour feedback helps us build the study\ntools you actually need.';
+  String get rateAlwaysImproving =>
+      'We\'re always improving Kapsa.\nYour feedback helps us build the study\ntools you actually need.';
 
   @override
   String get rateWeShipUpdates => 'We ship updates every week';
 
   @override
-  String get rateGetsBetter => 'Kapsa gets better with every\nstudent\'s feedback.';
+  String get rateGetsBetter =>
+      'Kapsa gets better with every\nstudent\'s feedback.';
 
   @override
   String get paywallKapsaPro => 'KAPSA PRO';
@@ -368,7 +382,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paywallSkip => 'Continue without Pro';
 
   @override
-  String get paywallDisclaimer => '3-day free trial · Cancel anytime · No charge today';
+  String get paywallDisclaimer =>
+      '3-day free trial · Cancel anytime · No charge today';
 
   @override
   String get captureProcessingPdf => 'Processing your PDF...';

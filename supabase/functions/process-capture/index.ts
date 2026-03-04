@@ -55,7 +55,7 @@ async function runOCR(apiKey: string, imageUrl: string): Promise<string> {
   if (!createRes.ok) {
     const errBody = await createRes.text();
     console.error("OCR API error:", createRes.status, errBody);
-    throw new Error("OCR service unavailable. Please try again.");
+    throw new Error(`OCR service unavailable (${createRes.status}): ${errBody.substring(0, 200)}`);
   }
 
   const prediction = await createRes.json();
@@ -67,7 +67,8 @@ async function runOCR(apiKey: string, imageUrl: string): Promise<string> {
       headers: { "Authorization": `Bearer ${apiKey}` },
     });
     if (!pollRes.ok) {
-      throw new Error("AI service unavailable during polling");
+      const errBody = await pollRes.text();
+      throw new Error(`AI service unavailable during polling (${pollRes.status}): ${errBody.substring(0, 200)}`);
     }
     result = await pollRes.json();
     attempts++;
@@ -109,7 +110,8 @@ async function runWhisper(apiKey: string, audioUrl: string): Promise<string> {
   });
 
   if (!createRes.ok) {
-    throw new Error("Transcription service unavailable");
+    const errBody = await createRes.text();
+    throw new Error(`Transcription service unavailable (${createRes.status}): ${errBody.substring(0, 200)}`);
   }
 
   const prediction = await createRes.json();
@@ -121,7 +123,8 @@ async function runWhisper(apiKey: string, audioUrl: string): Promise<string> {
       headers: { "Authorization": `Bearer ${apiKey}` },
     });
     if (!pollRes.ok) {
-      throw new Error("AI service unavailable during polling");
+      const errBody = await pollRes.text();
+      throw new Error(`AI service unavailable during polling (${pollRes.status}): ${errBody.substring(0, 200)}`);
     }
     result = await pollRes.json();
     attempts++;

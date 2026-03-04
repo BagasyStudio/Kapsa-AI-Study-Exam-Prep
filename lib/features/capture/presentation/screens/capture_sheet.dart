@@ -42,6 +42,7 @@ class CaptureSheet extends ConsumerStatefulWidget {
 class _CaptureSheetState extends ConsumerState<CaptureSheet>
     with SingleTickerProviderStateMixin {
   bool _isProcessing = false;
+  bool _isDismissing = false;
   String _realPhase = 'uploading'; // 'uploading' | 'analyzing' | 'done'
   String _processingType = 'ocr'; // 'ocr' | 'pdf' | 'whisper'
   String _materialName = '';
@@ -503,7 +504,8 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
       child: NotificationListener<DraggableScrollableNotification>(
         onNotification: (notification) {
           // Close the sheet when dragged below 55% (if not processing)
-          if (!_isProcessing && notification.extent < 0.55) {
+          if (!_isProcessing && !_isDismissing && notification.extent < 0.55) {
+            _isDismissing = true;
             Navigator.of(context).pop();
             return true;
           }

@@ -41,7 +41,8 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
   });
 
   if (!createRes.ok) {
-    throw new Error("AI service unavailable");
+    const errBody = await createRes.text();
+    throw new Error(`AI service unavailable (${createRes.status}): ${errBody.substring(0, 200)}`);
   }
 
   const prediction = await createRes.json();
@@ -53,7 +54,8 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
       headers: { "Authorization": `Bearer ${apiKey}` },
     });
     if (!pollRes.ok) {
-      throw new Error("AI service unavailable during polling");
+      const errBody = await pollRes.text();
+      throw new Error(`AI service unavailable during polling (${pollRes.status}): ${errBody.substring(0, 200)}`);
     }
     result = await pollRes.json();
     attempts++;

@@ -10,6 +10,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/aurora_background.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/staggered_list.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../../core/services/sound_service.dart';
 import '../../../../core/utils/error_handler.dart';
@@ -42,6 +43,7 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
   int _step = 0; // 0=upload, 1=solving, 2=done
   SnapSolutionModel? _solution;
   String? _errorMessage;
+  String? _rawError;
   late AnimationController _pulseController;
 
   @override
@@ -170,9 +172,19 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
       }
     } catch (e) {
       if (mounted) {
+        // Store both friendly and raw error for diagnostics
+        final friendly = AppErrorHandler.friendlyMessage(e);
+        String raw = e.toString();
+        if (e is FunctionException) {
+          raw = 'FunctionException(status=${e.status}, '
+              'details=${e.details}, '
+              'reasonPhrase=${e.reasonPhrase})';
+        }
+        debugPrint('[SnapSolve] Error: $raw');
         setState(() {
           _state = _ScreenState.error;
-          _errorMessage = AppErrorHandler.friendlyMessage(e);
+          _errorMessage = friendly;
+          _rawError = raw;
         });
       }
     }
@@ -183,6 +195,7 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
       _state = _ScreenState.initial;
       _solution = null;
       _errorMessage = null;
+      _rawError = null;
       _step = 0;
     });
   }
@@ -327,6 +340,7 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
         return _ErrorView(
           key: const ValueKey('error'),
           message: _errorMessage ?? 'Something went wrong',
+          rawError: _rawError,
           onRetry: _resetToInitial,
         );
     }
@@ -832,15 +846,24 @@ class _StepConnector extends StatelessWidget {
 // Error View
 // ═══════════════════════════════════════════
 
-class _ErrorView extends StatelessWidget {
+class _ErrorView extends StatefulWidget {
   final String message;
+  final String? rawError;
   final VoidCallback onRetry;
 
   const _ErrorView({
     super.key,
     required this.message,
+    this.rawError,
     required this.onRetry,
   });
+
+  @override
+  State<_ErrorView> createState() => _ErrorViewState();
+}
+
+class _ErrorViewState extends State<_ErrorView> {
+  bool _showDetails = false;
 
   @override
   Widget build(BuildContext context) {
@@ -874,15 +897,51 @@ class _ErrorView extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            message,
+            widget.message,
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textMutedFor(brightness),
             ),
             textAlign: TextAlign.center,
           ),
+          // Technical details — tap to expand
+          if (widget.rawError != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            GestureDetector(
+              onTap: () => setState(() => _showDetails = !_showDetails),
+              child: Text(
+                _showDetails ? 'Hide details ▲' : 'Show details ▼',
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.textMutedFor(brightness).withValues(alpha: 0.5),
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+            if (_showDetails) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.15),
+                  ),
+                ),
+                child: SelectableText(
+                  widget.rawError!,
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textMutedFor(brightness),
+                    fontFamily: 'monospace',
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ],
+          ],
           const SizedBox(height: AppSpacing.xxl),
           TapScale(
-            onTap: onRetry,
+            onTap: widget.onRetry,
             child: Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: 32,
