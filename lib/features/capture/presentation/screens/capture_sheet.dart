@@ -526,48 +526,64 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                       : Colors.white.withValues(alpha: 0.5),
                 ),
               ),
-              child: Column(
-                children: [
-                  // Drag handle
-                  Padding(
-                    padding: const EdgeInsets.only(top: 20, bottom: 8),
-                    child: Container(
-                      width: 48,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withValues(alpha: 0.3),
-                        borderRadius: AppRadius.borderRadiusPill,
-                      ),
-                    ),
-                  ),
-
-                  // Content
-                  Expanded(
-                    child: _isProcessing
-                        ? _processingType == 'paste'
-                            ? _SimplePasteProgress(
-                                pulseAnimation: _pulseController,
-                              )
-                            : _EnhancedProcessingView(
-                                type: _processingType,
-                                realPhase: _realPhase,
-                                materialName: _materialName,
-                                pulseAnimation: _pulseController,
-                                onCancel: _cancelProcessing,
-                                onAnimationComplete: () {
-                                  if (mounted && _pendingPopMessage != null) {
-                                    setState(() => _isProcessing = false);
-                                    Navigator.of(context).pop(_pendingPopMessage);
-                                  }
-                                },
-                              )
-                        : ListView(
-                            controller: scrollController,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.xl,
+              child: _isProcessing
+                  ? Column(
+                      children: [
+                        // Drag handle (static when processing)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 20, bottom: 8),
+                          child: Container(
+                            width: 48,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withValues(alpha: 0.3),
+                              borderRadius: AppRadius.borderRadiusPill,
                             ),
-                            children: [
-                              const SizedBox(height: AppSpacing.md),
+                          ),
+                        ),
+                        Expanded(
+                          child: _processingType == 'paste'
+                              ? _SimplePasteProgress(
+                                  pulseAnimation: _pulseController,
+                                )
+                              : _EnhancedProcessingView(
+                                  type: _processingType,
+                                  realPhase: _realPhase,
+                                  materialName: _materialName,
+                                  pulseAnimation: _pulseController,
+                                  onCancel: _cancelProcessing,
+                                  onAnimationComplete: () {
+                                    if (mounted && _pendingPopMessage != null) {
+                                      setState(() => _isProcessing = false);
+                                      Navigator.of(context).pop(_pendingPopMessage);
+                                    }
+                                  },
+                                ),
+                        ),
+                      ],
+                    )
+                  : ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xl,
+                      ),
+                      children: [
+                        // Drag handle — INSIDE ListView so scrollController
+                        // receives the drag gesture for dismiss.
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 20, bottom: 8),
+                            child: Container(
+                              width: 48,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.withValues(alpha: 0.3),
+                                borderRadius: AppRadius.borderRadiusPill,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
 
                               // Header
                               Center(
@@ -728,12 +744,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                 ),
                               ),
 
-                              const SizedBox(height: AppSpacing.xl),
-                            ],
-                          ),
-                  ),
-                ],
-              ),
+                        const SizedBox(height: AppSpacing.xl),
+                      ],
+                    ),
             ),
           ),
         );
