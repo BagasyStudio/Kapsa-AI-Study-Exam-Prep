@@ -10,9 +10,6 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/aurora_background.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/staggered_list.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../core/providers/supabase_provider.dart';
-import '../../../../core/services/sound_service.dart';
 import '../../../../core/utils/error_handler.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
@@ -20,12 +17,11 @@ import '../../data/models/snap_solution_model.dart';
 import '../providers/snap_solve_provider.dart';
 import '../widgets/solution_view.dart';
 
-/// Screen state machine.
-enum _ScreenState { initial, uploading, solving, result, error }
-
 /// Full-screen Snap & Solve experience.
 ///
-/// Camera → Upload → AI Solve → Step-by-step solution.
+/// Camera -> Upload -> AI Solve -> Step-by-step solution.
+/// The actual solve runs in a global [SnapSolveJobNotifier] so it
+/// survives navigation. This screen just reflects that state reactively.
 class SnapSolveScreen extends ConsumerStatefulWidget {
   /// Optional: pre-load an existing solution from history.
   final String? solutionId;
@@ -38,13 +34,11 @@ class SnapSolveScreen extends ConsumerStatefulWidget {
 
 class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
     with SingleTickerProviderStateMixin {
-  _ScreenState _state = _ScreenState.initial;
-  String _statusMessage = '';
-  int _step = 0; // 0=upload, 1=solving, 2=done
-  SnapSolutionModel? _solution;
-  String? _errorMessage;
-  String? _rawError;
   late AnimationController _pulseController;
+
+  /// When non-null, the user is viewing an existing solution from history
+  /// (independent of the global background job).
+  SnapSolutionModel? _historySolution;
 
   @override
   void initState() {
@@ -54,7 +48,7 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
 
-    // If we have a solutionId, load it
+    // If we have a solutionId, load it from history
     if (widget.solutionId != null) {
       _loadExistingSolution();
     }
@@ -73,22 +67,20 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
           .getSolution(widget.solutionId!);
       if (solution != null && mounted) {
         setState(() {
-          _solution = solution;
-          _state = _ScreenState.result;
+          _historySolution = solution;
         });
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _state = _ScreenState.error;
-          _errorMessage = AppErrorHandler.friendlyMessage(e);
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
+        );
       }
     }
   }
 
   Future<void> _captureAndSolve(ImageSource source) async {
-    // Check feature access
+    // Check feature access (needs BuildContext — stays in the screen)
     final canUse = await checkFeatureAccess(
       ref: ref,
       feature: 'snap_solve',
@@ -120,84 +112,21 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
       return;
     }
 
-    setState(() {
-      _state = _ScreenState.uploading;
-      _step = 0;
-      _statusMessage = 'Uploading image...';
-      _errorMessage = null;
-    });
+    final imageBytes = await image.readAsBytes();
+    final user = ref.read(currentUserProvider);
+    if (user == null) return;
 
-    try {
-      final imageBytes = await image.readAsBytes();
+    // Clear any history view so the screen shows the global job state
+    setState(() => _historySolution = null);
 
-      // Upload to Supabase Storage
-      final client = ref.read(supabaseClientProvider);
-      final user = ref.read(currentUserProvider);
-      if (user == null) throw Exception('Not authenticated');
-
-      final fileName =
-          '${user.id}/${DateTime.now().millisecondsSinceEpoch}.jpg';
-      await client.storage
-          .from('course-materials')
-          .uploadBinary(fileName, imageBytes);
-      final fileUrl =
-          client.storage.from('course-materials').getPublicUrl(fileName);
-
-      if (mounted) {
-        setState(() {
-          _state = _ScreenState.solving;
-          _step = 1;
-          _statusMessage = 'AI is solving...';
-        });
-      }
-
-      // Call edge function
-      final solution = await ref
-          .read(snapSolveRepositoryProvider)
-          .solveProblem(imageUrl: fileUrl);
-
-      // Record usage
-      await recordFeatureUsage(ref: ref, feature: 'snap_solve');
-
-      // Refresh history
-      ref.invalidate(snapSolveHistoryProvider);
-
-      if (mounted) {
-        SoundService.playProcessingComplete();
-        setState(() {
-          _solution = solution;
-          _state = _ScreenState.result;
-          _step = 2;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        // Store both friendly and raw error for diagnostics
-        final friendly = AppErrorHandler.friendlyMessage(e);
-        String raw = e.toString();
-        if (e is FunctionException) {
-          raw = 'FunctionException(status=${e.status}, '
-              'details=${e.details}, '
-              'reasonPhrase=${e.reasonPhrase})';
-        }
-        debugPrint('[SnapSolve] Error: $raw');
-        setState(() {
-          _state = _ScreenState.error;
-          _errorMessage = friendly;
-          _rawError = raw;
-        });
-      }
-    }
+    // Delegate to global notifier — does NOT await, the screen
+    // updates reactively via ref.watch(snapSolveJobProvider).
+    ref.read(snapSolveJobProvider.notifier).startSolve(imageBytes, user.id);
   }
 
   void _resetToInitial() {
-    setState(() {
-      _state = _ScreenState.initial;
-      _solution = null;
-      _errorMessage = null;
-      _rawError = null;
-      _step = 0;
-    });
+    setState(() => _historySolution = null);
+    ref.read(snapSolveJobProvider.notifier).clear();
   }
 
   @override
@@ -237,7 +166,7 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
       ),
       child: Row(
         children: [
-          // Close button
+          // Close button — pops without stopping the background job
           GestureDetector(
             onTap: () => context.pop(),
             child: ClipOval(
@@ -315,32 +244,51 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
   }
 
   Widget _buildContent(Brightness brightness, bool isDark) {
-    switch (_state) {
-      case _ScreenState.initial:
+    // If viewing a history solution, show it directly
+    // (independent of the global background job).
+    if (_historySolution != null) {
+      return SolutionView(
+        key: const ValueKey('history-result'),
+        solution: _historySolution!,
+        onSolveAnother: _resetToInitial,
+      );
+    }
+
+    // Otherwise, derive the view from the global job state.
+    final jobState = ref.watch(snapSolveJobProvider);
+
+    switch (jobState.status) {
+      case SnapSolveJobStatus.idle:
         return _InitialView(
           key: const ValueKey('initial'),
           onCamera: () => _captureAndSolve(ImageSource.camera),
           onGallery: () => _captureAndSolve(ImageSource.gallery),
         );
-      case _ScreenState.uploading:
-      case _ScreenState.solving:
+      case SnapSolveJobStatus.uploading:
         return _ProcessingView(
           key: const ValueKey('processing'),
-          status: _statusMessage,
-          step: _step,
+          status: 'Uploading image...',
+          step: 0,
           pulseAnimation: _pulseController,
         );
-      case _ScreenState.result:
+      case SnapSolveJobStatus.solving:
+        return _ProcessingView(
+          key: const ValueKey('processing'),
+          status: 'AI is solving...',
+          step: 1,
+          pulseAnimation: _pulseController,
+        );
+      case SnapSolveJobStatus.completed:
         return SolutionView(
           key: const ValueKey('result'),
-          solution: _solution!,
+          solution: jobState.solution!,
           onSolveAnother: _resetToInitial,
         );
-      case _ScreenState.error:
+      case SnapSolveJobStatus.error:
         return _ErrorView(
           key: const ValueKey('error'),
-          message: _errorMessage ?? 'Something went wrong',
-          rawError: _rawError,
+          message: jobState.errorMessage ?? 'Something went wrong',
+          rawError: jobState.rawError,
           onRetry: _resetToInitial,
         );
     }
@@ -448,8 +396,7 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
                                     onTap: () {
                                       Navigator.of(ctx).pop();
                                       setState(() {
-                                        _solution = sol;
-                                        _state = _ScreenState.result;
+                                        _historySolution = sol;
                                       });
                                     },
                                   ),
@@ -724,6 +671,17 @@ class _ProcessingView extends StatelessWidget {
               ),
             ),
 
+            const SizedBox(height: AppSpacing.sm),
+
+            // Hint: user can go back
+            Text(
+              'You can go back — we\'ll notify you when it\'s ready',
+              style: AppTypography.caption.copyWith(
+                color: AppColors.textMutedFor(brightness).withValues(alpha: 0.6),
+              ),
+              textAlign: TextAlign.center,
+            ),
+
             const SizedBox(height: AppSpacing.xxxl),
 
             // Step indicators
@@ -909,7 +867,7 @@ class _ErrorViewState extends State<_ErrorView> {
             GestureDetector(
               onTap: () => setState(() => _showDetails = !_showDetails),
               child: Text(
-                _showDetails ? 'Hide details ▲' : 'Show details ▼',
+                _showDetails ? 'Hide details \u25B2' : 'Show details \u25BC',
                 style: AppTypography.caption.copyWith(
                   color: AppColors.textMutedFor(brightness).withValues(alpha: 0.5),
                   decoration: TextDecoration.underline,
@@ -1033,7 +991,7 @@ class _HistoryItem extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${solution.subject ?? 'Other'} • ${_formatDate(solution.createdAt)}',
+                      '${solution.subject ?? 'Other'} \u2022 ${_formatDate(solution.createdAt)}',
                       style: AppTypography.caption.copyWith(
                         color: AppColors.textMutedFor(brightness),
                       ),

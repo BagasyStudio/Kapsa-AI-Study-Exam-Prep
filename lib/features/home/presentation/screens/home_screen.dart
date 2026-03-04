@@ -19,6 +19,7 @@ import '../widgets/recent_materials_grid.dart';
 import '../../../assistant/presentation/widgets/oracle_smart_card.dart';
 import '../../../subscription/presentation/widgets/usage_limit_banner.dart';
 import '../../../snap_solve/presentation/widgets/snap_solve_card.dart';
+import '../../../snap_solve/presentation/widgets/snap_solve_banner.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../courses/presentation/providers/course_provider.dart';
 import '../widgets/study_activity_card.dart';
@@ -291,6 +292,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     padding: EdgeInsets.symmetric(horizontal: AppSpacing.xl),
                     child: UsageLimitBanner(),
                   ),
+
+                  // Snap & Solve background job banner
+                  const SnapSolveBanner(),
 
                   // Snap & Solve — #1 acquisition hook
                   const SizedBox(height: AppSpacing.md),
