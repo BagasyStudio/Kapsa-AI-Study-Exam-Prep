@@ -9,8 +9,13 @@ const corsHeaders = {
 const LLAMA_MODEL = "meta/meta-llama-3-8b-instruct";
 
 // ── Constants ─────────────────────────────────────────────────────
-const MAX_FLASHCARD_COUNT = 30;
-const MIN_FLASHCARD_COUNT = 1;
+const CARDS_PER_CHUNK = 20;       // sweet spot for Llama 8B JSON reliability
+const CHARS_PER_CARD = 150;       // ~1 card per 150 chars of source
+const MAX_TOTAL_CARDS = 200;
+const MIN_TOTAL_CARDS = 10;
+const MAX_CONCURRENT = 5;         // parallel Replicate calls
+const CHUNK_SIZE = 3000;          // chars per chunk sent to AI
+const MAX_TOKENS_PER_BATCH = 4096;
 
 // ── Input validation helpers ──────────────────────────────────────
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -22,11 +27,6 @@ function isValidUUID(value: unknown): value is string {
 function sanitizeErrorMessage(error: unknown): string {
   console.error("ai-generate-flashcards internal error:", error);
   return "An internal error occurred. Please try again.";
-}
-
-function clampCount(value: unknown): number {
-  const num = typeof value === "number" ? value : 10;
-  return Math.max(MIN_FLASHCARD_COUNT, Math.min(MAX_FLASHCARD_COUNT, Math.floor(num)));
 }
 
 // ── AI call ───────────────────────────────────────────────────────
@@ -82,7 +82,6 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
 
 // ── JSON parsing with sanitization ────────────────────────────────
 function parseJsonArray(raw: string): any[] {
-  // Try direct parse first
   const jsonMatch = raw.match(/\[[\s\S]*\]/);
   const jsonStr = jsonMatch ? jsonMatch[0] : raw.trim();
 
@@ -93,13 +92,12 @@ function parseJsonArray(raw: string): any[] {
     // Continue to sanitization
   }
 
-  // Sanitize common LLM JSON issues
   let sanitized = jsonStr
-    .replace(/,\s*}/g, "}")        // trailing comma before }
-    .replace(/,\s*\]/g, "]")       // trailing comma before ]
-    .replace(/'/g, '"')            // single quotes → double quotes
-    .replace(/\n/g, "\\n")        // unescaped newlines in strings
-    .replace(/\t/g, "\\t");       // unescaped tabs
+    .replace(/,\s*}/g, "}")
+    .replace(/,\s*\]/g, "]")
+    .replace(/'/g, '"')
+    .replace(/\n/g, "\\n")
+    .replace(/\t/g, "\\t");
 
   const parsed = JSON.parse(sanitized);
   if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -108,19 +106,16 @@ function parseJsonArray(raw: string): any[] {
 
 // ── Language detection ────────────────────────────────────────────
 function detectLanguageHint(text: string): string {
-  if (!text || text.length < 20) return "";
+  if (!text || text.length < 20) return "English";
 
   const sample = text.substring(0, 500).toLowerCase();
 
   const spanishWords = ["que", "los", "las", "del", "una", "con", "por", "para", "como", "más", "esta", "pero", "sobre", "entre", "cuando", "también", "puede", "tiene", "desde", "todo", "según", "donde", "después", "porque", "cada", "hacer", "sin", "ser", "este", "así"];
   const spanishChars = /[áéíóúñ¿¡]/;
-
   const portugueseWords = ["não", "uma", "com", "são", "mais", "para", "como", "está", "pode", "isso", "pelo", "muito", "também", "onde", "quando", "ainda", "então", "sobre", "depois"];
   const portugueseChars = /[ãõç]/;
-
   const frenchWords = ["les", "des", "une", "que", "dans", "pour", "avec", "sur", "sont", "pas", "plus", "mais", "comme", "cette", "tout", "être", "fait", "aussi", "nous", "même"];
   const frenchChars = /[àâêëîïôùûüÿçœæ]/;
-
   const germanWords = ["und", "die", "der", "das", "ist", "ein", "eine", "mit", "auf", "für", "nicht", "auch", "sich", "von", "sind", "werden", "hat", "wird", "dass", "oder"];
   const germanChars = /[äöüß]/;
 
@@ -151,13 +146,116 @@ function detectLanguageHint(text: string): string {
   return "English";
 }
 
+// ── Content chunking ─────────────────────────────────────────────
+function splitIntoChunks(text: string, chunkSize: number): string[] {
+  const chunks: string[] = [];
+  // Try to split at paragraph boundaries
+  const paragraphs = text.split(/\n\n+/);
+  let current = "";
+
+  for (const para of paragraphs) {
+    if (current.length + para.length + 2 > chunkSize && current.length > 0) {
+      chunks.push(current.trim());
+      current = "";
+    }
+    current += (current ? "\n\n" : "") + para;
+  }
+  if (current.trim()) chunks.push(current.trim());
+
+  // If any chunk is still too large, hard-split it
+  const result: string[] = [];
+  for (const chunk of chunks) {
+    if (chunk.length <= chunkSize) {
+      result.push(chunk);
+    } else {
+      for (let i = 0; i < chunk.length; i += chunkSize) {
+        result.push(chunk.substring(i, i + chunkSize));
+      }
+    }
+  }
+  return result;
+}
+
+// ── Batch generation with concurrency control ─────────────────────
+async function generateBatch(
+  apiKey: string,
+  chunk: string,
+  cardsToGenerate: number,
+  courseTitle: string,
+  detectedLang: string,
+  topic?: string,
+): Promise<any[]> {
+  const systemPrompt = `You are a flashcard generator for the course "${courseTitle}".
+
+CRITICAL LANGUAGE RULE: The course material is in ${detectedLang}. You MUST generate ALL flashcard content (topic, question_before, keyword, question_after, and answer) in ${detectedLang}. Do NOT translate to English. Keep the same language as the source material.
+
+Generate exactly ${cardsToGenerate} flashcards in JSON format. Each flashcard must have:
+- topic: The specific topic/category
+- question_before: The first part of the question before the key term
+- keyword: The key term/concept that should be highlighted (1-3 words)
+- question_after: The rest of the question after the keyword (can be empty string)
+- answer: A clear, concise answer (1-3 sentences)
+
+The question format should read naturally: question_before + keyword + question_after forms the full question.
+
+Example (if material is in Spanish):
+{"topic":"Estructura Celular","question_before":"¿Cuál es la función principal de la ","keyword":"mitocondria","question_after":"?","answer":"Generar la mayor parte de la energía química necesaria para las reacciones bioquímicas de la célula mediante la producción de ATP."}
+
+Example (if material is in English):
+{"topic":"Cell Structure","question_before":"What is the primary function of the ","keyword":"mitochondria","question_after":"?","answer":"Generate most of the chemical energy needed to power the cell's biochemical reactions through ATP production."}
+
+For math/science flashcards, use LaTeX notation in answers: $...$ for inline math.
+
+IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation, just the JSON array.${topic ? `\nFocus on the topic: ${topic}` : ""}`;
+
+  const prompt = `Based on this course material, generate ${cardsToGenerate} flashcards in the SAME LANGUAGE as the material:\n\n${chunk}\n\nOutput the JSON array now:`;
+
+  const aiResponse = await callReplicate(apiKey, prompt, systemPrompt, MAX_TOKENS_PER_BATCH);
+
+  try {
+    return parseJsonArray(aiResponse);
+  } catch {
+    // Retry once with stricter prompt
+    console.warn("Batch parse failed, retrying...");
+    const retryPrompt = `Generate exactly ${cardsToGenerate} flashcards as a JSON array. Output ONLY the array starting with [ and ending with ]. No text before or after.\n\nMaterial:\n${chunk.substring(0, 2000)}\n\nJSON array:`;
+    const retryResponse = await callReplicate(apiKey, retryPrompt, systemPrompt, MAX_TOKENS_PER_BATCH);
+    return parseJsonArray(retryResponse);
+  }
+}
+
+async function runWithConcurrency<T>(
+  tasks: (() => Promise<T>)[],
+  maxConcurrent: number,
+): Promise<PromiseSettledResult<T>[]> {
+  const results: PromiseSettledResult<T>[] = new Array(tasks.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < tasks.length) {
+      const idx = nextIndex++;
+      try {
+        const value = await tasks[idx]();
+        results[idx] = { status: "fulfilled", value };
+      } catch (reason: any) {
+        results[idx] = { status: "rejected", reason };
+      }
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.min(maxConcurrent, tasks.length) },
+    () => worker(),
+  );
+  await Promise.all(workers);
+  return results;
+}
+
 // ── Main handler ──────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // Early check: is the AI service configured?
   const replicateKey = Deno.env.get("REPLICATE_API_KEY");
   if (!replicateKey) {
     console.error("REPLICATE_API_KEY is not set in Supabase secrets");
@@ -206,10 +304,9 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const count = clampCount(rawCount);
     const sanitizedTopic = typeof topic === "string" ? topic.trim().substring(0, 200) : undefined;
 
-    // ── Ownership check: verify course belongs to user ────────────
+    // ── Ownership check ───────────────────────────────────────────
     const { data: course, error: courseError } = await supabase
       .from("courses")
       .select("id, title, subtitle")
@@ -224,7 +321,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // ── Fetch materials (scoped to user) ──────────────────────────
+    // ── Fetch ALL materials (no limit) ────────────────────────────
     let materialsQuery = supabase
       .from("course_materials")
       .select("title, content, type")
@@ -236,10 +333,11 @@ Deno.serve(async (req: Request) => {
       materialsQuery = materialsQuery.eq("id", materialId);
     }
 
-    const { data: materials } = await materialsQuery.limit(5);
+    const { data: materials } = await materialsQuery;
 
-    // Check if course has materials with content
-    const validMaterials = (materials || []).filter((m: any) => m.content && m.content.trim().length > 0);
+    const validMaterials = (materials || []).filter(
+      (m: any) => m.content && m.content.trim().length > 0,
+    );
 
     if (validMaterials.length === 0) {
       return new Response(JSON.stringify({
@@ -250,65 +348,100 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const materialContent = validMaterials
-      .map((m: any) => `--- ${m.title} ---\n${(m.content || "").substring(0, 3000)}`)
+    // ── Build full content and auto-calculate count ───────────────
+    const fullContent = validMaterials
+      .map((m: any) => `--- ${m.title} ---\n${m.content}`)
       .join("\n\n");
 
-    // Detect language
-    const allContent = validMaterials.map((m: any) => m.content || "").join(" ");
-    const detectedLang = detectLanguageHint(allContent);
+    const totalContentLength = fullContent.length;
+    const autoCount = Math.min(
+      MAX_TOTAL_CARDS,
+      Math.max(MIN_TOTAL_CARDS, Math.round(totalContentLength / CHARS_PER_CARD)),
+    );
 
-    const systemPrompt = `You are a flashcard generator for the course "${course.title}".
+    // Use client count if provided, otherwise auto-calculate
+    const totalCards = rawCount
+      ? Math.min(MAX_TOTAL_CARDS, Math.max(1, Math.floor(rawCount)))
+      : autoCount;
 
-CRITICAL LANGUAGE RULE: The course material is in ${detectedLang}. You MUST generate ALL flashcard content (topic, question_before, keyword, question_after, and answer) in ${detectedLang}. Do NOT translate to English. Keep the same language as the source material.
+    console.log(`Content: ${totalContentLength} chars → generating ${totalCards} flashcards (auto=${autoCount})`);
 
-Generate exactly ${count} flashcards in JSON format. Each flashcard must have:
-- topic: The specific topic/category
-- question_before: The first part of the question before the key term
-- keyword: The key term/concept that should be highlighted (1-3 words)
-- question_after: The rest of the question after the keyword (can be empty string)
-- answer: A clear, concise answer (1-3 sentences)
+    // Detect language from full content
+    const detectedLang = detectLanguageHint(fullContent);
 
-The question format should read naturally: question_before + keyword + question_after forms the full question.
+    // ── Split content into chunks ─────────────────────────────────
+    const chunks = splitIntoChunks(fullContent, CHUNK_SIZE);
+    console.log(`Split into ${chunks.length} chunks`);
 
-Example (if material is in Spanish):
-{"topic":"Estructura Celular","question_before":"¿Cuál es la función principal de la ","keyword":"mitocondria","question_after":"?","answer":"Generar la mayor parte de la energía química necesaria para las reacciones bioquímicas de la célula mediante la producción de ATP."}
+    // ── Distribute cards across chunks ────────────────────────────
+    // Each chunk gets proportional cards based on its content size
+    const totalChunkChars = chunks.reduce((sum, c) => sum + c.length, 0);
+    const chunkCards: { chunk: string; count: number }[] = [];
+    let cardsAssigned = 0;
 
-Example (if material is in English):
-{"topic":"Cell Structure","question_before":"What is the primary function of the ","keyword":"mitochondria","question_after":"?","answer":"Generate most of the chemical energy needed to power the cell's biochemical reactions through ATP production."}
+    for (let i = 0; i < chunks.length; i++) {
+      const isLast = i === chunks.length - 1;
+      const proportion = chunks[i].length / totalChunkChars;
+      const count = isLast
+        ? totalCards - cardsAssigned
+        : Math.max(1, Math.round(totalCards * proportion));
 
-For math/science flashcards, use LaTeX notation in answers: $...$ for inline math. Example: an answer containing $\\frac{1}{2}mv^2$.
+      if (count <= 0) continue;
 
-IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation, just the JSON array.${sanitizedTopic ? `\nFocus on the topic: ${sanitizedTopic}` : ""}`;
+      chunkCards.push({
+        chunk: chunks[i],
+        count: Math.min(count, CARDS_PER_CHUNK), // cap per-batch
+      });
+      cardsAssigned += chunkCards[chunkCards.length - 1].count;
 
-    const prompt = `Based on this course material, generate ${count} flashcards in the SAME LANGUAGE as the material:\n\n${materialContent}\n\nOutput the JSON array now:`;
-
-    const aiResponse = await callReplicate(replicateKey, prompt, systemPrompt);
-
-    // Parse JSON from response (with sanitization for common LLM issues)
-    let cards;
-    try {
-      cards = parseJsonArray(aiResponse);
-    } catch {
-      // Retry once with a stricter prompt
-      console.warn("First parse attempt failed, retrying with stricter prompt...");
-      const retryPrompt = `Generate exactly ${count} flashcards as a JSON array. Output ONLY the JSON array starting with [ and ending with ]. No text before or after.\n\nMaterial:\n${materialContent.substring(0, 2000)}\n\nJSON array:`;
-      const retryResponse = await callReplicate(replicateKey, retryPrompt, systemPrompt, 2048);
-      try {
-        cards = parseJsonArray(retryResponse);
-      } catch {
-        throw new Error("Failed to generate flashcards. Please try again.");
+      // If we need more cards from this chunk than CARDS_PER_CHUNK,
+      // split into sub-batches
+      let remaining = count - CARDS_PER_CHUNK;
+      while (remaining > 0) {
+        const batchCount = Math.min(remaining, CARDS_PER_CHUNK);
+        chunkCards.push({ chunk: chunks[i], count: batchCount });
+        remaining -= batchCount;
       }
     }
 
-    // Create deck
+    console.log(`Planned ${chunkCards.length} batch(es): ${chunkCards.map(c => c.count).join(", ")} cards`);
+
+    // ── Generate all batches in parallel ──────────────────────────
+    const tasks = chunkCards.map(({ chunk, count }) => () =>
+      generateBatch(replicateKey, chunk, count, course.title, detectedLang, sanitizedTopic)
+    );
+
+    const batchResults = await runWithConcurrency(tasks, MAX_CONCURRENT);
+
+    // Collect all successful cards
+    const allCards: any[] = [];
+    let failedBatches = 0;
+
+    for (const result of batchResults) {
+      if (result.status === "fulfilled") {
+        allCards.push(...result.value);
+      } else {
+        failedBatches++;
+        console.warn("Batch failed:", result.reason?.message || result.reason);
+      }
+    }
+
+    if (allCards.length === 0) {
+      throw new Error("Failed to generate flashcards. Please try again.");
+    }
+
+    if (failedBatches > 0) {
+      console.warn(`${failedBatches}/${chunkCards.length} batches failed, got ${allCards.length} cards`);
+    }
+
+    // ── Create deck ───────────────────────────────────────────────
     const { data: deck, error: deckError } = await supabase
       .from("flashcard_decks")
       .insert({
         course_id: courseId,
         user_id: user.id,
         title: sanitizedTopic || course.title || "Study Deck",
-        card_count: cards.length,
+        card_count: allCards.length,
       })
       .select()
       .single();
@@ -318,8 +451,8 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation, just the
       throw new Error("Failed to create flashcard deck. Please try again.");
     }
 
-    // Insert cards (sanitize AI output fields)
-    const cardRows = cards.map((c: any) => ({
+    // ── Insert cards (sanitize AI output) ─────────────────────────
+    const cardRows = allCards.map((c: any) => ({
       deck_id: deck.id,
       topic: typeof c.topic === "string" ? c.topic.substring(0, 200) : "General",
       question_before: typeof c.question_before === "string" ? c.question_before.substring(0, 500) : "",
@@ -328,9 +461,18 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation, just the
       answer: typeof c.answer === "string" ? c.answer.substring(0, 2000) : "",
     }));
 
-    await supabase.from("flashcards").insert(cardRows);
+    // Supabase insert in batches of 500 (API limit)
+    for (let i = 0; i < cardRows.length; i += 500) {
+      const batch = cardRows.slice(i, i + 500);
+      const { error: insertError } = await supabase.from("flashcards").insert(batch);
+      if (insertError) {
+        console.error(`Insert batch ${i / 500} failed:`, insertError);
+      }
+    }
 
-    return new Response(JSON.stringify(deck), {
+    console.log(`Done: ${allCards.length} flashcards in deck ${deck.id}`);
+
+    return new Response(JSON.stringify({ ...deck, card_count: allCards.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

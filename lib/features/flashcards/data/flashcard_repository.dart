@@ -36,7 +36,7 @@ class FlashcardRepository {
   /// Generate flashcards via Edge Function.
   Future<DeckModel> generateFlashcards({
     required String courseId,
-    int count = 10,
+    int? count,
     String? materialId,
     String? topic,
   }) async {
@@ -44,7 +44,7 @@ class FlashcardRepository {
       'ai-generate-flashcards',
       body: {
         'courseId': courseId,
-        'count': count,
+        if (count != null) 'count': count,
         if (materialId != null) 'materialId': materialId,
         if (topic != null) 'topic': topic,
       },

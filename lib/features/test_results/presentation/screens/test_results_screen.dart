@@ -196,7 +196,6 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
                               .read(flashcardRepositoryProvider)
                               .generateFlashcards(
                                 courseId: result.test.courseId,
-                                count: 10,
                                 topic: 'weak areas',
                               );
                           if (context.mounted) {

@@ -542,7 +542,7 @@ class _MaterialsTab extends ConsumerWidget {
           type: 'flashcards',
           future: ref
               .read(flashcardRepositoryProvider)
-              .generateFlashcards(courseId: courseId, count: 10),
+              .generateFlashcards(courseId: courseId),
           onResult: (deck) async {
             await recordFeatureUsage(ref: ref, feature: 'flashcards');
             ref.invalidate(flashcardDecksProvider(courseId));
@@ -677,7 +677,6 @@ class _MaterialsTab extends ConsumerWidget {
                                 .read(flashcardRepositoryProvider)
                                 .generateFlashcards(
                                   courseId: courseId,
-                                  count: 10,
                                   materialId: material.id,
                                 ),
                             onResult: (deck) async {
@@ -726,7 +725,6 @@ class _MaterialsTab extends ConsumerWidget {
                                 .read(flashcardRepositoryProvider)
                                 .generateFlashcards(
                                   courseId: courseId,
-                                  count: 10,
                                   materialId: material.id,
                                 ),
                             onResult: (deck) async {
@@ -1134,7 +1132,7 @@ class _StudyToolsTab extends ConsumerWidget {
           type: 'flashcards',
           future: ref
               .read(flashcardRepositoryProvider)
-              .generateFlashcards(courseId: courseId, count: 10),
+              .generateFlashcards(courseId: courseId),
           onResult: (deck) async {
             await recordFeatureUsage(ref: ref, feature: 'flashcards');
             ref.invalidate(flashcardDecksProvider(courseId));
