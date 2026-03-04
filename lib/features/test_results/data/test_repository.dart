@@ -19,9 +19,12 @@ class TestRepository {
   TestRepository(this._client, this._functions);
 
   /// Generate a quiz via Edge Function.
+  ///
+  /// If [count] is omitted, the edge function auto-calculates an optimal
+  /// number of questions based on the total content length.
   Future<TestWithQuestions> generateQuiz({
     required String courseId,
-    int count = 5,
+    int? count,
     bool isPracticeExam = false,
   }) async {
     final response = await _functions.invoke(
@@ -29,7 +32,7 @@ class TestRepository {
       body: {
         'action': 'generate',
         'courseId': courseId,
-        'count': count,
+        if (count != null) 'count': count,
         'isPracticeExam': isPracticeExam,
       },
     );
@@ -68,6 +71,27 @@ class TestRepository {
         .map((e) => TestQuestionModel.fromJson(e as Map<String, dynamic>))
         .toList();
     return TestWithQuestions(test: test, questions: questions);
+  }
+
+  /// Get AI-generated explanation of mistakes for a completed test.
+  ///
+  /// Returns a map with `explanation`, `weakTopics`, and `studyTips`.
+  Future<Map<String, dynamic>> explainMistakes({
+    required String testId,
+  }) async {
+    final response = await _functions.invoke(
+      'ai-generate-quiz',
+      body: {
+        'action': 'explain_mistakes',
+        'testId': testId,
+      },
+    );
+
+    final data = response.data;
+    if (data == null || data is! Map<String, dynamic>) {
+      throw Exception('Invalid response from explain mistakes');
+    }
+    return data;
   }
 
   /// Fetch test results with questions.

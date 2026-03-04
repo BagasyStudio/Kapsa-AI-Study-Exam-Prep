@@ -117,6 +117,8 @@ class NotificationService {
     required int streakDays,
     required List<ExamReminder> upcomingExams,
     required String userName,
+    int dueCardCount = 0,
+    List<String> courseNamesWithDue = const [],
   }) async {
     final enabled = await isEnabled();
     if (!enabled) return;
@@ -137,7 +139,19 @@ class NotificationService {
       minute: 0,
     );
 
-    // 2) Morning study nudge (next day at 9AM)
+    // 2) SRS due cards reminder (30 min after streak)
+    if (dueCardCount > 0) {
+      final srsMsg = _getSrsMessage(dueCardCount, courseNamesWithDue, userName);
+      await _scheduleDailyAt(
+        id: notifId++,
+        title: srsMsg.title,
+        body: srsMsg.body,
+        hour: hour,
+        minute: 30,
+      );
+    }
+
+    // 3) Morning study nudge (next day at 9AM)
     final morningMsg = _getMorningMessage(userName);
     await _scheduleDailyAt(
       id: notifId++,
@@ -147,7 +161,7 @@ class NotificationService {
       minute: 0,
     );
 
-    // 3) Exam countdown reminders
+    // 4) Exam countdown reminders
     for (final exam in upcomingExams) {
       final daysUntil = exam.date.difference(DateTime.now()).inDays;
 
@@ -167,7 +181,7 @@ class NotificationService {
       }
     }
 
-    // 4) Comeback nudge (3 days from now — in case user doesn't open)
+    // 5) Comeback nudge (3 days from now — in case user doesn't open)
     final comebackMsg = _getComebackMessage(userName);
     await _scheduleAt(
       id: notifId++,
@@ -180,7 +194,7 @@ class NotificationService {
     );
 
     if (kDebugMode) {
-      debugPrint('📬 Scheduled $notifId smart notifications');
+      debugPrint('📬 Scheduled $notifId smart notifications (due cards: $dueCardCount)');
     }
   }
 
@@ -229,6 +243,30 @@ class NotificationService {
     return _NotifMessage(
       '$streakDays days! You\'re a legend 👑',
       '$name, most students give up after 3 days. You\'ve been at it for $streakDays. That\'s extraordinary.',
+    );
+  }
+
+  static _NotifMessage _getSrsMessage(
+      int dueCount, List<String> courseNames, String name) {
+    final courseHint = courseNames.isNotEmpty
+        ? ' (${courseNames.take(2).join(", ")}${courseNames.length > 2 ? "..." : ""})'
+        : '';
+
+    if (dueCount <= 10) {
+      return _NotifMessage(
+        '$dueCount cards ready for review 🧠',
+        '$name, a quick 5-minute session keeps your memory sharp$courseHint.',
+      );
+    }
+    if (dueCount <= 50) {
+      return _NotifMessage(
+        '$dueCount cards are due! ⏰',
+        'A focused session today prevents forgetting tomorrow$courseHint. You\'ve got this, $name!',
+      );
+    }
+    return _NotifMessage(
+      '$dueCount cards waiting for you 📚',
+      '$name, tackle 20 today to stay on track$courseHint. Consistency beats cramming.',
     );
   }
 

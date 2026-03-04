@@ -9,6 +9,7 @@ import '../../../../core/providers/revenue_cat_provider.dart';
 import '../../../../core/providers/theme_provider.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/sound_service.dart';
+import '../../../../core/services/tts_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -488,6 +489,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                             _NotificationToggleTile(),
                             _SoundToggleTile(),
+                            _TtsToggleTile(),
+                            _TtsAutoReadToggleTile(),
                             _AiDataToggleTile(),
                             _ThemeToggleTile(),
                             _SettingsTile(
@@ -950,10 +953,39 @@ class _NotificationToggleTileState
         .map((c) => ExamReminder(courseName: c.title, date: c.examDate!))
         .toList();
 
+    // Query due SRS cards for notification
+    int dueCardCount = 0;
+    List<String> courseNamesWithDue = [];
+    try {
+      final now = DateTime.now().toUtc().toIso8601String();
+      final dueCards = await Supabase.instance.client
+          .from('flashcards')
+          .select('id, flashcard_decks!inner(courses!inner(title))')
+          .lte('due', now)
+          .limit(200);
+      dueCardCount = (dueCards as List).length;
+      // Extract unique course names
+      final names = <String>{};
+      for (final card in dueCards) {
+        final deck = card['flashcard_decks'];
+        if (deck != null) {
+          final course = deck['courses'];
+          if (course != null && course['title'] != null) {
+            names.add(course['title'] as String);
+          }
+        }
+      }
+      courseNamesWithDue = names.toList();
+    } catch (_) {
+      // Best-effort — don't block reminders
+    }
+
     await NotificationService.scheduleSmartReminders(
       streakDays: profile?.streakDays ?? 0,
       upcomingExams: exams,
       userName: profile?.firstName ?? 'Student',
+      dueCardCount: dueCardCount,
+      courseNamesWithDue: courseNamesWithDue,
     );
   }
 
@@ -1092,6 +1124,141 @@ class _SoundToggleTileState extends State<_SoundToggleTile> {
               value: _enabled,
               onChanged: _toggle,
               activeTrackColor: AppColors.primary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// TTS (Text-to-Speech) toggle for flashcard reading.
+class _TtsToggleTile extends StatefulWidget {
+  @override
+  State<_TtsToggleTile> createState() => _TtsToggleTileState();
+}
+
+class _TtsToggleTileState extends State<_TtsToggleTile> {
+  bool _enabled = TtsService.instance.isEnabled;
+
+  Future<void> _toggle(bool value) async {
+    await TtsService.instance.setEnabled(value);
+    setState(() => _enabled = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    return TapScale(
+      onTap: () => _toggle(!_enabled),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF14B8A6).withValues(alpha: 0.08),
+                border: Border.all(
+                  color: const Color(0xFF14B8A6).withValues(alpha: 0.12),
+                ),
+              ),
+              child: Icon(
+                _enabled ? Icons.record_voice_over : Icons.voice_over_off_outlined,
+                size: 18,
+                color: _enabled
+                    ? const Color(0xFF14B8A6)
+                    : AppColors.textSecondaryFor(brightness),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Text-to-Speech',
+                    style: AppTypography.labelLarge.copyWith(
+                      color: AppColors.textPrimaryFor(brightness),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    _enabled ? 'Read flashcards aloud' : 'Off',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.textMutedFor(brightness),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Switch.adaptive(
+              value: _enabled,
+              onChanged: _toggle,
+              activeTrackColor: const Color(0xFF14B8A6),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// TTS Auto-Read toggle — automatically reads the answer when revealed.
+class _TtsAutoReadToggleTile extends StatefulWidget {
+  @override
+  State<_TtsAutoReadToggleTile> createState() => _TtsAutoReadToggleTileState();
+}
+
+class _TtsAutoReadToggleTileState extends State<_TtsAutoReadToggleTile> {
+  bool _enabled = TtsService.instance.isAutoRead;
+
+  Future<void> _toggle(bool value) async {
+    await TtsService.instance.setAutoRead(value);
+    setState(() => _enabled = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    if (!TtsService.instance.isEnabled) return const SizedBox.shrink();
+    return TapScale(
+      onTap: () => _toggle(!_enabled),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 20, top: 2, bottom: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF14B8A6).withValues(alpha: 0.05),
+              ),
+              child: Icon(
+                Icons.auto_mode,
+                size: 15,
+                color: _enabled
+                    ? const Color(0xFF14B8A6)
+                    : AppColors.textSecondaryFor(brightness),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                'Auto-read answers',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondaryFor(brightness),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Switch.adaptive(
+              value: _enabled,
+              onChanged: _toggle,
+              activeTrackColor: const Color(0xFF14B8A6),
             ),
           ],
         ),

@@ -10,12 +10,16 @@ class FloatingToolbar extends StatelessWidget {
   final VoidCallback? onRefresh;
   final VoidCallback? onEdit;
   final VoidCallback? onShare;
+  final VoidCallback? onSpeak;
+  final bool isSpeaking;
 
   const FloatingToolbar({
     super.key,
     this.onRefresh,
     this.onEdit,
     this.onShare,
+    this.onSpeak,
+    this.isSpeaking = false,
   });
 
   @override
@@ -52,6 +56,12 @@ class FloatingToolbar extends StatelessWidget {
               _Divider(),
               _ToolbarButton(icon: Icons.edit, onTap: onEdit),
               _Divider(),
+              _ToolbarButton(
+                icon: isSpeaking ? Icons.volume_up : Icons.volume_up_outlined,
+                onTap: onSpeak,
+                isActive: isSpeaking,
+              ),
+              _Divider(),
               _ToolbarButton(icon: Icons.share, onTap: onShare),
             ],
           ),
@@ -64,8 +74,9 @@ class FloatingToolbar extends StatelessWidget {
 class _ToolbarButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;
+  final bool isActive;
 
-  const _ToolbarButton({required this.icon, this.onTap});
+  const _ToolbarButton({required this.icon, this.onTap, this.isActive = false});
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +89,9 @@ class _ToolbarButton extends StatelessWidget {
         child: Icon(
           icon,
           size: 22,
-          color: AppColors.textSecondaryFor(brightness),
+          color: isActive
+              ? AppColors.primary
+              : AppColors.textSecondaryFor(brightness),
         ),
       ),
     );

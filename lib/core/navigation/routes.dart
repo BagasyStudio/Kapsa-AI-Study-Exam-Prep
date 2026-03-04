@@ -32,6 +32,9 @@ abstract final class Routes {
   static const joinGroup = '/groups/join';
   static const knowledgeScore = '/knowledge-score';
   static const monthReview = '/month-review';
+  static const summary = '/summary/:summaryId';
+  static const glossary = '/glossary/:courseId';
+  static const studyPath = '/study-path';
 
   // ── Legal & Compliance ──
   static const terms = '/terms';
@@ -59,4 +62,6 @@ abstract final class Routes {
   static String occlusionEditorPath(String courseId) =>
       '/occlusion-editor/$courseId';
   static String groupDetailPath(String groupId) => '/groups/$groupId';
+  static String summaryPath(String summaryId) => '/summary/$summaryId';
+  static String glossaryPath(String courseId) => '/glossary/$courseId';
 }

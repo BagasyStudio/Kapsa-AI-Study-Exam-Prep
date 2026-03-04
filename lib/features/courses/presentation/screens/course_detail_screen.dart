@@ -21,6 +21,8 @@ import '../../../capture/presentation/screens/capture_sheet.dart';
 import '../../../flashcards/data/models/deck_model.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/utils/error_handler.dart';
+import '../../../summaries/presentation/providers/summary_provider.dart';
+import '../../../glossary/presentation/providers/glossary_provider.dart';
 
 class CourseDetailScreen extends ConsumerStatefulWidget {
   final String courseId;
@@ -779,7 +781,6 @@ class _MaterialsTab extends ConsumerWidget {
                                 .read(testRepositoryProvider)
                                 .generateQuiz(
                                   courseId: courseId,
-                                  count: 5,
                                 ),
                             onResult: (result) async {
                               await recordFeatureUsage(
@@ -1004,6 +1005,18 @@ class _StudyToolsTab extends ConsumerWidget {
                 onTap: () => context.push(Routes.snapSolve),
               ),
               _StudyToolGridItem(
+                icon: Icons.auto_stories,
+                label: 'Summary',
+                color: const Color(0xFF06B6D4),
+                onTap: () => _generateSummary(context, ref),
+              ),
+              _StudyToolGridItem(
+                icon: Icons.menu_book,
+                label: 'Glossary',
+                color: const Color(0xFF8B5CF6),
+                onTap: () => _generateGlossary(context, ref),
+              ),
+              _StudyToolGridItem(
                 icon: Icons.share_rounded,
                 label: 'Share Deck',
                 color: const Color(0xFF6366F1),
@@ -1176,13 +1189,99 @@ class _StudyToolsTab extends ConsumerWidget {
           type: 'quiz',
           future: ref
               .read(testRepositoryProvider)
-              .generateQuiz(courseId: courseId, count: 5),
+              .generateQuiz(courseId: courseId),
           onResult: (result) async {
             await recordFeatureUsage(ref: ref, feature: 'quiz');
             navigator.pop(); // Close overlay
             if (context.mounted) {
               // Navigate to quiz session (answer questions), NOT results
               context.push(Routes.quizSessionPath(result.test.id));
+            }
+          },
+          onError: (e) {
+            navigator.pop();
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
+              );
+            }
+          },
+        ),
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
+        transitionDuration: const Duration(milliseconds: 300),
+      ),
+    );
+  }
+
+  Future<void> _generateSummary(BuildContext context, WidgetRef ref) async {
+    final canUse = await checkFeatureAccess(
+      ref: ref,
+      feature: 'summary',
+      context: context,
+    );
+    if (!canUse) return;
+
+    if (!context.mounted) return;
+
+    final navigator = Navigator.of(context, rootNavigator: true);
+    navigator.push(
+      PageRouteBuilder(
+        opaque: true,
+        pageBuilder: (_, __, ___) => _GeneratingOverlay(
+          type: 'summary',
+          future: ref
+              .read(summaryRepositoryProvider)
+              .generateSummary(courseId: courseId),
+          onResult: (summary) async {
+            await recordFeatureUsage(ref: ref, feature: 'summary');
+            ref.invalidate(courseSummariesProvider(courseId));
+            navigator.pop();
+            if (context.mounted) {
+              context.push(Routes.summaryPath(summary.id));
+            }
+          },
+          onError: (e) {
+            navigator.pop();
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
+              );
+            }
+          },
+        ),
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
+        transitionDuration: const Duration(milliseconds: 300),
+      ),
+    );
+  }
+
+  Future<void> _generateGlossary(BuildContext context, WidgetRef ref) async {
+    final canUse = await checkFeatureAccess(
+      ref: ref,
+      feature: 'glossary',
+      context: context,
+    );
+    if (!canUse) return;
+
+    if (!context.mounted) return;
+
+    final navigator = Navigator.of(context, rootNavigator: true);
+    navigator.push(
+      PageRouteBuilder(
+        opaque: true,
+        pageBuilder: (_, __, ___) => _GeneratingOverlay(
+          type: 'glossary',
+          future: ref
+              .read(glossaryRepositoryProvider)
+              .generateGlossary(courseId: courseId),
+          onResult: (terms) async {
+            await recordFeatureUsage(ref: ref, feature: 'glossary');
+            ref.invalidate(glossaryTermsProvider(courseId));
+            navigator.pop();
+            if (context.mounted) {
+              context.push(Routes.glossaryPath(courseId));
             }
           },
           onError: (e) {
@@ -1227,20 +1326,61 @@ class _GeneratingOverlayState<T> extends State<_GeneratingOverlay<T>>
   bool _completed = false;
 
   List<String> get _steps {
-    if (widget.type == 'flashcards') {
-      return [
-        'Reading your materials...',
-        'Identifying key concepts...',
-        'Crafting questions...',
-        'Creating flashcards...',
-      ];
-    } else {
-      return [
-        'Analyzing your materials...',
-        'Generating questions...',
-        'Creating answer keys...',
-        'Building your quiz...',
-      ];
+    switch (widget.type) {
+      case 'flashcards':
+        return [
+          'Reading your materials...',
+          'Identifying key concepts...',
+          'Crafting questions...',
+          'Creating flashcards...',
+        ];
+      case 'summary':
+        return [
+          'Reading your materials...',
+          'Extracting key ideas...',
+          'Synthesizing content...',
+          'Writing your summary...',
+        ];
+      case 'glossary':
+        return [
+          'Scanning your materials...',
+          'Identifying key terms...',
+          'Writing definitions...',
+          'Building your glossary...',
+        ];
+      default:
+        return [
+          'Analyzing your materials...',
+          'Generating questions...',
+          'Creating answer keys...',
+          'Building your quiz...',
+        ];
+    }
+  }
+
+  IconData get _typeIcon {
+    switch (widget.type) {
+      case 'flashcards':
+        return Icons.style;
+      case 'summary':
+        return Icons.auto_stories;
+      case 'glossary':
+        return Icons.menu_book;
+      default:
+        return Icons.quiz;
+    }
+  }
+
+  String get _typeTitle {
+    switch (widget.type) {
+      case 'flashcards':
+        return 'Creating Flashcards';
+      case 'summary':
+        return 'Generating Summary';
+      case 'glossary':
+        return 'Building Glossary';
+      default:
+        return 'Creating Quiz';
     }
   }
 
@@ -1342,9 +1482,7 @@ class _GeneratingOverlayState<T> extends State<_GeneratingOverlay<T>>
                           ),
                           child: Center(
                             child: Icon(
-                              widget.type == 'flashcards'
-                                  ? Icons.style
-                                  : Icons.quiz,
+                              _typeIcon,
                               size: 42,
                               color: Colors.white.withValues(alpha: 0.85),
                             ),
@@ -1358,9 +1496,7 @@ class _GeneratingOverlayState<T> extends State<_GeneratingOverlay<T>>
 
                   // Title
                   Text(
-                    widget.type == 'flashcards'
-                        ? 'Creating Flashcards'
-                        : 'Creating Quiz',
+                    _typeTitle,
                     style: AppTypography.h2.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,

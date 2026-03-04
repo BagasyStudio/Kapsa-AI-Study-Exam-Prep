@@ -12,6 +12,7 @@ import 'core/providers/revenue_cat_provider.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/revenue_cat_service.dart';
 import 'core/services/sound_service.dart';
+import 'core/services/tts_service.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/utils/error_handler.dart';
 
@@ -33,6 +34,9 @@ void main() {
 
       // Initialize sound effects
       await SoundService.init();
+
+      // Initialize text-to-speech
+      await TtsService.instance.init();
 
       // Initialize RevenueCat (single instance shared via provider override)
       revenueCat = RevenueCatService(Supabase.instance.client);

@@ -4,6 +4,9 @@ enum StudyTaskType {
   quiz,
   calendarExam,
   calendarTask,
+  materialReview,
+  summaryGeneration,
+  glossaryGeneration,
 }
 
 /// A single task in the user's daily study plan.
@@ -14,6 +17,8 @@ class StudyTask {
   final String? courseId;
   final String? route;
   final int? count; // e.g. number of due cards
+  final int priority; // 0 = highest priority
+  final String? reason; // AI-generated reason for the task
 
   const StudyTask({
     required this.type,
@@ -22,6 +27,8 @@ class StudyTask {
     this.courseId,
     this.route,
     this.count,
+    this.priority = 50,
+    this.reason,
   });
 
   /// Icon name for the task type.
@@ -35,6 +42,12 @@ class StudyTask {
         return 'event';
       case StudyTaskType.calendarTask:
         return 'task_alt';
+      case StudyTaskType.materialReview:
+        return 'description';
+      case StudyTaskType.summaryGeneration:
+        return 'auto_stories';
+      case StudyTaskType.glossaryGeneration:
+        return 'menu_book';
     }
   }
 }

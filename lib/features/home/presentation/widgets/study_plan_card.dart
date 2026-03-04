@@ -7,6 +7,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/glass_panel.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
+import '../../../../core/navigation/routes.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../data/models/study_task_model.dart';
 import '../providers/study_plan_provider.dart';
@@ -84,6 +85,39 @@ class _StudyPlanCardState extends ConsumerState<StudyPlanCard> {
                     onToggle: () => _toggleTask(index),
                   );
                 }),
+
+                // View Full Plan link
+                if (tasks.length > 3) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Center(
+                    child: TapScale(
+                      onTap: () => context.push(Routes.studyPath),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.xs,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'View Full Plan',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.arrow_forward,
+                              size: 14,
+                              color: AppColors.primary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -329,6 +363,12 @@ class _TaskRowState extends State<_TaskRow> with TickerProviderStateMixin {
         return Icons.event;
       case StudyTaskType.calendarTask:
         return Icons.task_alt;
+      case StudyTaskType.materialReview:
+        return Icons.description;
+      case StudyTaskType.summaryGeneration:
+        return Icons.auto_stories;
+      case StudyTaskType.glossaryGeneration:
+        return Icons.menu_book;
     }
   }
 
@@ -342,6 +382,12 @@ class _TaskRowState extends State<_TaskRow> with TickerProviderStateMixin {
         return const Color(0xFFEF4444); // red
       case StudyTaskType.calendarTask:
         return const Color(0xFF22C55E); // green
+      case StudyTaskType.materialReview:
+        return const Color(0xFF8B5CF6); // purple
+      case StudyTaskType.summaryGeneration:
+        return const Color(0xFF06B6D4); // cyan
+      case StudyTaskType.glossaryGeneration:
+        return const Color(0xFF8B5CF6); // purple
     }
   }
 

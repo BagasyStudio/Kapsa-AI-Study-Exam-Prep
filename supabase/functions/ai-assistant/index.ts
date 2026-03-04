@@ -159,7 +159,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { mode, message, history, metrics } = await req.json();
+    const { mode, message, history, metrics, tasks: clientTasks } = await req.json();
 
     // ═══════════════════════════════════════════
     // Gather ALL user data for context
@@ -417,6 +417,124 @@ Respond ONLY with the analysis text, no JSON or special formatting.`;
       const aiResponse = await callReplicate(replicateKey, systemPrompt, analysisPrompt, 256);
 
       return new Response(JSON.stringify({ analysis: aiResponse.trim() }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (mode === "generate_study_path") {
+      // ── Fetch per-course due flashcard counts ──
+      const courseIds = courses.map((c: any) => c.id);
+      const dueCounts: Record<string, number> = {};
+
+      if (courseIds.length > 0) {
+        try {
+          const now = new Date().toISOString();
+          const { data: dueCards } = await supabase
+            .from("flashcards")
+            .select("id, flashcard_decks!inner(course_id)")
+            .or(`next_review.is.null,next_review.lte.${now}`)
+            .in_("flashcard_decks.course_id", courseIds);
+
+          for (const card of (dueCards || [])) {
+            const deckData = (card as any).flashcard_decks;
+            const courseId = deckData?.course_id;
+            if (courseId) dueCounts[courseId] = (dueCounts[courseId] || 0) + 1;
+          }
+        } catch (_) { /* non-critical */ }
+      }
+
+      // ── Build compressed context for AI ──
+      const courseContext = courses.slice(0, 8).map((c: any) => {
+        const due = dueCounts[c.id] || 0;
+        const progress = Math.round((c.progress || 0) * 100);
+        const examStr = c.exam_date
+          ? `, exam: ${new Date(c.exam_date).toLocaleDateString()}`
+          : "";
+        return `- ${c.title} (progress: ${progress}%, due flashcards: ${due}${examStr})`;
+      }).join("\n");
+
+      const quizContext = recentTests.slice(0, 5).map((t: any) => {
+        const courseName = courses.find((c: any) => c.id === t.course_id)?.title || "Unknown";
+        return `- ${courseName}: ${t.score}% (${t.correct_count}/${t.total_count})`;
+      }).join("\n");
+
+      // Also include client-side tasks if passed for context
+      const existingTasksSummary = (clientTasks || []).slice(0, 10).map((t: any, i: number) =>
+        `${i + 1}. [${t.type}] ${t.title} — ${t.subtitle}${t.count ? ` (${t.count} items)` : ""}`
+      ).join("\n");
+
+      const studyPathPrompt = responseLang === "Spanish"
+        ? `Genera un plan de estudio personalizado para hoy basado en los datos del estudiante.
+
+CURSOS:
+${courseContext || "Sin cursos."}
+
+QUIZZES RECIENTES:
+${quizContext || "Sin quizzes."}
+
+${weakTopicsList}
+
+EVENTOS:
+${eventSummaries || "Sin eventos."}
+
+TAREAS ACTUALES:
+${existingTasksSummary || "Sin tareas previas."}
+
+Genera 5-8 tareas de estudio priorizadas. Para cada tarea incluye una razón motivadora y personalizada (máx 15 palabras) usando los datos reales del estudiante (scores, fechas de examen, racha, progreso).
+
+Responde SOLO con un JSON array:
+[{"type":"flashcard_review|quiz|exam_prep|material_review|summary|glossary","title":"título de tarea","subtitle":"nombre del curso","reason":"razón personalizada breve","priority":1,"courseId":"uuid-si-aplica"}]
+
+Tipos de prioridad: 1=urgente (examen hoy), 5-15=alto (flashcards pendientes), 20=medio (quiz bajo), 30-40=bajo (repaso general).
+Solo usa courseIds reales de los datos proporcionados. Si no hay courseId, omítelo.`
+        : `Generate a personalized study plan for today based on the student's data.
+
+COURSES:
+${courseContext || "No courses."}
+
+RECENT QUIZZES:
+${quizContext || "No quizzes."}
+
+${weakTopicsList}
+
+EVENTS:
+${eventSummaries || "No events."}
+
+CURRENT TASKS:
+${existingTasksSummary || "No existing tasks."}
+
+Generate 5-8 prioritized study tasks. For each task, include a brief motivating personalized reason (max 15 words) using the student's real data (scores, exam dates, streak, progress).
+
+Respond ONLY with a JSON array:
+[{"type":"flashcard_review|quiz|exam_prep|material_review|summary|glossary","title":"task title","subtitle":"course name","reason":"brief personalized reason","priority":1,"courseId":"uuid-if-applicable"}]
+
+Priority levels: 1=urgent (exam today), 5-15=high (due flashcards), 20=medium (low quiz), 30-40=low (general review).
+Only use real courseIds from the data provided. If no courseId applies, omit it.`;
+
+      const aiResponse = await callReplicate(replicateKey, systemPrompt, studyPathPrompt, 1024);
+
+      let studyTasks: any[] = [];
+      try {
+        const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
+        studyTasks = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+      } catch {
+        studyTasks = [];
+      }
+
+      // Validate and clean tasks
+      const validTypes = ["flashcard_review", "quiz", "exam_prep", "material_review", "summary", "glossary"];
+      const cleanedTasks = studyTasks
+        .filter((t: any) => t && t.title && t.reason)
+        .map((t: any) => ({
+          type: validTypes.includes(t.type) ? t.type : "material_review",
+          title: String(t.title).substring(0, 80),
+          subtitle: String(t.subtitle || "").substring(0, 60),
+          reason: String(t.reason).substring(0, 100),
+          priority: typeof t.priority === "number" ? Math.max(1, Math.min(50, t.priority)) : 25,
+          courseId: t.courseId && courseIds.includes(t.courseId) ? t.courseId : null,
+        }));
+
+      return new Response(JSON.stringify({ tasks: cleanedTasks }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

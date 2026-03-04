@@ -33,6 +33,8 @@ abstract final class AppLimits {
     'oracle': 1,
     'snap_solve': 3,
     'audio_summary': 1,
+    'summary': 1,
+    'glossary': 1,
   };
 
   // ── Pro tier daily limits ──
@@ -49,5 +51,7 @@ abstract final class AppLimits {
     'oracle': 50,
     'snap_solve': 30,
     'audio_summary': 10,
+    'summary': 10,
+    'glossary': 10,
   };
 }

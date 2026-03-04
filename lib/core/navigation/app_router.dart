@@ -34,6 +34,9 @@ import '../../features/groups/presentation/screens/create_group_screen.dart';
 import '../../features/groups/presentation/screens/join_group_screen.dart';
 import '../../features/sharing/presentation/screens/knowledge_score_screen.dart';
 import '../../features/sharing/presentation/screens/month_review_screen.dart';
+import '../../features/summaries/presentation/screens/summary_screen.dart';
+import '../../features/glossary/presentation/screens/glossary_screen.dart';
+import '../../features/home/presentation/screens/study_path_screen.dart';
 import '../theme/app_animations.dart';
 import 'routes.dart';
 import 'sanctuary_shell.dart';
@@ -493,6 +496,30 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) => _slideFromRight(
           const MonthReviewScreen(),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.summary,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _slideFromRight(
+          SummaryScreen(summaryId: state.pathParameters['summaryId']!),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.glossary,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _slideFromRight(
+          GlossaryScreen(courseId: state.pathParameters['courseId']!),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.studyPath,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _slideFromRight(
+          const StudyPathScreen(),
         ),
       ),
 

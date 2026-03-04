@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/primary_button.dart';
@@ -28,6 +29,7 @@ import '../../../gamification/presentation/providers/xp_provider.dart';
 import '../../../sharing/presentation/widgets/share_preview_sheet.dart';
 import '../../../sharing/presentation/widgets/quiz_share_card.dart';
 import '../../../sharing/presentation/widgets/practice_exam_share_card.dart';
+import '../widgets/explain_mistakes_sheet.dart';
 
 class TestResultsScreen extends ConsumerStatefulWidget {
   final String testId;
@@ -64,6 +66,23 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
         }
       });
     }
+  }
+
+  void _showExplainMistakes(String testId) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.3),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.4,
+        maxChildSize: 0.92,
+        expand: false,
+        builder: (_, __) => ExplainMistakesSheet(testId: testId),
+      ),
+    );
   }
 
   Future<void> _showShareSheet(TestWithQuestions result) async {
@@ -168,48 +187,92 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
             ),
           ),
 
-          // Floating CTA
+          // Floating CTAs
           Positioned(
             bottom: MediaQuery.of(context).padding.bottom + 24,
             left: AppSpacing.xl,
             right: AppSpacing.xl,
             child: resultsAsync.whenOrNull(
                   data: (result) {
-                    return PrimaryButton(
-                      label: 'Practice Weak Areas',
-                      trailingIcon: Icons.fitness_center,
-                      onPressed: () async {
-                        final canUse = await checkFeatureAccess(
-                          ref: ref,
-                          feature: 'flashcards',
-                          context: context,
-                        );
-                        if (!canUse) return;
-
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Generating weak area flashcards...')),
-                          );
-                        }
-                        try {
-                          final deck = await ref
-                              .read(flashcardRepositoryProvider)
-                              .generateFlashcards(
-                                courseId: result.test.courseId,
-                                topic: 'weak areas',
-                              );
-                          if (context.mounted) {
-                            context.push(Routes.flashcardSessionPath(deck.id));
-                          }
-                          await recordFeatureUsage(ref: ref, feature: 'flashcards');
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Explain Mistakes button (only if there are mistakes)
+                        if (result.test.mistakeCount > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                            child: TapScale(
+                              onTap: () => _showExplainMistakes(result.test.id),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: AppSpacing.sm,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(AppRadius.md),
+                                  border: Border.all(
+                                    color: AppColors.primary.withValues(alpha: 0.2),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.psychology,
+                                      color: AppColors.primary,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: AppSpacing.xs),
+                                    Text(
+                                      'Explain My Mistakes',
+                                      style: AppTypography.labelLarge.copyWith(
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        // Practice Weak Areas button
+                        PrimaryButton(
+                          label: 'Practice Weak Areas',
+                          trailingIcon: Icons.fitness_center,
+                          onPressed: () async {
+                            final canUse = await checkFeatureAccess(
+                              ref: ref,
+                              feature: 'flashcards',
+                              context: context,
                             );
-                          }
-                        }
-                      },
+                            if (!canUse) return;
+
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Generating weak area flashcards...')),
+                              );
+                            }
+                            try {
+                              final deck = await ref
+                                  .read(flashcardRepositoryProvider)
+                                  .generateFlashcards(
+                                    courseId: result.test.courseId,
+                                    topic: 'weak areas',
+                                  );
+                              if (context.mounted) {
+                                context.push(Routes.flashcardSessionPath(deck.id));
+                              }
+                              await recordFeatureUsage(ref: ref, feature: 'flashcards');
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                      ],
                     );
                   },
                 ) ??

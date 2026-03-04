@@ -17,8 +17,10 @@ class FlashcardWidget extends StatelessWidget {
   final String? answer;
   final bool isRevealed;
   final bool isBookmarked;
+  final bool isSpeaking;
   final VoidCallback? onTap;
   final VoidCallback? onBookmark;
+  final VoidCallback? onSpeak;
 
   const FlashcardWidget({
     super.key,
@@ -29,8 +31,10 @@ class FlashcardWidget extends StatelessWidget {
     this.answer,
     this.isRevealed = false,
     this.isBookmarked = false,
+    this.isSpeaking = false,
     this.onTap,
     this.onBookmark,
+    this.onSpeak,
   });
 
   @override
@@ -113,22 +117,48 @@ class FlashcardWidget extends StatelessWidget {
                         ),
                       ),
 
-                      // Bookmark
-                      GestureDetector(
-                        onTap: onBookmark,
-                        behavior: HitTestBehavior.opaque,
-                        child: Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: Icon(
-                            isBookmarked
-                                ? Icons.bookmark
-                                : Icons.bookmark_border,
-                            color: isBookmarked
-                                ? AppColors.primary
-                                : AppColors.textMutedFor(brightness),
-                            size: 24,
+                      // Speaker + Bookmark
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (onSpeak != null)
+                            GestureDetector(
+                              onTap: onSpeak,
+                              behavior: HitTestBehavior.opaque,
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 200),
+                                  child: Icon(
+                                    isSpeaking
+                                        ? Icons.volume_up
+                                        : Icons.volume_up_outlined,
+                                    key: ValueKey(isSpeaking),
+                                    color: isSpeaking
+                                        ? AppColors.primary
+                                        : AppColors.textMutedFor(brightness),
+                                    size: 22,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          GestureDetector(
+                            onTap: onBookmark,
+                            behavior: HitTestBehavior.opaque,
+                            child: Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: Icon(
+                                isBookmarked
+                                    ? Icons.bookmark
+                                    : Icons.bookmark_border,
+                                color: isBookmarked
+                                    ? AppColors.primary
+                                    : AppColors.textMutedFor(brightness),
+                                size: 24,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ),

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/services/sound_service.dart';
+import '../../../../core/services/tts_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -51,11 +52,41 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
 
   // Mutable working list (cards get updated after each review)
   List<FlashcardModel>? _cards;
+  bool _isSpeaking = false;
 
   void _onTapCard() {
     if (_isCompleted) return;
     setState(() => _isRevealed = !_isRevealed);
-    if (_isRevealed) SoundService.playFlashcardFlip();
+    if (_isRevealed) {
+      SoundService.playFlashcardFlip();
+      // Auto-read answer if enabled
+      if (TtsService.instance.isAutoRead && TtsService.instance.isEnabled && _cards != null && _currentIndex < _cards!.length) {
+        _speakText(_cards![_currentIndex].answer);
+      }
+    } else {
+      TtsService.instance.stop();
+      setState(() => _isSpeaking = false);
+    }
+  }
+
+  void _speakText(String text) async {
+    if (TtsService.instance.isSpeaking) {
+      await TtsService.instance.stop();
+      setState(() => _isSpeaking = false);
+    } else {
+      setState(() => _isSpeaking = true);
+      await TtsService.instance.speak(text);
+      if (mounted) setState(() => _isSpeaking = false);
+    }
+  }
+
+  void _speakCurrentCard() {
+    if (_cards == null || _currentIndex >= _cards!.length) return;
+    final card = _cards![_currentIndex];
+    final text = _isRevealed
+        ? card.answer
+        : '${card.questionBefore}${card.keyword}${card.questionAfter}';
+    _speakText(text);
   }
 
   void _onRating(Rating rating, List<FlashcardModel> cards) {
@@ -110,6 +141,9 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
         _easyCount++;
     }
 
+    // Stop TTS on card change
+    TtsService.instance.stop();
+
     final nextIndex = _currentIndex + 1;
 
     if (nextIndex >= cards.length) {
@@ -117,6 +151,7 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
       setState(() {
         _isCompleted = true;
         _isRevealed = false;
+        _isSpeaking = false;
       });
       ConfettiOverlay.show(context);
       if (_sessionXp > 0) {
@@ -127,6 +162,7 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
       setState(() {
         _currentIndex = nextIndex;
         _isRevealed = false;
+        _isSpeaking = false;
       });
     }
   }
@@ -333,9 +369,6 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
               child: GestureDetector(
                 onTap: _onTapCard,
                 child: FlashcardWidget(
-                  // Key forces full widget recreation on card change,
-                  // preventing AnimatedSwitcher cross-fade from old answer
-                  // to new question (which briefly shows the answer).
                   key: ValueKey('card_${currentCard.id}'),
                   topic: currentCard.topic,
                   questionBefore: currentCard.questionBefore,
@@ -343,7 +376,11 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
                   questionAfter: currentCard.questionAfter,
                   answer: currentCard.answer,
                   isRevealed: _isRevealed,
+                  isSpeaking: _isSpeaking,
                   onTap: _onTapCard,
+                  onSpeak: TtsService.instance.isEnabled
+                      ? _speakCurrentCard
+                      : null,
                   onBookmark: () {},
                 ),
               ),

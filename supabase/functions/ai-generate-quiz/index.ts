@@ -9,8 +9,13 @@ const corsHeaders = {
 const LLAMA_MODEL = "meta/meta-llama-3-8b-instruct";
 
 // ── Constants ─────────────────────────────────────────────────────
-const MAX_QUIZ_COUNT = 20;
-const MIN_QUIZ_COUNT = 1;
+const QUESTIONS_PER_CHUNK = 10;    // reliable JSON output per batch
+const CHARS_PER_QUESTION = 300;    // ~1 question per 300 chars of source
+const MAX_TOTAL_QUESTIONS = 50;
+const MIN_TOTAL_QUESTIONS = 3;
+const MAX_CONCURRENT = 5;
+const CHUNK_SIZE = 3000;           // chars per chunk sent to AI
+const MAX_TOKENS_PER_BATCH = 4096;
 
 // ── Input validation helpers ──────────────────────────────────────
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -24,14 +29,8 @@ function sanitizeErrorMessage(error: unknown): string {
   return "An internal error occurred. Please try again.";
 }
 
-function clampCount(value: unknown, defaultVal: number): number {
-  const num = typeof value === "number" ? value : defaultVal;
-  return Math.max(MIN_QUIZ_COUNT, Math.min(MAX_QUIZ_COUNT, Math.floor(num)));
-}
-
 // ── JSON parsing with sanitization ────────────────────────────────
 function parseJsonArray(raw: string): any[] {
-  // Try direct parse first
   const jsonMatch = raw.match(/\[[\s\S]*\]/);
   const jsonStr = jsonMatch ? jsonMatch[0] : raw.trim();
 
@@ -42,13 +41,12 @@ function parseJsonArray(raw: string): any[] {
     // Continue to sanitization
   }
 
-  // Sanitize common LLM JSON issues
   let sanitized = jsonStr
-    .replace(/,\s*}/g, "}")        // trailing comma before }
-    .replace(/,\s*\]/g, "]")       // trailing comma before ]
-    .replace(/'/g, '"')            // single quotes → double quotes
-    .replace(/\n/g, "\\n")        // unescaped newlines in strings
-    .replace(/\t/g, "\\t");       // unescaped tabs
+    .replace(/,\s*}/g, "}")
+    .replace(/,\s*\]/g, "]")
+    .replace(/'/g, '"')
+    .replace(/\n/g, "\\n")
+    .replace(/\t/g, "\\t");
 
   const parsed = JSON.parse(sanitized);
   if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -130,13 +128,10 @@ function detectLanguageHint(text: string): string {
 
   const spanishWords = ["que", "los", "las", "del", "una", "con", "por", "para", "como", "más", "esta", "pero", "sobre", "entre", "cuando", "también", "puede", "tiene", "desde", "todo", "según", "donde", "después", "porque", "cada", "hacer", "sin", "ser", "este", "así"];
   const spanishChars = /[áéíóúñ¿¡]/;
-
   const portugueseWords = ["não", "uma", "com", "são", "mais", "para", "como", "está", "pode", "isso", "pelo", "muito", "também", "onde", "quando", "ainda", "então", "sobre", "depois"];
   const portugueseChars = /[ãõç]/;
-
   const frenchWords = ["les", "des", "une", "que", "dans", "pour", "avec", "sur", "sont", "pas", "plus", "mais", "comme", "cette", "tout", "être", "fait", "aussi", "nous", "même"];
   const frenchChars = /[àâêëîïôùûüÿçœæ]/;
-
   const germanWords = ["und", "die", "der", "das", "ist", "ein", "eine", "mit", "auf", "für", "nicht", "auch", "sich", "von", "sind", "werden", "hat", "wird", "dass", "oder"];
   const germanChars = /[äöüß]/;
 
@@ -167,13 +162,105 @@ function detectLanguageHint(text: string): string {
   return "English";
 }
 
+// ── Content chunking ─────────────────────────────────────────────
+function splitIntoChunks(text: string, chunkSize: number): string[] {
+  const chunks: string[] = [];
+  const paragraphs = text.split(/\n\n+/);
+  let current = "";
+
+  for (const para of paragraphs) {
+    if (current.length + para.length + 2 > chunkSize && current.length > 0) {
+      chunks.push(current.trim());
+      current = "";
+    }
+    current += (current ? "\n\n" : "") + para;
+  }
+  if (current.trim()) chunks.push(current.trim());
+
+  const result: string[] = [];
+  for (const chunk of chunks) {
+    if (chunk.length <= chunkSize) {
+      result.push(chunk);
+    } else {
+      for (let i = 0; i < chunk.length; i += chunkSize) {
+        result.push(chunk.substring(i, i + chunkSize));
+      }
+    }
+  }
+  return result;
+}
+
+// ── Batch quiz generation ────────────────────────────────────────
+async function generateQuizBatch(
+  apiKey: string,
+  chunk: string,
+  questionsToGenerate: number,
+  courseTitle: string,
+  detectedLang: string,
+): Promise<any[]> {
+  const systemPrompt = `You are a quiz generator for "${courseTitle}".
+
+CRITICAL LANGUAGE RULE: The course material is in ${detectedLang}. You MUST generate ALL quiz content (questions and correct_answer) in ${detectedLang}. Do NOT translate to English. Keep the same language as the source material.
+
+Generate exactly ${questionsToGenerate} quiz questions in JSON format. Each question must have:
+- question: The full question text (in ${detectedLang})
+- correct_answer: The correct answer, concise 1-2 sentences max (in ${detectedLang})
+
+Make questions that test understanding, not just memorization.
+Vary difficulty: mix easy, medium, and hard questions.
+
+For math/science questions, use LaTeX notation: $...$ for inline math, $$...$$ for display math.
+
+IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation.`;
+
+  const prompt = `Based on this course material, generate ${questionsToGenerate} quiz questions in the SAME LANGUAGE as the material:\n\n${chunk}\n\nOutput the JSON array now:`;
+
+  const aiResponse = await callReplicate(apiKey, prompt, systemPrompt, MAX_TOKENS_PER_BATCH);
+
+  try {
+    return parseJsonArray(aiResponse);
+  } catch {
+    console.warn("Quiz batch parse failed, retrying...");
+    const retryPrompt = `Generate exactly ${questionsToGenerate} quiz questions as a JSON array. Output ONLY the array starting with [ and ending with ]. No text before or after.\n\nMaterial:\n${chunk.substring(0, 2000)}\n\nJSON array:`;
+    const retryResponse = await callReplicate(apiKey, retryPrompt, systemPrompt, MAX_TOKENS_PER_BATCH);
+    return parseJsonArray(retryResponse);
+  }
+}
+
+// ── Concurrency control ──────────────────────────────────────────
+async function runWithConcurrency<T>(
+  tasks: (() => Promise<T>)[],
+  maxConcurrent: number,
+): Promise<PromiseSettledResult<T>[]> {
+  const results: PromiseSettledResult<T>[] = new Array(tasks.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < tasks.length) {
+      const idx = nextIndex++;
+      try {
+        const value = await tasks[idx]();
+        results[idx] = { status: "fulfilled", value };
+      } catch (reason: any) {
+        results[idx] = { status: "rejected", reason };
+      }
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.min(maxConcurrent, tasks.length) },
+    () => worker(),
+  );
+  await Promise.all(workers);
+  return results;
+}
+
 // ── Main handler ──────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // Early check: is the AI service configured?
   const replicateKey = Deno.env.get("REPLICATE_API_KEY");
   if (!replicateKey) {
     console.error("REPLICATE_API_KEY is not set in Supabase secrets");
@@ -209,12 +296,11 @@ Deno.serve(async (req: Request) => {
     const { action } = body;
 
     // ═══════════════════════════════════════════
-    // ACTION: GENERATE QUIZ
+    // ACTION: GENERATE QUIZ (batch-parallel)
     // ═══════════════════════════════════════════
     if (action === "generate") {
       const { courseId, count: rawCount, isPracticeExam } = body;
 
-      // ── Input validation ────────────────────────────────────────
       if (!isValidUUID(courseId)) {
         return new Response(JSON.stringify({ error: "Invalid course ID" }), {
           status: 400,
@@ -222,9 +308,7 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      const count = clampCount(rawCount, 5);
-
-      // ── Ownership check: verify course belongs to user ──────────
+      // ── Ownership check ────────────────────────────────────────
       const { data: course, error: courseError } = await supabase
         .from("courses")
         .select("id, title, subtitle")
@@ -239,17 +323,17 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      // ── Fetch materials (scoped to user) ────────────────────────
+      // ── Fetch ALL materials (no limit) ─────────────────────────
       const { data: materials } = await supabase
         .from("course_materials")
         .select("title, content, type")
         .eq("course_id", courseId)
         .eq("user_id", user.id)
-        .not("content", "is", null)
-        .limit(5);
+        .not("content", "is", null);
 
-      // Check if course has materials with content
-      const validMaterials = (materials || []).filter((m: any) => m.content && m.content.trim().length > 0);
+      const validMaterials = (materials || []).filter(
+        (m: any) => m.content && m.content.trim().length > 0,
+      );
 
       if (validMaterials.length === 0) {
         return new Response(JSON.stringify({
@@ -260,48 +344,89 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      const materialContent = validMaterials
-        .map((m: any) => `--- ${m.title} ---\n${(m.content || "").substring(0, 2000)}`)
+      // ── Build full content and auto-calculate count ────────────
+      const fullContent = validMaterials
+        .map((m: any) => `--- ${m.title} ---\n${m.content}`)
         .join("\n\n");
 
-      const allContent = validMaterials.map((m: any) => m.content || "").join(" ");
-      const detectedLang = detectLanguageHint(allContent);
+      const totalContentLength = fullContent.length;
+      const autoCount = Math.min(
+        MAX_TOTAL_QUESTIONS,
+        Math.max(MIN_TOTAL_QUESTIONS, Math.round(totalContentLength / CHARS_PER_QUESTION)),
+      );
 
-      const systemPrompt = `You are a quiz generator for "${course.title}".
+      // Use client count if provided, otherwise auto-calculate
+      const totalQuestions = rawCount
+        ? Math.min(MAX_TOTAL_QUESTIONS, Math.max(1, Math.floor(rawCount)))
+        : autoCount;
 
-CRITICAL LANGUAGE RULE: The course material is in ${detectedLang}. You MUST generate ALL quiz content (questions and correct_answer) in ${detectedLang}. Do NOT translate to English. Keep the same language as the source material.
+      console.log(`Content: ${totalContentLength} chars -> generating ${totalQuestions} questions (auto=${autoCount})`);
 
-Generate exactly ${count} quiz questions in JSON format. Each question must have:
-- question: The full question text (in ${detectedLang})
-- correct_answer: The correct answer, concise 1-2 sentences max (in ${detectedLang})
+      const detectedLang = detectLanguageHint(fullContent);
 
-Make questions that test understanding, not just memorization.
-Vary difficulty: mix easy, medium, and hard questions.
+      // ── Split content into chunks ──────────────────────────────
+      const chunks = splitIntoChunks(fullContent, CHUNK_SIZE);
+      console.log(`Split into ${chunks.length} chunks`);
 
-For math/science questions, use LaTeX notation: $...$ for inline math, $$...$$ for display math.
+      // ── Distribute questions across chunks ─────────────────────
+      const totalChunkChars = chunks.reduce((sum, c) => sum + c.length, 0);
+      const chunkQuestions: { chunk: string; count: number }[] = [];
+      let questionsAssigned = 0;
 
-IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation.`;
+      for (let i = 0; i < chunks.length; i++) {
+        const isLast = i === chunks.length - 1;
+        const proportion = chunks[i].length / totalChunkChars;
+        const count = isLast
+          ? totalQuestions - questionsAssigned
+          : Math.max(1, Math.round(totalQuestions * proportion));
 
-      const prompt = `Based on this course material, generate ${count} quiz questions in the SAME LANGUAGE as the material:\n\n${materialContent}\n\nOutput the JSON array now:`;
+        if (count <= 0) continue;
 
-      const aiResponse = await callReplicate(replicateKey, prompt, systemPrompt);
+        chunkQuestions.push({
+          chunk: chunks[i],
+          count: Math.min(count, QUESTIONS_PER_CHUNK),
+        });
+        questionsAssigned += chunkQuestions[chunkQuestions.length - 1].count;
 
-      let questions;
-      try {
-        questions = parseJsonArray(aiResponse);
-      } catch {
-        // Retry once with a stricter prompt
-        console.warn("First quiz parse attempt failed, retrying with stricter prompt...");
-        const retryPrompt = `Generate exactly ${count} quiz questions as a JSON array. Output ONLY the JSON array starting with [ and ending with ]. No text before or after.\n\nMaterial:\n${materialContent.substring(0, 2000)}\n\nJSON array:`;
-        const retryResponse = await callReplicate(replicateKey, retryPrompt, systemPrompt, 2048);
-        try {
-          questions = parseJsonArray(retryResponse);
-        } catch {
-          throw new Error("Failed to generate quiz. Please try again.");
+        // Sub-batches if needed
+        let remaining = count - QUESTIONS_PER_CHUNK;
+        while (remaining > 0) {
+          const batchCount = Math.min(remaining, QUESTIONS_PER_CHUNK);
+          chunkQuestions.push({ chunk: chunks[i], count: batchCount });
+          remaining -= batchCount;
         }
       }
 
-      // Create test
+      console.log(`Planned ${chunkQuestions.length} batch(es): ${chunkQuestions.map(c => c.count).join(", ")} questions`);
+
+      // ── Generate all batches in parallel ───────────────────────
+      const tasks = chunkQuestions.map(({ chunk, count }) => () =>
+        generateQuizBatch(replicateKey, chunk, count, course.title, detectedLang)
+      );
+
+      const batchResults = await runWithConcurrency(tasks, MAX_CONCURRENT);
+
+      const allQuestions: any[] = [];
+      let failedBatches = 0;
+
+      for (const result of batchResults) {
+        if (result.status === "fulfilled") {
+          allQuestions.push(...result.value);
+        } else {
+          failedBatches++;
+          console.warn("Quiz batch failed:", result.reason?.message || result.reason);
+        }
+      }
+
+      if (allQuestions.length === 0) {
+        throw new Error("Failed to generate quiz. Please try again.");
+      }
+
+      if (failedBatches > 0) {
+        console.warn(`${failedBatches}/${chunkQuestions.length} batches failed, got ${allQuestions.length} questions`);
+      }
+
+      // ── Create test ────────────────────────────────────────────
       const { data: test } = await supabase
         .from("tests")
         .insert({
@@ -310,24 +435,35 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation.`;
           title: isPracticeExam
             ? `${course.title || "Exam"} - Practice Exam`
             : `${course.title || "Quiz"} - Quiz`,
-          total_count: questions.length,
+          total_count: allQuestions.length,
           is_practice_exam: isPracticeExam === true,
         })
         .select()
         .single();
 
-      // Insert questions (sanitize AI output)
-      const questionRows = questions.map((q: any, i: number) => ({
+      // ── Insert questions (sanitize AI output) ──────────────────
+      const questionRows = allQuestions.map((q: any, i: number) => ({
         test_id: test.id,
         question_number: i + 1,
         question: typeof q.question === "string" ? q.question.substring(0, 1000) : "",
         correct_answer: typeof q.correct_answer === "string" ? q.correct_answer.substring(0, 2000) : "",
       }));
 
-      const { data: savedQuestions } = await supabase
-        .from("test_questions")
-        .insert(questionRows)
-        .select();
+      // Insert in batches of 500
+      let savedQuestions: any[] = [];
+      for (let i = 0; i < questionRows.length; i += 500) {
+        const batch = questionRows.slice(i, i + 500);
+        const { data, error: insertError } = await supabase
+          .from("test_questions")
+          .insert(batch)
+          .select();
+        if (insertError) {
+          console.error(`Insert batch ${i / 500} failed:`, insertError);
+        }
+        if (data) savedQuestions.push(...data);
+      }
+
+      console.log(`Done: ${allQuestions.length} questions in test ${test.id}`);
 
       return new Response(JSON.stringify({ test, questions: savedQuestions }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -339,7 +475,6 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation.`;
     } else if (action === "evaluate") {
       const { testId, answers } = body;
 
-      // ── Input validation ────────────────────────────────────────
       if (!isValidUUID(testId)) {
         return new Response(JSON.stringify({ error: "Invalid test ID" }), {
           status: 400,
@@ -354,7 +489,6 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation.`;
         });
       }
 
-      // Validate each answer has required fields
       for (const a of answers) {
         if (!a || !isValidUUID(a.questionId) || typeof a.answer !== "string") {
           return new Response(JSON.stringify({ error: "Invalid answer format" }), {
@@ -364,7 +498,6 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation.`;
         }
       }
 
-      // ── Ownership check: verify test belongs to user ────────────
       const { data: test, error: testError } = await supabase
         .from("tests")
         .select("*, courses(title)")
@@ -379,21 +512,17 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation.`;
         });
       }
 
-      // Fetch questions (scoped via verified test)
       const { data: questions } = await supabase
         .from("test_questions")
         .select()
         .eq("test_id", testId)
         .order("question_number", { ascending: true });
 
-      // Detect language
       const questionsText = (questions || []).map((q: any) => q.question).join(" ");
       const detectedLang = detectLanguageHint(questionsText);
 
-      // Build AI evaluation prompt
       const allQA = (questions || []).map((q: any, i: number) => {
         const userAnswer = answers.find((a: any) => a.questionId === q.id)?.answer || "";
-        // Truncate user answers to prevent abuse
         const sanitizedAnswer = userAnswer.substring(0, 2000);
         return `Q${i + 1}: ${q.question}\nCorrect Answer: ${q.correct_answer}\nStudent Answer: ${sanitizedAnswer}`;
       }).join("\n\n");
@@ -402,7 +531,7 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation.`;
 
 CRITICAL: Respond in ${detectedLang}.
 
-For each question, evaluate if the student's answer demonstrates understanding of the concept, even if the wording differs from the correct answer. Be lenient — if the student shows they understand the key concept, mark it as correct.
+For each question, evaluate if the student's answer demonstrates understanding of the concept, even if the wording differs from the correct answer. Be lenient -- if the student shows they understand the key concept, mark it as correct.
 
 For each question, provide:
 - is_correct: true/false (true if the student demonstrates understanding)
@@ -417,7 +546,7 @@ One object per question, in order. No markdown, no explanation outside the JSON.
       let correctCount = 0;
 
       try {
-        const aiEvalResponse = await callReplicate(replicateKey, evalPrompt, evalSystemPrompt, 2048);
+        const aiEvalResponse = await callReplicate(replicateKey, evalPrompt, evalSystemPrompt, MAX_TOKENS_PER_BATCH);
         const evaluations = parseJsonArray(aiEvalResponse);
 
         for (let i = 0; i < (questions || []).length; i++) {
@@ -435,13 +564,12 @@ One object per question, in order. No markdown, no explanation outside the JSON.
             ai_insight: typeof evalResult.ai_insight === "string"
               ? evalResult.ai_insight.substring(0, 500)
               : (isCorrect
-                ? (detectedLang === "Spanish" ? "¡Correcto! Buen trabajo." : "Correct! Great job.")
+                ? (detectedLang === "Spanish" ? "Correcto! Buen trabajo." : "Correct! Great job.")
                 : (detectedLang === "Spanish" ? "Revisa este tema." : "Review this topic.")),
           });
         }
       } catch (evalError) {
         console.error("AI evaluation failed, falling back to simple comparison:", evalError);
-        // Fallback: simple string comparison
         for (const q of (questions || [])) {
           const userAnswer = answers.find((a: any) => a.questionId === q.id)?.answer || "";
           const isCorrect = userAnswer.trim().toLowerCase() === q.correct_answer.trim().toLowerCase() ||
@@ -452,8 +580,8 @@ One object per question, in order. No markdown, no explanation outside the JSON.
             user_answer: userAnswer.substring(0, 2000),
             is_correct: isCorrect,
             ai_insight: isCorrect
-              ? (detectedLang === "Spanish" ? "¡Correcto! Buen trabajo." : "Correct! Great job.")
-              : (detectedLang === "Spanish" ? "Revisa este tema para mejorar tu comprensión." : "Review this topic for better understanding."),
+              ? (detectedLang === "Spanish" ? "Correcto! Buen trabajo." : "Correct! Great job.")
+              : (detectedLang === "Spanish" ? "Revisa este tema para mejorar tu comprension." : "Review this topic for better understanding."),
           });
         }
       }
@@ -462,17 +590,16 @@ One object per question, in order. No markdown, no explanation outside the JSON.
       const score = correctCount / totalQ;
       const grade = calculateGrade(score);
 
-      // Generate motivational text
       let motivationText = "";
       if (detectedLang === "Spanish") {
-        if (score >= 0.9) motivationText = "¡Trabajo excepcional! Dominaste este material.";
-        else if (score >= 0.7) motivationText = "¡Muy bien! Enfocate en las áreas que fallaste para mejorar aún más.";
-        else if (score >= 0.5) motivationText = "¡Buen comienzo! Repasá los temas que fallaste e intentá de nuevo.";
-        else motivationText = "¡Seguí estudiando! Revisá los materiales y practicá más.";
+        if (score >= 0.9) motivationText = "Trabajo excepcional! Dominaste este material.";
+        else if (score >= 0.7) motivationText = "Muy bien! Enfocate en las areas que fallaste para mejorar aun mas.";
+        else if (score >= 0.5) motivationText = "Buen comienzo! Repasa los temas que fallaste e intenta de nuevo.";
+        else motivationText = "Segui estudiando! Revisa los materiales y practica mas.";
       } else if (detectedLang === "Portuguese") {
-        if (score >= 0.9) motivationText = "Trabalho excelente! Você dominou este material.";
-        else if (score >= 0.7) motivationText = "Ótimo esforço! Foque nas áreas que errou para melhorar ainda mais.";
-        else if (score >= 0.5) motivationText = "Bom começo! Revise os tópicos e tente novamente.";
+        if (score >= 0.9) motivationText = "Trabalho excelente! Voce dominou este material.";
+        else if (score >= 0.7) motivationText = "Otimo esforco! Foque nas areas que errou para melhorar ainda mais.";
+        else if (score >= 0.5) motivationText = "Bom comeco! Revise os topicos e tente novamente.";
         else motivationText = "Continue estudando! Revise os materiais e pratique mais.";
       } else {
         if (score >= 0.9) motivationText = "Outstanding work! You've mastered this material.";
@@ -481,7 +608,6 @@ One object per question, in order. No markdown, no explanation outside the JSON.
         else motivationText = "Keep studying! Review the materials and practice more.";
       }
 
-      // Update test
       await supabase
         .from("tests")
         .update({
@@ -491,9 +617,8 @@ One object per question, in order. No markdown, no explanation outside the JSON.
           motivation_text: motivationText,
         })
         .eq("id", testId)
-        .eq("user_id", user.id); // Double-check ownership on update
+        .eq("user_id", user.id);
 
-      // Update questions with answers and insights
       for (const q of evaluatedQuestions) {
         await supabase
           .from("test_questions")
@@ -514,6 +639,118 @@ One object per question, in order. No markdown, no explanation outside the JSON.
       };
 
       return new Response(JSON.stringify({ test: updatedTest, questions: evaluatedQuestions }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+    // ═══════════════════════════════════════════
+    // ACTION: EXPLAIN MISTAKES (Feature 2)
+    // ═══════════════════════════════════════════
+    } else if (action === "explain_mistakes") {
+      const { testId } = body;
+
+      if (!isValidUUID(testId)) {
+        return new Response(JSON.stringify({ error: "Invalid test ID" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // ── Ownership check ────────────────────────────────────────
+      const { data: test, error: testError } = await supabase
+        .from("tests")
+        .select("*, courses(title)")
+        .eq("id", testId)
+        .eq("user_id", user.id)
+        .single();
+
+      if (testError || !test) {
+        return new Response(JSON.stringify({ error: "Test not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Fetch only wrong answers
+      const { data: wrongQuestions } = await supabase
+        .from("test_questions")
+        .select()
+        .eq("test_id", testId)
+        .eq("is_correct", false)
+        .order("question_number", { ascending: true });
+
+      if (!wrongQuestions || wrongQuestions.length === 0) {
+        return new Response(JSON.stringify({
+          explanation: "You got everything right! No mistakes to explain.",
+          weakTopics: [],
+          studyTips: [],
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const questionsText = wrongQuestions.map((q: any) => q.question).join(" ");
+      const detectedLang = detectLanguageHint(questionsText);
+
+      // Build consolidated mistakes context
+      const mistakesContext = wrongQuestions.map((q: any, i: number) =>
+        `Mistake ${i + 1}:\n  Question: ${q.question}\n  Student answered: ${q.user_answer || "(no answer)"}\n  Correct answer: ${q.correct_answer}\n  Brief insight: ${q.ai_insight || "N/A"}`
+      ).join("\n\n");
+
+      const courseName = test.courses?.title || "this course";
+
+      const systemPrompt = `You are an expert study tutor helping a student understand their mistakes on a quiz about "${courseName}".
+
+CRITICAL: Respond entirely in ${detectedLang}.
+
+Analyze ALL the student's mistakes together and provide:
+1. A consolidated explanation of what went wrong, identifying patterns of misunderstanding
+2. The weak topics they need to review
+3. Specific, actionable study tips
+
+Output a JSON object with this exact format:
+{
+  "explanation": "A detailed 3-5 paragraph analysis in ${detectedLang} explaining the patterns of mistakes, what concepts the student is confused about, and how the correct answers relate to each other. Use markdown formatting (bold, bullet points) for clarity.",
+  "weakTopics": ["Topic 1", "Topic 2", "Topic 3"],
+  "studyTips": ["Specific tip 1", "Specific tip 2", "Specific tip 3", "Specific tip 4"]
+}
+
+IMPORTANT: Output ONLY the JSON object. No markdown code blocks, no explanation outside JSON.`;
+
+      const prompt = `The student got ${wrongQuestions.length} out of ${test.total_count} questions wrong. Here are their mistakes:\n\n${mistakesContext}\n\nAnalyze these mistakes and output the JSON:`;
+
+      const aiResponse = await callReplicate(replicateKey, prompt, systemPrompt, MAX_TOKENS_PER_BATCH);
+
+      // Parse JSON object (not array)
+      let result;
+      try {
+        const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+        const jsonStr = jsonMatch ? jsonMatch[0] : aiResponse.trim();
+        result = JSON.parse(jsonStr);
+      } catch {
+        // Sanitize and retry
+        let sanitized = aiResponse
+          .replace(/,\s*}/g, "}")
+          .replace(/,\s*\]/g, "]")
+          .replace(/'/g, '"');
+        const jsonMatch = sanitized.match(/\{[\s\S]*\}/);
+        const jsonStr = jsonMatch ? jsonMatch[0] : sanitized.trim();
+        try {
+          result = JSON.parse(jsonStr);
+        } catch {
+          // Fallback: return raw text as explanation
+          result = {
+            explanation: aiResponse.substring(0, 3000),
+            weakTopics: [],
+            studyTips: [],
+          };
+        }
+      }
+
+      return new Response(JSON.stringify({
+        explanation: typeof result.explanation === "string" ? result.explanation : "",
+        weakTopics: Array.isArray(result.weakTopics) ? result.weakTopics.map((t: any) => String(t).substring(0, 100)) : [],
+        studyTips: Array.isArray(result.studyTips) ? result.studyTips.map((t: any) => String(t).substring(0, 300)) : [],
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

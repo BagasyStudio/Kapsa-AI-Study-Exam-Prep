@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/sound_service.dart';
+import '../../../../core/services/tts_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -49,6 +50,7 @@ class _FlashcardSessionScreenState
   int _masteredCount = 0;
   int _againCount = 0;
   String _courseName = 'Flashcards';
+  bool _isSpeaking = false;
 
   @override
   void initState() {
@@ -76,7 +78,42 @@ class _FlashcardSessionScreenState
 
   void _onTapCard() {
     setState(() => _isRevealed = !_isRevealed);
-    if (_isRevealed) SoundService.playFlashcardFlip();
+    if (_isRevealed) {
+      SoundService.playFlashcardFlip();
+      // Auto-read answer if enabled
+      if (TtsService.instance.isAutoRead && TtsService.instance.isEnabled) {
+        final cardsAsync = ref.read(flashcardsProvider(widget.sessionId));
+        cardsAsync.whenData((cards) {
+          if (cards.isNotEmpty) {
+            final card = cards[_currentIndex % cards.length];
+            _speakText(card.answer);
+          }
+        });
+      }
+    } else {
+      TtsService.instance.stop();
+      setState(() => _isSpeaking = false);
+    }
+  }
+
+  void _speakText(String text) async {
+    if (TtsService.instance.isSpeaking) {
+      await TtsService.instance.stop();
+      setState(() => _isSpeaking = false);
+    } else {
+      setState(() => _isSpeaking = true);
+      await TtsService.instance.speak(text);
+      if (mounted) setState(() => _isSpeaking = false);
+    }
+  }
+
+  void _speakCurrentCard(List<FlashcardModel> cards) {
+    if (cards.isEmpty) return;
+    final card = cards[_currentIndex % cards.length];
+    final text = _isRevealed
+        ? card.answer
+        : '${card.questionBefore}${card.keyword}${card.questionAfter}';
+    _speakText(text);
   }
 
   void _onSwiped(SwipeDirection direction, List<FlashcardModel> cards) {
@@ -108,10 +145,14 @@ class _FlashcardSessionScreenState
 
     final nextIndex = _currentIndex + 1;
 
+    // Stop TTS on card change
+    TtsService.instance.stop();
+
     setState(() {
       _currentIndex = nextIndex;
       _isRevealed = false;
       _swipeProgress = 0;
+      _isSpeaking = false;
     });
 
     // Trigger confetti, show completion overlay, and recalculate progress
@@ -420,7 +461,11 @@ class _FlashcardSessionScreenState
                           questionAfter: currentCard.questionAfter,
                           answer: currentCard.answer,
                           isRevealed: _isRevealed,
+                          isSpeaking: _isSpeaking,
                           onTap: _onTapCard,
+                          onSpeak: TtsService.instance.isEnabled
+                              ? () => _speakCurrentCard(cards)
+                              : null,
                           onBookmark: () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -468,11 +513,17 @@ class _FlashcardSessionScreenState
           right: 0,
           child: Center(
             child: FloatingToolbar(
+              isSpeaking: _isSpeaking,
+              onSpeak: TtsService.instance.isEnabled
+                  ? () => _speakCurrentCard(cards)
+                  : null,
               onRefresh: () {
+                TtsService.instance.stop();
                 setState(() {
                   _currentIndex = 0;
                   _isRevealed = false;
                   _swipeProgress = 0;
+                  _isSpeaking = false;
                 });
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Cards reshuffled')),
