@@ -1017,7 +1017,7 @@ class _NotificationToggleTileState
               Switch.adaptive(
                 value: _enabled,
                 onChanged: _toggle,
-                activeColor: AppColors.primary,
+                activeTrackColor: AppColors.primary,
               ),
           ],
         ),
@@ -1091,7 +1091,7 @@ class _SoundToggleTileState extends State<_SoundToggleTile> {
             Switch.adaptive(
               value: _enabled,
               onChanged: _toggle,
-              activeColor: AppColors.primary,
+              activeTrackColor: AppColors.primary,
             ),
           ],
         ),
@@ -1217,7 +1217,7 @@ class _AiDataToggleTileState extends ConsumerState<_AiDataToggleTile> {
               Switch.adaptive(
                 value: _enabled,
                 onChanged: _toggle,
-                activeColor: AppColors.primary,
+                activeTrackColor: AppColors.primary,
               ),
           ],
         ),
