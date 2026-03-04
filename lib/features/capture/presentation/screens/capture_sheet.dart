@@ -553,8 +553,13 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                   onCancel: _cancelProcessing,
                                   onAnimationComplete: () {
                                     if (mounted && _pendingPopMessage != null) {
-                                      setState(() => _isProcessing = false);
-                                      Navigator.of(context).pop(_pendingPopMessage);
+                                      // Pop directly — don't setState first,
+                                      // rebuilding the tree before pop causes
+                                      // black screen because the builder context
+                                      // becomes stale.
+                                      final msg = _pendingPopMessage;
+                                      _pendingPopMessage = null;
+                                      Navigator.of(context).pop(msg);
                                     }
                                   },
                                 ),
