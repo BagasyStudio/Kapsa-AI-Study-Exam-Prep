@@ -13,8 +13,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ReviewService {
   static const _keySessionCount = 'review_session_count';
   static const _keyLastPrompt = 'review_last_prompt';
-  static const _triggerEveryN = 5;
-  static const _minDaysBetween = 14; // Don't prompt more than every 2 weeks
+  static const _triggerEveryN = 3;
+  static const _minDaysBetween = 7; // Don't prompt more than every week
 
   /// Call after a positive user experience (quiz done, flashcard session done).
   ///
