@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/app_limits.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -49,7 +50,9 @@ class FeatureGate extends ConsumerWidget {
 
             final brightness = Theme.of(context).brightness;
             final isDark = brightness == Brightness.dark;
-            // Feature is locked
+            final cost = AppLimits.creditCost[feature] ?? 3;
+
+            // Feature is locked — not enough credits
             return Stack(
               children: [
                 child,
@@ -74,21 +77,22 @@ class FeatureGate extends ConsumerWidget {
                                   color: AppColors.primary.withValues(alpha: 0.1),
                                 ),
                                 child: const Icon(
-                                  Icons.lock_outline,
+                                  Icons.bolt_outlined,
                                   color: AppColors.primary,
                                   size: 28,
                                 ),
                               ),
                               const SizedBox(height: AppSpacing.md),
                               Text(
-                                'Daily limit reached',
+                                'Not enough credits',
                                 style: AppTypography.labelLarge.copyWith(
                                   color: AppColors.textPrimaryFor(brightness),
                                 ),
                               ),
                               const SizedBox(height: AppSpacing.xs),
                               Text(
-                                'Upgrade to Pro for unlimited access',
+                                'This costs $cost credits. You\'ll get 50 new credits tomorrow.',
+                                textAlign: TextAlign.center,
                                 style: AppTypography.caption.copyWith(
                                   color: AppColors.textSecondaryFor(brightness),
                                 ),
@@ -106,7 +110,7 @@ class FeatureGate extends ConsumerWidget {
                                     borderRadius: BorderRadius.circular(100),
                                   ),
                                   child: Text(
-                                    'Unlock with Pro',
+                                    'Go Unlimited with Pro',
                                     style: AppTypography.button.copyWith(
                                       fontSize: 14,
                                     ),

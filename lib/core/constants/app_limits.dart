@@ -22,25 +22,36 @@ abstract final class AppLimits {
   /// Maximum characters for quick paste notes.
   static const int maxPasteLength = 5000;
 
-  // ── Free tier daily limits ──
+  // ── Free tier: unified credit pool ──
+  //
+  // Free users get 50 credits/day. Each feature costs 1-8 credits
+  // based on API cost. Cheap text-only features cost less,
+  // expensive vision/audio models cost more.
 
-  static const Map<String, int> freeDailyLimits = {
-    'chat': 1,
-    'flashcards': 1,
-    'quiz': 1,
-    'ocr': 1,
-    'whisper': 1,
-    'oracle': 1,
-    'snap_solve': 3,
-    'audio_summary': 1,
-    'summary': 1,
-    'glossary': 1,
+  /// Total credits available per day for free users.
+  static const int freeCreditsPerDay = 50;
+
+  /// Credit cost per feature use.
+  ///
+  /// Lower cost = cheaper API call (text-only LLM).
+  /// Higher cost = expensive model (vision, OCR, audio).
+  static const Map<String, int> creditCost = {
+    'chat': 1, // llama-3-8b text — cheapest
+    'oracle': 2, // llama-3-8b text
+    'snap_solve': 2, // llama3.2-vision — moderate
+    'glossary': 2, // llama-3-8b text
+    'flashcards': 3, // llama-3-8b text — core feature
+    'quiz': 3, // llama-3-8b text — core feature
+    'summary': 3, // llama-3-8b text
+    'audio_summary': 3, // llama-3-8b text
+    'whisper': 5, // fast-whisper audio — moderate
+    'ocr': 8, // gemma-3-27b vision — expensive
   };
 
-  // ── Pro tier daily limits ──
+  // ── Pro tier daily limits (per-feature safety net) ──
   //
-  // Generous for core study features (flashcards, quiz).
-  // OCR: 10 PDFs/day × 100 pages max = 1000 pages/day ceiling.
+  // Pro users have no credit pool — they get generous per-feature limits
+  // as an anti-abuse safety net. Effectively unlimited for normal use.
 
   static const Map<String, int> proDailyLimits = {
     'chat': 50,

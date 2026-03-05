@@ -183,6 +183,8 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
       if (user == null) return;
       _ref.read(subscriptionRepositoryProvider).recordUsage(user.id, feature);
       _ref.invalidate(dailyUsageProvider);
+      _ref.invalidate(remainingCreditsProvider);
+      _ref.invalidate(creditsUsedTodayProvider);
     } catch (_) {
       // Non-critical — don't fail the generation
     }

@@ -109,6 +109,8 @@ class SnapSolveJobNotifier extends StateNotifier<SnapSolveJobState> {
               .read(subscriptionRepositoryProvider)
               .recordUsage(user.id, 'snap_solve');
           _ref.invalidate(dailyUsageProvider);
+          _ref.invalidate(remainingCreditsProvider);
+          _ref.invalidate(creditsUsedTodayProvider);
         }
       } catch (_) {
         // Best-effort usage recording

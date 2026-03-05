@@ -1,25 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/app_limits.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../providers/subscription_provider.dart';
-import '../../data/subscription_repository.dart';
 
-/// Banner that shows remaining free uses for the day.
+/// Beautiful credits banner that shows remaining daily credits.
 ///
-/// Glassmorphism styled banner with progress indicator
-/// that changes color based on remaining usage (green → yellow → red).
+/// Always visible for free users. Shows a large credit count,
+/// progress bar, and contextual hint about what they can do.
+/// Hidden for Pro users.
 class UsageLimitBanner extends ConsumerWidget {
   const UsageLimitBanner({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isProAsync = ref.watch(isProProvider);
-    final usageAsync = ref.watch(dailyUsageProvider);
+    final creditsAsync = ref.watch(remainingCreditsProvider);
 
     return isProAsync.when(
       loading: () => const SizedBox.shrink(),
@@ -27,116 +28,200 @@ class UsageLimitBanner extends ConsumerWidget {
       data: (isPro) {
         if (isPro) return const SizedBox.shrink();
 
-        return usageAsync.when(
+        return creditsAsync.when(
           loading: () => const SizedBox.shrink(),
           error: (_, __) => const SizedBox.shrink(),
-          data: (usage) {
+          data: (remaining) {
             final brightness = Theme.of(context).brightness;
-            // Calculate total usage across features
-            final totalUsed = usage.values.fold(0, (a, b) => a + b);
-            final totalLimit = SubscriptionRepository.freeLimits.values
-                .fold(0, (a, b) => a + b);
+            final isDark = brightness == Brightness.dark;
+            final total = AppLimits.freeCreditsPerDay;
+            final progress = remaining / total;
+            final isLow = remaining < 10;
 
-            if (totalUsed == 0 || totalLimit == 0) {
-              return const SizedBox.shrink();
-            }
+            // Accent color based on remaining credits
+            final accentColor = isLow
+                ? const Color(0xFFF59E0B) // amber warning
+                : const Color(0xFF8B5CF6); // purple default
 
-            final progress = (totalUsed / totalLimit).clamp(0.0, 1.0);
-            final progressColor = progress < 0.5
-                ? const Color(0xFF10B981) // green
-                : progress < 0.8
-                    ? const Color(0xFFF59E0B) // yellow
-                    : const Color(0xFFEF4444); // red
+            // Contextual hint
+            final hint = _getContextHint(remaining);
 
             return TapScale(
-                onTap: () => context.push(Routes.paywall),
-                child: Container(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.65),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: progressColor.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Row(
+              onTap: () => context.push(Routes.paywall),
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : Colors.white.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: accentColor.withValues(alpha: isDark ? 0.2 : 0.15),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // Credit count with icon
+                    _CreditCounter(
+                      remaining: remaining,
+                      total: total,
+                      accentColor: accentColor,
+                      isDark: isDark,
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+
+                    // Text + progress bar
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Icon
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: progressColor.withValues(alpha: 0.1),
-                            ),
-                            child: Icon(
-                              progress >= 0.8
-                                  ? Icons.lock_outline
-                                  : Icons.auto_awesome,
-                              color: progressColor,
-                              size: 18,
+                          Text(
+                            isLow
+                                ? 'Running low!'
+                                : '$remaining credits remaining',
+                            style: AppTypography.caption.copyWith(
+                              color: AppColors.textPrimaryFor(brightness),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.sm),
-
-                          // Text + progress bar
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  progress >= 1.0
-                                      ? 'Daily free limit reached'
-                                      : '$totalUsed of $totalLimit free uses today',
-                                  style: AppTypography.caption.copyWith(
-                                    color: AppColors.textPrimaryFor(brightness),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(100),
-                                  child: LinearProgressIndicator(
-                                    value: progress,
-                                    backgroundColor:
-                                        progressColor.withValues(alpha: 0.1),
-                                    valueColor:
-                                        AlwaysStoppedAnimation(progressColor),
-                                    minHeight: 4,
-                                  ),
-                                ),
-                              ],
+                          const SizedBox(height: 4),
+                          // Progress bar
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(100),
+                            child: LinearProgressIndicator(
+                              value: progress.clamp(0.0, 1.0),
+                              backgroundColor:
+                                  accentColor.withValues(alpha: 0.1),
+                              valueColor:
+                                  AlwaysStoppedAnimation(accentColor),
+                              minHeight: 4,
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.sm),
-
-                          // Upgrade CTA
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(100),
-                            ),
-                            child: Text(
-                              'Upgrade',
-                              style: AppTypography.caption.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 11,
-                              ),
+                          const SizedBox(height: 4),
+                          Text(
+                            hint,
+                            style: AppTypography.caption.copyWith(
+                              color: AppColors.textMutedFor(brightness),
+                              fontSize: 10,
                             ),
                           ),
                         ],
                       ),
                     ),
+                    const SizedBox(width: AppSpacing.sm),
+
+                    // PRO badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                        ),
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Text(
+                        'PRO',
+                        style: AppTypography.caption.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             );
           },
         );
       },
+    );
+  }
+
+  String _getContextHint(int remaining) {
+    if (remaining <= 0) {
+      return 'Credits reset tomorrow. Go PRO for unlimited.';
+    }
+    // Show what the user can still do
+    final flashcardGens = remaining ~/ (AppLimits.creditCost['flashcards'] ?? 3);
+    final snapSolves = remaining ~/ (AppLimits.creditCost['snap_solve'] ?? 2);
+
+    if (flashcardGens >= 1 && snapSolves >= 1) {
+      return '~$flashcardGens flashcard gens or ~$snapSolves snap solves left';
+    }
+    if (flashcardGens >= 1) {
+      return '~$flashcardGens flashcard generations left';
+    }
+    return 'Resets daily. Go PRO for unlimited.';
+  }
+}
+
+/// Circular credit counter with number display.
+class _CreditCounter extends StatelessWidget {
+  final int remaining;
+  final int total;
+  final Color accentColor;
+  final bool isDark;
+
+  const _CreditCounter({
+    required this.remaining,
+    required this.total,
+    required this.accentColor,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 48,
+      height: 48,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Background ring
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: CircularProgressIndicator(
+              value: (remaining / total).clamp(0.0, 1.0),
+              strokeWidth: 3,
+              backgroundColor: accentColor.withValues(alpha: 0.1),
+              valueColor: AlwaysStoppedAnimation(accentColor),
+            ),
+          ),
+          // Number
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$remaining',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: accentColor,
+                  height: 1,
+                ),
+              ),
+              Text(
+                '/$total',
+                style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w500,
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.4)
+                      : Colors.black38,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

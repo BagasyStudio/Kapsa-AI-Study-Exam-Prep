@@ -49,6 +49,22 @@ final dailyUsageProvider =
   return ref.read(subscriptionRepositoryProvider).getDailyUsage(user.id);
 });
 
+/// Remaining credits for free users today.
+final remainingCreditsProvider = FutureProvider.autoDispose<int>((ref) async {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return 0;
+  return ref.read(subscriptionRepositoryProvider).getRemainingCredits(user.id);
+});
+
+/// Credits consumed today.
+final creditsUsedTodayProvider = FutureProvider.autoDispose<int>((ref) async {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return 0;
+  return ref
+      .read(subscriptionRepositoryProvider)
+      .getCreditsUsedToday(user.id);
+});
+
 /// Cached AI consent state so we don't query the DB on every feature use.
 /// `null` means not yet loaded; `true`/`false` reflects the DB value.
 final aiConsentCacheProvider = StateProvider<bool?>((ref) => null);
@@ -126,4 +142,6 @@ Future<void> recordFeatureUsage({
 
   await ref.read(subscriptionRepositoryProvider).recordUsage(user.id, feature);
   ref.invalidate(dailyUsageProvider);
+  ref.invalidate(remainingCreditsProvider);
+  ref.invalidate(creditsUsedTodayProvider);
 }
