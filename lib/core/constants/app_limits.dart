@@ -33,19 +33,22 @@ abstract final class AppLimits {
 
   /// Credit cost per feature use.
   ///
-  /// Lower cost = cheaper API call (text-only LLM).
-  /// Higher cost = expensive model (vision, OCR, audio).
+  /// Calibrated so free users get ~3-5 AI actions per day.
+  /// Examples of a typical day:
+  ///   1 flashcard gen (15) + 1 quiz (15) + 2 snap solves (16) = 46/50
+  ///   1 OCR (25) + 1 summary (15) + 1 chat (10) = 50/50
+  ///   3 chats (30) + 1 flashcard gen (15) = 45/50
   static const Map<String, int> creditCost = {
-    'chat': 1, // llama-3-8b text — cheapest
-    'oracle': 2, // llama-3-8b text
-    'snap_solve': 2, // llama3.2-vision — moderate
-    'glossary': 2, // llama-3-8b text
-    'flashcards': 3, // llama-3-8b text — core feature
-    'quiz': 3, // llama-3-8b text — core feature
-    'summary': 3, // llama-3-8b text
-    'audio_summary': 3, // llama-3-8b text
-    'whisper': 5, // fast-whisper audio — moderate
-    'ocr': 8, // gemma-3-27b vision — expensive
+    'chat': 10, // ~5 messages/day max
+    'oracle': 10, // ~5 questions/day max
+    'snap_solve': 8, // ~6 snaps/day max
+    'glossary': 10, // ~5/day max
+    'flashcards': 15, // ~3 generations/day max
+    'quiz': 15, // ~3 quizzes/day max
+    'summary': 15, // ~3 summaries/day max
+    'audio_summary': 15, // ~3/day max
+    'whisper': 25, // ~2 audio files/day max
+    'ocr': 25, // ~2 PDFs/day max
   };
 
   // ── Pro tier daily limits (per-feature safety net) ──
