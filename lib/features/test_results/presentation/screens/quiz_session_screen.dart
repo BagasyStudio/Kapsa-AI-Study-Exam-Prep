@@ -186,9 +186,10 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
         setState(() {
           _currentIndex++;
           _answerController.text = _answers[_currentIndex] ?? '';
+          // reverse() goes 1.0→0.0, so begin=Offset.zero is the FINAL position
           _slideAnimation = Tween<Offset>(
-            begin: const Offset(1.2, 0),
-            end: Offset.zero,
+            begin: Offset.zero,
+            end: const Offset(1.2, 0),
           ).animate(CurvedAnimation(
             parent: _slideController,
             curve: Curves.easeInOutCubic,
@@ -231,9 +232,10 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
         setState(() {
           _currentIndex--;
           _answerController.text = _answers[_currentIndex] ?? '';
+          // reverse() goes 1.0→0.0, so begin=Offset.zero is the FINAL position
           _slideAnimation = Tween<Offset>(
-            begin: const Offset(-1.2, 0),
-            end: Offset.zero,
+            begin: Offset.zero,
+            end: const Offset(-1.2, 0),
           ).animate(CurvedAnimation(
             parent: _slideController,
             curve: Curves.easeInOutCubic,

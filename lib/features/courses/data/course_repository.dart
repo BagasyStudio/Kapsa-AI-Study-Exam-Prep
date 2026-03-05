@@ -78,16 +78,18 @@ class CourseRepository {
     await _client.from('courses').update(updates).eq('id', courseId);
   }
 
-  /// Recalculate and persist course progress.
+  /// Recalculate and persist course progress (0.0 – 1.0).
   ///
-  /// Progress = weighted average of flashcard mastery and quiz scores.
-  /// If only one signal exists, it counts 100%.
+  /// Progress uses two signals:
+  ///  • Flashcard study (50%): reviewed cards + mastered bonus
+  ///  • Quiz performance (50%): average score of evaluated tests
+  ///
+  /// If only one signal has data, it counts 100%.
   Future<void> recalculateProgress(String courseId) async {
     double? flashcardProgress;
     double? quizProgress;
 
-    // ── Flashcard mastery ──────────────────────────────────────────
-    // Count mastered vs total cards across all decks in this course.
+    // ── Flashcard study ──────────────────────────────────────────
     final decks = await _client
         .from('flashcard_decks')
         .select('id')
@@ -97,29 +99,47 @@ class CourseRepository {
       final deckIds = decks.map((d) => d['id'] as String).toList();
       final cards = await _client
           .from('flashcards')
-          .select('mastery')
+          .select('mastery, reps')
           .inFilter('deck_id', deckIds);
 
       final totalCards = (cards as List).length;
       if (totalCards > 0) {
-        final mastered = cards.where((c) => c['mastery'] == 'mastered').length;
-        flashcardProgress = mastered / totalCards;
+        // Cards reviewed at least once count as 0.5 credit
+        // Cards "mastered" count as 1.0 credit
+        double credits = 0;
+        for (final c in cards) {
+          final mastery = c['mastery'] as String? ?? 'new';
+          final reps = (c['reps'] as num?)?.toInt() ?? 0;
+          if (mastery == 'mastered') {
+            credits += 1.0;
+          } else if (reps > 0 || mastery == 'learning') {
+            credits += 0.5;
+          }
+        }
+        flashcardProgress = credits / totalCards;
       }
     }
 
-    // ── Quiz scores ────────────────────────────────────────────────
-    // Average score of all evaluated tests for this course.
+    // ── Quiz scores ──────────────────────────────────────────────
+    // Use score when available, fallback to correct_count/total_count.
     final tests = await _client
         .from('tests')
-        .select('score')
+        .select('score, correct_count, total_count')
         .eq('course_id', courseId)
-        .not('score', 'is', null);
+        .eq('status', 'completed');
 
     if ((tests as List).isNotEmpty) {
-      final scores = tests
-          .where((t) => t['score'] != null)
-          .map((t) => (t['score'] as num).toDouble())
-          .toList();
+      final scores = <double>[];
+      for (final t in tests) {
+        if (t['score'] != null) {
+          // Score is 0.0–1.0 from edge function
+          scores.add((t['score'] as num).toDouble());
+        } else if (t['correct_count'] != null && t['total_count'] != null) {
+          final correct = (t['correct_count'] as num).toInt();
+          final total = (t['total_count'] as num).toInt();
+          if (total > 0) scores.add(correct / total);
+        }
+      }
       if (scores.isNotEmpty) {
         quizProgress = scores.reduce((a, b) => a + b) / scores.length;
       }
@@ -135,10 +155,29 @@ class CourseRepository {
       progress = quizProgress;
     }
 
+    // Clamp to 0.0–1.0
+    progress = progress.clamp(0.0, 1.0);
+
     await _client.from('courses').update({
       'progress': progress,
       'updated_at': DateTime.now().toIso8601String(),
     }).eq('id', courseId);
+  }
+
+  /// Batch recalculate progress for all user courses.
+  ///
+  /// Lightweight — runs in parallel. Call on home screen load.
+  Future<void> recalculateAllProgress(String userId) async {
+    final courses = await _client
+        .from('courses')
+        .select('id')
+        .eq('user_id', userId);
+
+    if ((courses as List).isEmpty) return;
+
+    await Future.wait(
+      courses.map((c) => recalculateProgress(c['id'] as String)),
+    );
   }
 
   /// Delete a course.

@@ -97,6 +97,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _awardStreakXp();
         // Check for new achievement badges
         _checkAchievements();
+        // Recalculate course progress in background
+        _recalculateCourseProgress();
       });
     }
   }
@@ -117,6 +119,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     } catch (_) {
       // Best-effort — don't interrupt the user
+    }
+  }
+
+  Future<void> _recalculateCourseProgress() async {
+    try {
+      final user = ref.read(currentUserProvider);
+      if (user == null) return;
+      await ref.read(courseRepositoryProvider).recalculateAllProgress(user.id);
+      ref.invalidate(coursesProvider);
+    } catch (_) {
+      // Best-effort
     }
   }
 
