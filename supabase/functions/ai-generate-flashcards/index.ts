@@ -9,13 +9,15 @@ const corsHeaders = {
 const LLAMA_MODEL = "meta/meta-llama-3-8b-instruct";
 
 // ── Constants ─────────────────────────────────────────────────────
-const CARDS_PER_CHUNK = 20;       // sweet spot for Llama 8B JSON reliability
-const CHARS_PER_CARD = 150;       // ~1 card per 150 chars of source
-const MAX_TOTAL_CARDS = 200;
-const MIN_TOTAL_CARDS = 10;
-const MAX_CONCURRENT = 5;         // parallel Replicate calls
-const CHUNK_SIZE = 3000;          // chars per chunk sent to AI
-const MAX_TOKENS_PER_BATCH = 4096;
+const CARDS_PER_CHUNK = 15;       // reduced for faster generation
+const CHARS_PER_CARD = 200;       // ~1 card per 200 chars of source
+const MAX_TOTAL_CARDS = 80;       // cap to avoid too many batches
+const MIN_TOTAL_CARDS = 5;
+const MAX_CONCURRENT = 4;         // parallel Replicate calls
+const CHUNK_SIZE = 5000;          // larger chunks = fewer batches
+const POLL_INTERVAL_MS = 500;     // poll every 500ms instead of 1000ms
+const MAX_POLL_ATTEMPTS = 180;    // 180 * 500ms = 90 seconds max per call
+const GLOBAL_DEADLINE_MS = 130_000; // 130s — return before Supabase kills us at ~150s
 
 // ── Input validation helpers ──────────────────────────────────────
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -29,6 +31,13 @@ function sanitizeErrorMessage(error: unknown): string {
   return "An internal error occurred. Please try again.";
 }
 
+// ── Global deadline tracking ─────────────────────────────────────
+let globalStart = 0;
+
+function isDeadlineClose(): boolean {
+  return Date.now() - globalStart > GLOBAL_DEADLINE_MS;
+}
+
 // ── AI call ───────────────────────────────────────────────────────
 function buildLlamaPrompt(systemPrompt: string, userPrompt: string): string {
   return `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemPrompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n${userPrompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`;
@@ -40,6 +49,7 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
+      "Prefer": "wait=80",  // Hold connection up to 80s — eliminates polling
     },
     body: JSON.stringify({
       input: {
@@ -54,11 +64,21 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
     throw new Error(`AI service unavailable (${createRes.status}): ${errBody.substring(0, 200)}`);
   }
 
-  const prediction = await createRes.json();
-  let result = prediction;
+  let result = await createRes.json();
+
+  // Prefer: wait returns completed result directly (no polling needed)
+  if (result.status === "succeeded") {
+    return Array.isArray(result.output) ? result.output.join("") : String(result.output);
+  }
+  if (result.status === "failed") {
+    throw new Error("AI processing failed. Please try again.");
+  }
+
+  // Fallback: poll only if Prefer: wait didn't complete in time (rare)
   let attempts = 0;
-  while (result.status !== "succeeded" && result.status !== "failed" && attempts < 120) {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+  while (result.status !== "succeeded" && result.status !== "failed" && attempts < MAX_POLL_ATTEMPTS) {
+    if (isDeadlineClose()) throw new Error("Global deadline approaching, aborting poll");
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
     const pollRes = await fetch(result.urls.get, {
       headers: { "Authorization": `Bearer ${apiKey}` },
     });
@@ -176,7 +196,7 @@ function splitIntoChunks(text: string, chunkSize: number): string[] {
   return result;
 }
 
-// ── Batch generation with concurrency control ─────────────────────
+// ── Batch generation ─────────────────────────────────────────────
 async function generateBatch(
   apiKey: string,
   chunk: string,
@@ -185,6 +205,9 @@ async function generateBatch(
   detectedLang: string,
   topic?: string,
 ): Promise<any[]> {
+  // Scale max_tokens proportionally: ~250 tokens per card
+  const scaledTokens = Math.min(4096, Math.max(1024, cardsToGenerate * 250));
+
   const systemPrompt = `You are a flashcard generator for the course "${courseTitle}".
 
 CRITICAL LANGUAGE RULE: The course material is in ${detectedLang}. You MUST generate ALL flashcard content (topic, question_before, keyword, question_after, and answer) in ${detectedLang}. Do NOT translate to English. Keep the same language as the source material.
@@ -210,17 +233,10 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation, just the
 
   const prompt = `Based on this course material, generate ${cardsToGenerate} flashcards in the SAME LANGUAGE as the material:\n\n${chunk}\n\nOutput the JSON array now:`;
 
-  const aiResponse = await callReplicate(apiKey, prompt, systemPrompt, MAX_TOKENS_PER_BATCH);
+  const aiResponse = await callReplicate(apiKey, prompt, systemPrompt, scaledTokens);
 
-  try {
-    return parseJsonArray(aiResponse);
-  } catch {
-    // Retry once with stricter prompt
-    console.warn("Batch parse failed, retrying...");
-    const retryPrompt = `Generate exactly ${cardsToGenerate} flashcards as a JSON array. Output ONLY the array starting with [ and ending with ]. No text before or after.\n\nMaterial:\n${chunk.substring(0, 2000)}\n\nJSON array:`;
-    const retryResponse = await callReplicate(apiKey, retryPrompt, systemPrompt, MAX_TOKENS_PER_BATCH);
-    return parseJsonArray(retryResponse);
-  }
+  // Single attempt parse — no retry (retries double execution time)
+  return parseJsonArray(aiResponse);
 }
 
 async function runWithConcurrency<T>(
@@ -232,6 +248,12 @@ async function runWithConcurrency<T>(
 
   async function worker() {
     while (nextIndex < tasks.length) {
+      if (isDeadlineClose()) {
+        // Mark remaining as rejected
+        const idx = nextIndex++;
+        results[idx] = { status: "rejected", reason: new Error("Global deadline") };
+        continue;
+      }
       const idx = nextIndex++;
       try {
         const value = await tasks[idx]();
@@ -255,6 +277,8 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  globalStart = Date.now();
 
   const replicateKey = Deno.env.get("REPLICATE_API_KEY");
   if (!replicateKey) {
@@ -374,7 +398,6 @@ Deno.serve(async (req: Request) => {
     console.log(`Split into ${chunks.length} chunks`);
 
     // ── Distribute cards across chunks ────────────────────────────
-    // Each chunk gets proportional cards based on its content size
     const totalChunkChars = chunks.reduce((sum, c) => sum + c.length, 0);
     const chunkCards: { chunk: string; count: number }[] = [];
     let cardsAssigned = 0;
@@ -390,12 +413,11 @@ Deno.serve(async (req: Request) => {
 
       chunkCards.push({
         chunk: chunks[i],
-        count: Math.min(count, CARDS_PER_CHUNK), // cap per-batch
+        count: Math.min(count, CARDS_PER_CHUNK),
       });
       cardsAssigned += chunkCards[chunkCards.length - 1].count;
 
-      // If we need more cards from this chunk than CARDS_PER_CHUNK,
-      // split into sub-batches
+      // Sub-batches for large counts
       let remaining = count - CARDS_PER_CHUNK;
       while (remaining > 0) {
         const batchCount = Math.min(remaining, CARDS_PER_CHUNK);
@@ -470,12 +492,16 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    console.log(`Done: ${allCards.length} flashcards in deck ${deck.id}`);
+    const elapsed = ((Date.now() - globalStart) / 1000).toFixed(1);
+    console.log(`Done: ${allCards.length} flashcards in deck ${deck.id} (${elapsed}s)`);
 
     return new Response(JSON.stringify({ ...deck, card_count: allCards.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    const elapsed = ((Date.now() - globalStart) / 1000).toFixed(1);
+    console.error(`Failed after ${elapsed}s:`, error);
+
     const message = error instanceof Error && (
       error.message.includes("unavailable") ||
       error.message.includes("timed out") ||

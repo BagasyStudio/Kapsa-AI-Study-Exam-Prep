@@ -15,14 +15,12 @@ import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/staggered_list.dart';
 import '../providers/course_provider.dart';
 import '../../../flashcards/presentation/providers/flashcard_provider.dart';
-import '../../../test_results/presentation/providers/test_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
 import '../../../capture/presentation/screens/capture_sheet.dart';
 import '../../../flashcards/data/models/deck_model.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/utils/error_handler.dart';
-import '../../../summaries/presentation/providers/summary_provider.dart';
-import '../../../glossary/presentation/providers/glossary_provider.dart';
+import '../../../../core/providers/generation_provider.dart';
 
 class CourseDetailScreen extends ConsumerStatefulWidget {
   final String courseId;
@@ -528,6 +526,47 @@ class _MaterialsTab extends ConsumerWidget {
     );
   }
 
+  /// Shared helper to launch background generation from material actions.
+  void _launchBackground(
+    BuildContext context,
+    WidgetRef ref,
+    GenerationType type, {
+    String? materialId,
+  }) {
+    final notifier = ref.read(generationProvider.notifier);
+    if (notifier.isRunning(type, courseId)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Already generating ${type.name}...'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final course = ref.read(courseProvider(courseId)).valueOrNull;
+    final courseName = course?.title ?? 'Course';
+
+    switch (type) {
+      case GenerationType.flashcards:
+        notifier.generateFlashcards(courseId, courseName, materialId: materialId);
+      case GenerationType.quiz:
+        notifier.generateQuiz(courseId, courseName);
+      case GenerationType.summary:
+        notifier.generateSummary(courseId, courseName);
+      case GenerationType.glossary:
+        notifier.generateGlossary(courseId, courseName);
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Generating ${type.name} in background...'),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _generateFromBanner(BuildContext context, WidgetRef ref) async {
     final canUse = await checkFeatureAccess(
       ref: ref,
@@ -536,35 +575,25 @@ class _MaterialsTab extends ConsumerWidget {
     );
     if (!canUse || !context.mounted) return;
 
-    final navigator = Navigator.of(context, rootNavigator: true);
-    navigator.push(
-      PageRouteBuilder(
-        opaque: true,
-        pageBuilder: (_, __, ___) => _GeneratingOverlay(
-          type: 'flashcards',
-          future: ref
-              .read(flashcardRepositoryProvider)
-              .generateFlashcards(courseId: courseId),
-          onResult: (deck) async {
-            await recordFeatureUsage(ref: ref, feature: 'flashcards');
-            ref.invalidate(flashcardDecksProvider(courseId));
-            navigator.pop();
-            if (context.mounted) {
-              context.push(Routes.flashcardSessionPath(deck.id));
-            }
-          },
-          onError: (e) {
-            navigator.pop();
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
-              );
-            }
-          },
+    final notifier = ref.read(generationProvider.notifier);
+    if (notifier.isRunning(GenerationType.flashcards, courseId)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Already generating flashcards...'),
+          behavior: SnackBarBehavior.floating,
         ),
-        transitionsBuilder: (_, animation, __, child) =>
-            FadeTransition(opacity: animation, child: child),
-        transitionDuration: const Duration(milliseconds: 300),
+      );
+      return;
+    }
+
+    final course = ref.read(courseProvider(courseId)).valueOrNull;
+    notifier.generateFlashcards(courseId, course?.title ?? 'Course');
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Generating flashcards in background...'),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 2),
       ),
     );
   }
@@ -667,46 +696,8 @@ class _MaterialsTab extends ConsumerWidget {
                         context: context,
                       );
                       if (!canUse || !context.mounted) return;
-
-                      final navigator =
-                          Navigator.of(context, rootNavigator: true);
-                      navigator.push(
-                        PageRouteBuilder(
-                          opaque: true,
-                          pageBuilder: (_, __, ___) => _GeneratingOverlay(
-                            type: 'flashcards',
-                            future: ref
-                                .read(flashcardRepositoryProvider)
-                                .generateFlashcards(
-                                  courseId: courseId,
-                                  materialId: material.id,
-                                ),
-                            onResult: (deck) async {
-                              await recordFeatureUsage(
-                                  ref: ref, feature: 'flashcards');
-                              ref.invalidate(flashcardDecksProvider(courseId));
-                              navigator.pop();
-                              if (context.mounted) {
-                                context.push(
-                                    Routes.flashcardSessionPath(deck.id));
-                              }
-                            },
-                            onError: (e) {
-                              navigator.pop();
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
-                                );
-                              }
-                            },
-                          ),
-                          transitionsBuilder: (_, animation, __, child) =>
-                              FadeTransition(
-                                  opacity: animation, child: child),
-                          transitionDuration:
-                              const Duration(milliseconds: 300),
-                        ),
-                      );
+                      _launchBackground(context, ref, GenerationType.flashcards,
+                          materialId: material.id);
                     },
                     onGenerateFlashcards: () async {
                       final canUse = await checkFeatureAccess(
@@ -715,46 +706,8 @@ class _MaterialsTab extends ConsumerWidget {
                         context: context,
                       );
                       if (!canUse || !context.mounted) return;
-
-                      final navigator =
-                          Navigator.of(context, rootNavigator: true);
-                      navigator.push(
-                        PageRouteBuilder(
-                          opaque: true,
-                          pageBuilder: (_, __, ___) => _GeneratingOverlay(
-                            type: 'flashcards',
-                            future: ref
-                                .read(flashcardRepositoryProvider)
-                                .generateFlashcards(
-                                  courseId: courseId,
-                                  materialId: material.id,
-                                ),
-                            onResult: (deck) async {
-                              await recordFeatureUsage(
-                                  ref: ref, feature: 'flashcards');
-                              ref.invalidate(flashcardDecksProvider(courseId));
-                              navigator.pop();
-                              if (context.mounted) {
-                                context.push(
-                                    Routes.flashcardSessionPath(deck.id));
-                              }
-                            },
-                            onError: (e) {
-                              navigator.pop();
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
-                                );
-                              }
-                            },
-                          ),
-                          transitionsBuilder: (_, animation, __, child) =>
-                              FadeTransition(
-                                  opacity: animation, child: child),
-                          transitionDuration:
-                              const Duration(milliseconds: 300),
-                        ),
-                      );
+                      _launchBackground(context, ref, GenerationType.flashcards,
+                          materialId: material.id);
                     },
                     onAudioSummary: () {
                       context.push(
@@ -769,44 +722,7 @@ class _MaterialsTab extends ConsumerWidget {
                         context: context,
                       );
                       if (!canUse || !context.mounted) return;
-
-                      final navigator =
-                          Navigator.of(context, rootNavigator: true);
-                      navigator.push(
-                        PageRouteBuilder(
-                          opaque: true,
-                          pageBuilder: (_, __, ___) => _GeneratingOverlay(
-                            type: 'quiz',
-                            future: ref
-                                .read(testRepositoryProvider)
-                                .generateQuiz(
-                                  courseId: courseId,
-                                ),
-                            onResult: (result) async {
-                              await recordFeatureUsage(
-                                  ref: ref, feature: 'quiz');
-                              navigator.pop();
-                              if (context.mounted) {
-                                context.push(
-                                    Routes.quizSessionPath(result.test.id));
-                              }
-                            },
-                            onError: (e) {
-                              navigator.pop();
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
-                                );
-                              }
-                            },
-                          ),
-                          transitionsBuilder: (_, animation, __, child) =>
-                              FadeTransition(
-                                  opacity: animation, child: child),
-                          transitionDuration:
-                              const Duration(milliseconds: 300),
-                        ),
-                      );
+                      _launchBackground(context, ref, GenerationType.quiz);
                     },
                     onDelete: () async {
                       await ref
@@ -1132,41 +1048,9 @@ class _StudyToolsTab extends ConsumerWidget {
       feature: 'flashcards',
       context: context,
     );
-    if (!canUse) return;
-
-    if (!context.mounted) return;
-
-    // Show generating animation
-    final navigator = Navigator.of(context, rootNavigator: true);
-    navigator.push(
-      PageRouteBuilder(
-        opaque: true,
-        pageBuilder: (_, __, ___) => _GeneratingOverlay(
-          type: 'flashcards',
-          future: ref
-              .read(flashcardRepositoryProvider)
-              .generateFlashcards(courseId: courseId),
-          onResult: (deck) async {
-            await recordFeatureUsage(ref: ref, feature: 'flashcards');
-            ref.invalidate(flashcardDecksProvider(courseId));
-            navigator.pop(); // Close overlay
-            if (context.mounted) {
-              context.push(Routes.flashcardSessionPath(deck.id));
-            }
-          },
-          onError: (e) {
-            navigator.pop();
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
-              );
-            }
-          },
-        ),
-        transitionsBuilder: (_, animation, __, child) =>
-            FadeTransition(opacity: animation, child: child),
-        transitionDuration: const Duration(milliseconds: 300),
-      ),
+    if (!canUse || !context.mounted) return;
+    _startBackgroundGeneration(
+      context, ref, GenerationType.flashcards, 'flashcards',
     );
   }
 
@@ -1176,41 +1060,9 @@ class _StudyToolsTab extends ConsumerWidget {
       feature: 'quiz',
       context: context,
     );
-    if (!canUse) return;
-
-    if (!context.mounted) return;
-
-    // Show generating animation
-    final navigator = Navigator.of(context, rootNavigator: true);
-    navigator.push(
-      PageRouteBuilder(
-        opaque: true,
-        pageBuilder: (_, __, ___) => _GeneratingOverlay(
-          type: 'quiz',
-          future: ref
-              .read(testRepositoryProvider)
-              .generateQuiz(courseId: courseId),
-          onResult: (result) async {
-            await recordFeatureUsage(ref: ref, feature: 'quiz');
-            navigator.pop(); // Close overlay
-            if (context.mounted) {
-              // Navigate to quiz session (answer questions), NOT results
-              context.push(Routes.quizSessionPath(result.test.id));
-            }
-          },
-          onError: (e) {
-            navigator.pop();
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
-              );
-            }
-          },
-        ),
-        transitionsBuilder: (_, animation, __, child) =>
-            FadeTransition(opacity: animation, child: child),
-        transitionDuration: const Duration(milliseconds: 300),
-      ),
+    if (!canUse || !context.mounted) return;
+    _startBackgroundGeneration(
+      context, ref, GenerationType.quiz, 'quiz',
     );
   }
 
@@ -1220,40 +1072,9 @@ class _StudyToolsTab extends ConsumerWidget {
       feature: 'summary',
       context: context,
     );
-    if (!canUse) return;
-
-    if (!context.mounted) return;
-
-    final navigator = Navigator.of(context, rootNavigator: true);
-    navigator.push(
-      PageRouteBuilder(
-        opaque: true,
-        pageBuilder: (_, __, ___) => _GeneratingOverlay(
-          type: 'summary',
-          future: ref
-              .read(summaryRepositoryProvider)
-              .generateSummary(courseId: courseId),
-          onResult: (summary) async {
-            await recordFeatureUsage(ref: ref, feature: 'summary');
-            ref.invalidate(courseSummariesProvider(courseId));
-            navigator.pop();
-            if (context.mounted) {
-              context.push(Routes.summaryPath(summary.id));
-            }
-          },
-          onError: (e) {
-            navigator.pop();
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
-              );
-            }
-          },
-        ),
-        transitionsBuilder: (_, animation, __, child) =>
-            FadeTransition(opacity: animation, child: child),
-        transitionDuration: const Duration(milliseconds: 300),
-      ),
+    if (!canUse || !context.mounted) return;
+    _startBackgroundGeneration(
+      context, ref, GenerationType.summary, 'summary',
     );
   }
 
@@ -1263,289 +1084,54 @@ class _StudyToolsTab extends ConsumerWidget {
       feature: 'glossary',
       context: context,
     );
-    if (!canUse) return;
+    if (!canUse || !context.mounted) return;
+    _startBackgroundGeneration(
+      context, ref, GenerationType.glossary, 'glossary',
+    );
+  }
 
-    if (!context.mounted) return;
+  /// Shared helper to launch a background generation task.
+  void _startBackgroundGeneration(
+    BuildContext context,
+    WidgetRef ref,
+    GenerationType type,
+    String featureName,
+  ) {
+    final notifier = ref.read(generationProvider.notifier);
 
-    final navigator = Navigator.of(context, rootNavigator: true);
-    navigator.push(
-      PageRouteBuilder(
-        opaque: true,
-        pageBuilder: (_, __, ___) => _GeneratingOverlay(
-          type: 'glossary',
-          future: ref
-              .read(glossaryRepositoryProvider)
-              .generateGlossary(courseId: courseId),
-          onResult: (terms) async {
-            await recordFeatureUsage(ref: ref, feature: 'glossary');
-            ref.invalidate(glossaryTermsProvider(courseId));
-            navigator.pop();
-            if (context.mounted) {
-              context.push(Routes.glossaryPath(courseId));
-            }
-          },
-          onError: (e) {
-            navigator.pop();
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
-              );
-            }
-          },
+    // Prevent duplicate generation
+    if (notifier.isRunning(type, courseId)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Already generating ${type.name}...'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
         ),
-        transitionsBuilder: (_, animation, __, child) =>
-            FadeTransition(opacity: animation, child: child),
-        transitionDuration: const Duration(milliseconds: 300),
-      ),
-    );
-  }
-}
-
-/// Full-screen generating overlay with animation.
-class _GeneratingOverlay<T> extends StatefulWidget {
-  final String type;
-  final Future<T> future;
-  final void Function(T result) onResult;
-  final void Function(Object error) onError;
-
-  const _GeneratingOverlay({
-    required this.type,
-    required this.future,
-    required this.onResult,
-    required this.onError,
-  });
-
-  @override
-  State<_GeneratingOverlay<T>> createState() => _GeneratingOverlayState<T>();
-}
-
-class _GeneratingOverlayState<T> extends State<_GeneratingOverlay<T>>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _pulseController;
-  int _stepIndex = 0;
-  bool _completed = false;
-
-  List<String> get _steps {
-    switch (widget.type) {
-      case 'flashcards':
-        return [
-          'Reading your materials...',
-          'Identifying key concepts...',
-          'Crafting questions...',
-          'Creating flashcards...',
-        ];
-      case 'summary':
-        return [
-          'Reading your materials...',
-          'Extracting key ideas...',
-          'Synthesizing content...',
-          'Writing your summary...',
-        ];
-      case 'glossary':
-        return [
-          'Scanning your materials...',
-          'Identifying key terms...',
-          'Writing definitions...',
-          'Building your glossary...',
-        ];
-      default:
-        return [
-          'Analyzing your materials...',
-          'Generating questions...',
-          'Creating answer keys...',
-          'Building your quiz...',
-        ];
+      );
+      return;
     }
-  }
 
-  IconData get _typeIcon {
-    switch (widget.type) {
-      case 'flashcards':
-        return Icons.style;
-      case 'summary':
-        return Icons.auto_stories;
-      case 'glossary':
-        return Icons.menu_book;
-      default:
-        return Icons.quiz;
+    // Get course name for the banner
+    final course = ref.read(courseProvider(courseId)).valueOrNull;
+    final courseName = course?.title ?? 'Course';
+
+    // Start background generation
+    final started = switch (type) {
+      GenerationType.flashcards => notifier.generateFlashcards(courseId, courseName),
+      GenerationType.quiz => notifier.generateQuiz(courseId, courseName),
+      GenerationType.summary => notifier.generateSummary(courseId, courseName),
+      GenerationType.glossary => notifier.generateGlossary(courseId, courseName),
+    };
+
+    if (started) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Generating ${type.name} in background...'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
-  }
-
-  String get _typeTitle {
-    switch (widget.type) {
-      case 'flashcards':
-        return 'Creating Flashcards';
-      case 'summary':
-        return 'Generating Summary';
-      case 'glossary':
-        return 'Building Glossary';
-      default:
-        return 'Creating Quiz';
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
-    )..repeat(reverse: true);
-
-    // Cycle through step messages
-    _cycleSteps();
-
-    // Wait for future to complete
-    widget.future.then((result) {
-      if (!mounted) return;
-      setState(() => _completed = true);
-      // Small delay for UX
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) widget.onResult(result);
-      });
-    }).catchError((e) {
-      if (mounted) widget.onError(e);
-    });
-  }
-
-  void _cycleSteps() async {
-    for (int i = 1; i < _steps.length; i++) {
-      await Future.delayed(const Duration(seconds: 3));
-      if (!mounted || _completed) return;
-      setState(() => _stepIndex = i);
-    }
-  }
-
-  @override
-  void dispose() {
-    _pulseController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0B1E),
-      body: Stack(
-        children: [
-          // Background gradient
-          Container(
-            decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(0, -0.3),
-                radius: 1.2,
-                colors: [
-                  Color(0xFF1A1B3A),
-                  Color(0xFF0A0B1E),
-                ],
-              ),
-            ),
-          ),
-
-          // Main content
-          SafeArea(
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Pulsing orb
-                  AnimatedBuilder(
-                    animation: _pulseController,
-                    builder: (context, _) {
-                      final pulse = _pulseController.value;
-                      final scale = 0.88 + (pulse * 0.12);
-                      return Transform.scale(
-                        scale: scale,
-                        child: Container(
-                          width: 140,
-                          height: 140,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: RadialGradient(
-                              colors: [
-                                const Color(0xFF8B5CF6)
-                                    .withValues(alpha: 0.5),
-                                const Color(0xFF6467F2)
-                                    .withValues(alpha: 0.2),
-                                Colors.transparent,
-                              ],
-                              stops: const [0.0, 0.6, 1.0],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF6467F2)
-                                    .withValues(alpha: 0.25 + pulse * 0.15),
-                                blurRadius: 50 + pulse * 20,
-                                spreadRadius: 15,
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Icon(
-                              _typeIcon,
-                              size: 42,
-                              color: Colors.white.withValues(alpha: 0.85),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // Title
-                  Text(
-                    _typeTitle,
-                    style: AppTypography.h2.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  // Status text
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 400),
-                    child: Text(
-                      _completed ? 'Ready!' : _steps[_stepIndex],
-                      key: ValueKey(_completed ? 'done' : _stepIndex),
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: const Color(0xFFA5A7FA),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Progress dots
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      _steps.length,
-                      (i) => AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        width: i == _stepIndex ? 20 : 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: i <= _stepIndex
-                              ? const Color(0xFF6467F2)
-                              : Colors.white.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

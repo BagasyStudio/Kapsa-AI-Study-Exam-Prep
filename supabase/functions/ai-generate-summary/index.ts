@@ -9,9 +9,18 @@ const corsHeaders = {
 const LLAMA_MODEL = "meta/meta-llama-3-8b-instruct";
 
 // ── Constants ─────────────────────────────────────────────────────
-const CHUNK_SIZE = 3000;
-const MAX_CONCURRENT = 5;
+const CHUNK_SIZE = 5000;
+const MAX_CONCURRENT = 4;
 const MAX_TOKENS_PER_BATCH = 4096;
+const POLL_INTERVAL_MS = 500;
+const MAX_POLL_ATTEMPTS = 180;
+const GLOBAL_DEADLINE_MS = 130_000;
+
+// ── Global deadline tracking ─────────────────────────────────────
+let globalStart = 0;
+function isDeadlineClose(): boolean {
+  return Date.now() - globalStart > GLOBAL_DEADLINE_MS;
+}
 
 // ── Input validation ──────────────────────────────────────────────
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -36,6 +45,7 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
+      "Prefer": "wait=80",
     },
     body: JSON.stringify({
       input: {
@@ -50,11 +60,21 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
     throw new Error(`AI service unavailable (${createRes.status}): ${errBody.substring(0, 200)}`);
   }
 
-  const prediction = await createRes.json();
-  let result = prediction;
+  let result = await createRes.json();
+
+  // Prefer: wait returns completed result directly (no polling needed)
+  if (result.status === "succeeded") {
+    return Array.isArray(result.output) ? result.output.join("") : String(result.output);
+  }
+  if (result.status === "failed") {
+    throw new Error("AI processing failed. Please try again.");
+  }
+
+  // Fallback: poll only if Prefer: wait didn't complete in time (rare)
   let attempts = 0;
-  while (result.status !== "succeeded" && result.status !== "failed" && attempts < 120) {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+  while (result.status !== "succeeded" && result.status !== "failed" && attempts < MAX_POLL_ATTEMPTS) {
+    if (isDeadlineClose()) throw new Error("Global deadline approaching, aborting poll");
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
     const pollRes = await fetch(result.urls.get, {
       headers: { "Authorization": `Bearer ${apiKey}` },
     });
@@ -122,6 +142,10 @@ async function runWithConcurrency<T>(
   let nextIndex = 0;
   async function worker() {
     while (nextIndex < tasks.length) {
+      if (isDeadlineClose()) {
+        // Skip remaining tasks if deadline is close
+        break;
+      }
       const idx = nextIndex++;
       try {
         const value = await tasks[idx]();
@@ -141,6 +165,8 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  globalStart = Date.now();
 
   const replicateKey = Deno.env.get("REPLICATE_API_KEY");
   if (!replicateKey) {
@@ -259,6 +285,9 @@ IMPORTANT: Output ONLY the JSON object. No markdown code blocks, no extra text.`
         word_count: summary.split(/\s+/).length,
       }).select().single();
 
+      const elapsed = Date.now() - globalStart;
+      console.log(`Summary saved: ${saved.id}, ${summary.split(/\s+/).length} words, elapsed ${elapsed}ms`);
+
       return new Response(JSON.stringify(saved), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -283,13 +312,27 @@ IMPORTANT: Output ONLY the JSON object. No markdown code blocks, no extra text.`
       throw new Error("Failed to generate summary. Please try again.");
     }
 
-    // Merge partial summaries into final
-    const mergePrompt = `Combine these partial summaries into one cohesive, well-structured summary with bullet points:\n\n${partialSummaries.join("\n\n---\n\n")}\n\nOutput the JSON:`;
-    const mergeResponse = await callReplicate(replicateKey, mergePrompt, systemPrompt, MAX_TOKENS_PER_BATCH);
+    const phase1Elapsed = Date.now() - globalStart;
+    console.log(`Phase 1 done: ${partialSummaries.length} partials in ${phase1Elapsed}ms`);
 
-    const finalResult = parseJsonObject(mergeResponse);
-    const finalSummary = typeof finalResult.summary === "string" ? finalResult.summary : partialSummaries.join("\n\n");
-    const finalBullets = Array.isArray(finalResult.bulletPoints) ? finalResult.bulletPoints : [];
+    let finalSummary: string;
+    let finalBullets: string[];
+
+    // If deadline is close after phase 1, skip the merge and use the longest partial
+    if (isDeadlineClose()) {
+      console.log("Deadline close after phase 1, skipping merge — using longest partial summary");
+      const longest = partialSummaries.reduce((a, b) => a.length >= b.length ? a : b, "");
+      finalSummary = longest;
+      finalBullets = [];
+    } else {
+      // Merge partial summaries into final
+      const mergePrompt = `Combine these partial summaries into one cohesive, well-structured summary with bullet points:\n\n${partialSummaries.join("\n\n---\n\n")}\n\nOutput the JSON:`;
+      const mergeResponse = await callReplicate(replicateKey, mergePrompt, systemPrompt, MAX_TOKENS_PER_BATCH);
+
+      const finalResult = parseJsonObject(mergeResponse);
+      finalSummary = typeof finalResult.summary === "string" ? finalResult.summary : partialSummaries.join("\n\n");
+      finalBullets = Array.isArray(finalResult.bulletPoints) ? finalResult.bulletPoints : [];
+    }
 
     const { data: saved } = await supabase.from("summaries").insert({
       course_id: courseId,
@@ -301,17 +344,22 @@ IMPORTANT: Output ONLY the JSON object. No markdown code blocks, no extra text.`
       word_count: finalSummary.split(/\s+/).length,
     }).select().single();
 
-    console.log(`Summary saved: ${saved.id}, ${finalSummary.split(/\s+/).length} words`);
+    const totalElapsed = Date.now() - globalStart;
+    console.log(`Summary saved: ${saved.id}, ${finalSummary.split(/\s+/).length} words, elapsed ${totalElapsed}ms`);
 
     return new Response(JSON.stringify(saved), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    const elapsed = Date.now() - globalStart;
+    console.error(`ai-generate-summary failed after ${elapsed}ms`);
+
     const message = error instanceof Error && (
       error.message.includes("unavailable") ||
       error.message.includes("timed out") ||
       error.message.includes("failed. Please") ||
-      error.message.includes("Failed to generate")
+      error.message.includes("Failed to generate") ||
+      error.message.includes("Global deadline")
     ) ? error.message : sanitizeErrorMessage(error);
 
     return new Response(JSON.stringify({ error: message }), {

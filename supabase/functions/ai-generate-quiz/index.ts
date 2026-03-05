@@ -11,11 +11,19 @@ const LLAMA_MODEL = "meta/meta-llama-3-8b-instruct";
 // ── Constants ─────────────────────────────────────────────────────
 const QUESTIONS_PER_CHUNK = 10;    // reliable JSON output per batch
 const CHARS_PER_QUESTION = 300;    // ~1 question per 300 chars of source
-const MAX_TOTAL_QUESTIONS = 50;
+const MAX_TOTAL_QUESTIONS = 30;
 const MIN_TOTAL_QUESTIONS = 3;
-const MAX_CONCURRENT = 5;
-const CHUNK_SIZE = 3000;           // chars per chunk sent to AI
-const MAX_TOKENS_PER_BATCH = 4096;
+const MAX_CONCURRENT = 4;
+const CHUNK_SIZE = 5000;           // chars per chunk sent to AI
+const POLL_INTERVAL_MS = 500;
+const MAX_POLL_ATTEMPTS = 180;
+const GLOBAL_DEADLINE_MS = 130_000;
+
+// ── Global deadline tracking ─────────────────────────────────────
+let globalStart = 0;
+function isDeadlineClose(): boolean {
+  return Date.now() - globalStart > GLOBAL_DEADLINE_MS;
+}
 
 // ── Input validation helpers ──────────────────────────────────────
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -64,6 +72,7 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
+      "Prefer": "wait=80",
     },
     body: JSON.stringify({
       input: {
@@ -78,11 +87,21 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
     throw new Error(`AI service unavailable (${createRes.status}): ${errBody.substring(0, 200)}`);
   }
 
-  const prediction = await createRes.json();
-  let result = prediction;
+  let result = await createRes.json();
+
+  // Prefer: wait returns completed result directly (no polling needed)
+  if (result.status === "succeeded") {
+    return Array.isArray(result.output) ? result.output.join("") : String(result.output);
+  }
+  if (result.status === "failed") {
+    throw new Error("AI processing failed. Please try again.");
+  }
+
+  // Fallback: poll only if Prefer: wait didn't complete in time (rare)
   let attempts = 0;
-  while (result.status !== "succeeded" && result.status !== "failed" && attempts < 120) {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+  while (result.status !== "succeeded" && result.status !== "failed" && attempts < MAX_POLL_ATTEMPTS) {
+    if (isDeadlineClose()) throw new Error("Global deadline approaching, aborting poll");
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
     const pollRes = await fetch(result.urls.get, {
       headers: { "Authorization": `Bearer ${apiKey}` },
     });
@@ -198,6 +217,8 @@ async function generateQuizBatch(
   courseTitle: string,
   detectedLang: string,
 ): Promise<any[]> {
+  const scaledTokens = Math.min(4096, Math.max(1024, questionsToGenerate * 350));
+
   const systemPrompt = `You are a quiz generator for "${courseTitle}".
 
 CRITICAL LANGUAGE RULE: The course material is in ${detectedLang}. You MUST generate ALL quiz content (questions and correct_answer) in ${detectedLang}. Do NOT translate to English. Keep the same language as the source material.
@@ -215,16 +236,9 @@ IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation.`;
 
   const prompt = `Based on this course material, generate ${questionsToGenerate} quiz questions in the SAME LANGUAGE as the material:\n\n${chunk}\n\nOutput the JSON array now:`;
 
-  const aiResponse = await callReplicate(apiKey, prompt, systemPrompt, MAX_TOKENS_PER_BATCH);
+  const aiResponse = await callReplicate(apiKey, prompt, systemPrompt, scaledTokens);
 
-  try {
-    return parseJsonArray(aiResponse);
-  } catch {
-    console.warn("Quiz batch parse failed, retrying...");
-    const retryPrompt = `Generate exactly ${questionsToGenerate} quiz questions as a JSON array. Output ONLY the array starting with [ and ending with ]. No text before or after.\n\nMaterial:\n${chunk.substring(0, 2000)}\n\nJSON array:`;
-    const retryResponse = await callReplicate(apiKey, retryPrompt, systemPrompt, MAX_TOKENS_PER_BATCH);
-    return parseJsonArray(retryResponse);
-  }
+  return parseJsonArray(aiResponse);
 }
 
 // ── Concurrency control ──────────────────────────────────────────
@@ -238,6 +252,10 @@ async function runWithConcurrency<T>(
   async function worker() {
     while (nextIndex < tasks.length) {
       const idx = nextIndex++;
+      if (isDeadlineClose()) {
+        results[idx] = { status: "rejected", reason: new Error("Global deadline approaching, skipping batch") };
+        continue;
+      }
       try {
         const value = await tasks[idx]();
         results[idx] = { status: "fulfilled", value };
@@ -260,6 +278,8 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  globalStart = Date.now();
 
   const replicateKey = Deno.env.get("REPLICATE_API_KEY");
   if (!replicateKey) {
@@ -463,7 +483,8 @@ Deno.serve(async (req: Request) => {
         if (data) savedQuestions.push(...data);
       }
 
-      console.log(`Done: ${allQuestions.length} questions in test ${test.id}`);
+      const elapsed = Date.now() - globalStart;
+      console.log(`Done: ${allQuestions.length} questions in test ${test.id} (${elapsed}ms)`);
 
       return new Response(JSON.stringify({ test, questions: savedQuestions }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -527,6 +548,8 @@ Deno.serve(async (req: Request) => {
         return `Q${i + 1}: ${q.question}\nCorrect Answer: ${q.correct_answer}\nStudent Answer: ${sanitizedAnswer}`;
       }).join("\n\n");
 
+      const scaledEvalTokens = Math.min(4096, Math.max(1024, (questions || []).length * 350));
+
       const evalSystemPrompt = `You are a fair and encouraging study tutor evaluating a student's quiz answers.
 
 CRITICAL: Respond in ${detectedLang}.
@@ -546,7 +569,7 @@ One object per question, in order. No markdown, no explanation outside the JSON.
       let correctCount = 0;
 
       try {
-        const aiEvalResponse = await callReplicate(replicateKey, evalPrompt, evalSystemPrompt, MAX_TOKENS_PER_BATCH);
+        const aiEvalResponse = await callReplicate(replicateKey, evalPrompt, evalSystemPrompt, scaledEvalTokens);
         const evaluations = parseJsonArray(aiEvalResponse);
 
         for (let i = 0; i < (questions || []).length; i++) {
@@ -638,6 +661,9 @@ One object per question, in order. No markdown, no explanation outside the JSON.
         motivation_text: motivationText,
       };
 
+      const elapsed = Date.now() - globalStart;
+      console.log(`Evaluate done: ${correctCount}/${totalQ} correct, grade ${grade} (${elapsed}ms)`);
+
       return new Response(JSON.stringify({ test: updatedTest, questions: evaluatedQuestions }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -698,6 +724,8 @@ One object per question, in order. No markdown, no explanation outside the JSON.
 
       const courseName = test.courses?.title || "this course";
 
+      const scaledExplainTokens = Math.min(4096, Math.max(1024, wrongQuestions.length * 350));
+
       const systemPrompt = `You are an expert study tutor helping a student understand their mistakes on a quiz about "${courseName}".
 
 CRITICAL: Respond entirely in ${detectedLang}.
@@ -718,7 +746,7 @@ IMPORTANT: Output ONLY the JSON object. No markdown code blocks, no explanation 
 
       const prompt = `The student got ${wrongQuestions.length} out of ${test.total_count} questions wrong. Here are their mistakes:\n\n${mistakesContext}\n\nAnalyze these mistakes and output the JSON:`;
 
-      const aiResponse = await callReplicate(replicateKey, prompt, systemPrompt, MAX_TOKENS_PER_BATCH);
+      const aiResponse = await callReplicate(replicateKey, prompt, systemPrompt, scaledExplainTokens);
 
       // Parse JSON object (not array)
       let result;
@@ -746,6 +774,9 @@ IMPORTANT: Output ONLY the JSON object. No markdown code blocks, no explanation 
         }
       }
 
+      const elapsed = Date.now() - globalStart;
+      console.log(`Explain mistakes done: ${wrongQuestions.length} mistakes analyzed (${elapsed}ms)`);
+
       return new Response(JSON.stringify({
         explanation: typeof result.explanation === "string" ? result.explanation : "",
         weakTopics: Array.isArray(result.weakTopics) ? result.weakTopics.map((t: any) => String(t).substring(0, 100)) : [],
@@ -760,12 +791,16 @@ IMPORTANT: Output ONLY the JSON object. No markdown code blocks, no explanation 
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    const elapsed = Date.now() - globalStart;
     const message = error instanceof Error && (
       error.message.includes("unavailable") ||
       error.message.includes("timed out") ||
       error.message.includes("failed. Please") ||
-      error.message.includes("Failed to generate")
+      error.message.includes("Failed to generate") ||
+      error.message.includes("Global deadline")
     ) ? error.message : sanitizeErrorMessage(error);
+
+    console.error(`Quiz function error after ${elapsed}ms:`, message);
 
     return new Response(JSON.stringify({ error: message }), {
       status: 500,

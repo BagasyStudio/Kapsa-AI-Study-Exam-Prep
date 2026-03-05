@@ -1,0 +1,218 @@
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../models/generation_task.dart';
+export '../models/generation_task.dart';
+import '../navigation/routes.dart';
+import '../services/sound_service.dart';
+import '../utils/error_handler.dart';
+import '../../features/auth/presentation/providers/auth_provider.dart';
+import '../../features/flashcards/presentation/providers/flashcard_provider.dart';
+import '../../features/glossary/presentation/providers/glossary_provider.dart';
+import '../../features/summaries/presentation/providers/summary_provider.dart';
+import '../../features/subscription/presentation/providers/subscription_provider.dart';
+import '../../features/test_results/presentation/providers/test_provider.dart';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Background Generation Provider
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// Manages AI generation tasks (flashcards, quiz, summary, glossary) that run
+// in the background. The user can navigate freely while generation happens.
+// A banner on the home screen shows progress and results.
+//
+// NOT autoDispose — state persists across the entire app lifecycle.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
+  final Ref _ref;
+
+  GenerationNotifier(this._ref) : super([]);
+
+  // ── Public API ───────────────────────────────────────────────────────────
+
+  /// Start generating flashcards in background. Returns false if already running.
+  ///
+  /// Optionally pass [materialId] to generate from a specific material.
+  bool generateFlashcards(String courseId, String courseName, {String? materialId}) {
+    if (isRunning(GenerationType.flashcards, courseId)) return false;
+
+    final task = _createTask(GenerationType.flashcards, courseId, courseName);
+
+    // Fire-and-forget
+    _ref
+        .read(flashcardRepositoryProvider)
+        .generateFlashcards(courseId: courseId, materialId: materialId)
+        .then((deck) {
+      _recordUsage('flashcards');
+      _ref.invalidate(flashcardDecksProvider(courseId));
+      _completeTask(task.id, Routes.flashcardSessionPath(deck.id));
+    }).catchError((Object e) {
+      _failTask(task.id, e);
+    });
+
+    return true;
+  }
+
+  /// Start generating a quiz in background. Returns false if already running.
+  bool generateQuiz(String courseId, String courseName) {
+    if (isRunning(GenerationType.quiz, courseId)) return false;
+
+    final task = _createTask(GenerationType.quiz, courseId, courseName);
+
+    _ref
+        .read(testRepositoryProvider)
+        .generateQuiz(courseId: courseId)
+        .then((result) {
+      _recordUsage('quiz');
+      _completeTask(task.id, Routes.quizSessionPath(result.test.id));
+    }).catchError((Object e) {
+      _failTask(task.id, e);
+    });
+
+    return true;
+  }
+
+  /// Start generating a summary in background. Returns false if already running.
+  bool generateSummary(String courseId, String courseName) {
+    if (isRunning(GenerationType.summary, courseId)) return false;
+
+    final task = _createTask(GenerationType.summary, courseId, courseName);
+
+    _ref
+        .read(summaryRepositoryProvider)
+        .generateSummary(courseId: courseId)
+        .then((summary) {
+      _recordUsage('summary');
+      _ref.invalidate(courseSummariesProvider(courseId));
+      _completeTask(task.id, Routes.summaryPath(summary.id));
+    }).catchError((Object e) {
+      _failTask(task.id, e);
+    });
+
+    return true;
+  }
+
+  /// Start generating a glossary in background. Returns false if already running.
+  bool generateGlossary(String courseId, String courseName) {
+    if (isRunning(GenerationType.glossary, courseId)) return false;
+
+    final task = _createTask(GenerationType.glossary, courseId, courseName);
+
+    _ref
+        .read(glossaryRepositoryProvider)
+        .generateGlossary(courseId: courseId)
+        .then((terms) {
+      _recordUsage('glossary');
+      _ref.invalidate(glossaryTermsProvider(courseId));
+      _completeTask(task.id, Routes.glossaryPath(courseId));
+    }).catchError((Object e) {
+      _failTask(task.id, e);
+    });
+
+    return true;
+  }
+
+  /// Remove a task from the list (dismiss banner card).
+  void dismiss(String taskId) {
+    state = state.where((t) => t.id != taskId).toList();
+  }
+
+  /// Whether a task of this type+courseId is currently running.
+  bool isRunning(GenerationType type, String courseId) {
+    return state.any(
+      (t) => t.type == type && t.courseId == courseId && t.isRunning,
+    );
+  }
+
+  /// Whether ANY task is currently running.
+  bool get hasRunning => state.any((t) => t.isRunning);
+
+  // ── Internal ─────────────────────────────────────────────────────────────
+
+  GenerationTask _createTask(
+    GenerationType type,
+    String courseId,
+    String courseName,
+  ) {
+    final task = GenerationTask(
+      id: '${type.name}_${courseId}_${DateTime.now().millisecondsSinceEpoch}',
+      type: type,
+      courseId: courseId,
+      courseName: courseName,
+      status: GenerationStatus.running,
+      startedAt: DateTime.now(),
+    );
+    state = [...state, task];
+    return task;
+  }
+
+  void _completeTask(String taskId, String resultRoute) {
+    if (!mounted) return;
+    state = state.map((t) {
+      if (t.id != taskId) return t;
+      return t.copyWith(
+        status: GenerationStatus.completed,
+        resultRoute: resultRoute,
+        completedAt: DateTime.now(),
+      );
+    }).toList();
+
+    // Haptic + sound feedback
+    HapticFeedback.mediumImpact();
+    SoundService.playProcessingComplete();
+  }
+
+  void _failTask(String taskId, Object error) {
+    if (!mounted) return;
+    final friendly = AppErrorHandler.friendlyMessage(error);
+    state = state.map((t) {
+      if (t.id != taskId) return t;
+      return t.copyWith(
+        status: GenerationStatus.error,
+        errorMessage: friendly,
+        completedAt: DateTime.now(),
+      );
+    }).toList();
+  }
+
+  /// Record feature usage (mirrors recordFeatureUsage but uses Ref).
+  void _recordUsage(String feature) {
+    try {
+      final user = _ref.read(currentUserProvider);
+      if (user == null) return;
+      _ref.read(subscriptionRepositoryProvider).recordUsage(user.id, feature);
+      _ref.invalidate(dailyUsageProvider);
+    } catch (_) {
+      // Non-critical — don't fail the generation
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Providers
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Main generation provider — NOT autoDispose so tasks persist across screens.
+final generationProvider =
+    StateNotifierProvider<GenerationNotifier, List<GenerationTask>>((ref) {
+  return GenerationNotifier(ref);
+});
+
+/// Only running tasks.
+final activeGenerationsProvider = Provider<List<GenerationTask>>((ref) {
+  return ref.watch(generationProvider).where((t) => t.isRunning).toList();
+});
+
+/// Completed or errored tasks (ready for user interaction).
+final finishedGenerationsProvider = Provider<List<GenerationTask>>((ref) {
+  return ref
+      .watch(generationProvider)
+      .where((t) => t.isCompleted || t.isError)
+      .toList();
+});
+
+/// Quick bool — any task exists (running, completed, or error).
+final hasGenerationsProvider = Provider<bool>((ref) {
+  return ref.watch(generationProvider).isNotEmpty;
+});

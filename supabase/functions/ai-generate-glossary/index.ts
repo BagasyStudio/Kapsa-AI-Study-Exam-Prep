@@ -7,10 +7,18 @@ const corsHeaders = {
 };
 
 const LLAMA_MODEL = "meta/meta-llama-3-8b-instruct";
-const CHUNK_SIZE = 3000;
-const MAX_CONCURRENT = 5;
+const CHUNK_SIZE = 5000;
+const MAX_CONCURRENT = 4;
 const MAX_TOKENS_PER_BATCH = 4096;
 const TERMS_PER_CHUNK = 15;
+const POLL_INTERVAL_MS = 500;
+const MAX_POLL_ATTEMPTS = 180;
+const GLOBAL_DEADLINE_MS = 130_000;
+
+let globalStart = 0;
+function isDeadlineClose(): boolean {
+  return Date.now() - globalStart > GLOBAL_DEADLINE_MS;
+}
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function isValidUUID(value: unknown): value is string {
@@ -29,18 +37,28 @@ function buildLlamaPrompt(systemPrompt: string, userPrompt: string): string {
 async function callReplicate(apiKey: string, prompt: string, systemPrompt: string, maxTokens = 2048): Promise<string> {
   const createRes = await fetch(`https://api.replicate.com/v1/models/${LLAMA_MODEL}/predictions`, {
     method: "POST",
-    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json", "Prefer": "wait=80" },
     body: JSON.stringify({ input: { prompt: buildLlamaPrompt(systemPrompt, prompt), max_tokens: maxTokens } }),
   });
   if (!createRes.ok) {
     const errBody = await createRes.text();
     throw new Error(`AI service unavailable (${createRes.status}): ${errBody.substring(0, 200)}`);
   }
-  const prediction = await createRes.json();
-  let result = prediction;
+  let result = await createRes.json();
+
+  // Prefer: wait returns completed result directly (no polling needed)
+  if (result.status === "succeeded") {
+    return Array.isArray(result.output) ? result.output.join("") : String(result.output);
+  }
+  if (result.status === "failed") {
+    throw new Error("AI processing failed. Please try again.");
+  }
+
+  // Fallback: poll only if Prefer: wait didn't complete in time (rare)
   let attempts = 0;
-  while (result.status !== "succeeded" && result.status !== "failed" && attempts < 120) {
-    await new Promise((r) => setTimeout(r, 1000));
+  while (result.status !== "succeeded" && result.status !== "failed" && attempts < MAX_POLL_ATTEMPTS) {
+    if (isDeadlineClose()) throw new Error("Global deadline approaching, aborting poll");
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
     const pollRes = await fetch(result.urls.get, { headers: { "Authorization": `Bearer ${apiKey}` } });
     if (!pollRes.ok) throw new Error("AI service unavailable during polling");
     result = await pollRes.json();
@@ -89,6 +107,11 @@ async function runWithConcurrency<T>(tasks: (() => Promise<T>)[], max: number): 
   let nextIndex = 0;
   async function worker() {
     while (nextIndex < tasks.length) {
+      if (isDeadlineClose()) {
+        const idx = nextIndex++;
+        results[idx] = { status: "rejected", reason: new Error("Global deadline approaching, skipping task") };
+        continue;
+      }
       const idx = nextIndex++;
       try { results[idx] = { status: "fulfilled", value: await tasks[idx]() }; }
       catch (reason: any) { results[idx] = { status: "rejected", reason }; }
@@ -113,6 +136,8 @@ function parseJsonArray(raw: string): any[] {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  globalStart = Date.now();
 
   const replicateKey = Deno.env.get("REPLICATE_API_KEY");
   if (!replicateKey) {
@@ -236,13 +261,19 @@ Output ONLY a valid JSON array. No markdown, no explanation.`;
       .eq("course_id", courseId).eq("user_id", user.id)
       .order("term", { ascending: true });
 
+    const elapsed = Date.now() - globalStart;
+    console.log(`Glossary generation completed in ${elapsed}ms`);
+
     return new Response(JSON.stringify({ terms: saved, count: saved?.length || 0 }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    const elapsed = Date.now() - globalStart;
+    console.error(`Glossary generation failed after ${elapsed}ms`);
     const message = error instanceof Error && (
       error.message.includes("unavailable") || error.message.includes("timed out") ||
-      error.message.includes("failed. Please") || error.message.includes("Failed to extract")
+      error.message.includes("failed. Please") || error.message.includes("Failed to extract") ||
+      error.message.includes("Global deadline")
     ) ? error.message : sanitizeErrorMessage(error);
     return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
