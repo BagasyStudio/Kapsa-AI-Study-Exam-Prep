@@ -10,6 +10,8 @@ class TestModel {
   final int totalCount;
   final String? motivationText;
   final bool isPracticeExam;
+  final String status; // 'in_progress' | 'completed'
+  final int currentQuestion; // 0-based index of last visited question
   final DateTime? createdAt;
 
   const TestModel({
@@ -23,6 +25,8 @@ class TestModel {
     this.totalCount = 0,
     this.motivationText,
     this.isPracticeExam = false,
+    this.status = 'completed',
+    this.currentQuestion = 0,
     this.createdAt,
   });
 
@@ -38,6 +42,8 @@ class TestModel {
       totalCount: (json['total_count'] as num?)?.toInt() ?? 0,
       motivationText: json['motivation_text'] as String?,
       isPracticeExam: json['is_practice_exam'] as bool? ?? false,
+      status: json['status'] as String? ?? 'completed',
+      currentQuestion: (json['current_question'] as num?)?.toInt() ?? 0,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
@@ -55,6 +61,8 @@ class TestModel {
       'total_count': totalCount,
       'motivation_text': motivationText,
       'is_practice_exam': isPracticeExam,
+      'status': status,
+      'current_question': currentQuestion,
     };
   }
 
@@ -66,6 +74,8 @@ class TestModel {
     int? totalCount,
     String? motivationText,
     bool? isPracticeExam,
+    String? status,
+    int? currentQuestion,
   }) {
     return TestModel(
       id: id,
@@ -78,9 +88,14 @@ class TestModel {
       totalCount: totalCount ?? this.totalCount,
       motivationText: motivationText ?? this.motivationText,
       isPracticeExam: isPracticeExam ?? this.isPracticeExam,
+      status: status ?? this.status,
+      currentQuestion: currentQuestion ?? this.currentQuestion,
       createdAt: createdAt,
     );
   }
+
+  /// Whether this quiz is still in progress (not yet submitted).
+  bool get isInProgress => status == 'in_progress';
 
   /// The number of mistakes.
   int get mistakeCount => totalCount - correctCount;

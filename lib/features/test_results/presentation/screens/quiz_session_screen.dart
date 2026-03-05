@@ -15,17 +15,22 @@ import '../../data/models/test_question_model.dart';
 import '../../../../core/utils/error_handler.dart';
 import '../../../courses/presentation/providers/course_provider.dart';
 import '../widgets/exam_timer_widget.dart';
+import '../widgets/quiz_combo_indicator.dart';
 import '../../../gamification/presentation/providers/xp_provider.dart';
 import '../../../gamification/presentation/widgets/xp_popup.dart';
 import '../../../../core/constants/xp_config.dart';
 import '../../../../core/widgets/celebration_overlay.dart';
 import '../../../../core/services/review_service.dart';
+import '../../../home/presentation/providers/resume_quiz_provider.dart';
 
 /// Full-screen quiz session where users answer AI-generated questions.
 ///
 /// Displays one question at a time with a text input field.
 /// After answering all questions, submits to the AI for evaluation
 /// and navigates to the results screen.
+///
+/// Auto-saves progress as the user navigates between questions.
+/// If the user exits, they can resume from the home screen banner.
 ///
 /// Supports optional [timeLimitMinutes] for practice exam mode.
 class QuizSessionScreen extends ConsumerStatefulWidget {
@@ -51,6 +56,9 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
   final _answerController = TextEditingController();
   final _answerFocusNode = FocusNode();
   bool _isSubmitting = false;
+  bool _hasLoadedSavedAnswers = false;
+  List<TestQuestionModel>? _questions; // cached for exit dialog
+  int _comboCount = 0; // consecutive answered questions streak
   late AnimationController _slideController;
   late Animation<Offset> _slideAnimation;
 
@@ -78,6 +86,72 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
     super.dispose();
   }
 
+  // ── Resume from saved progress ──────────────────────────────────────
+
+  /// Load saved answers from the database (runs once).
+  void _initFromSavedProgress(List<TestQuestionModel> questions) {
+    if (_hasLoadedSavedAnswers) return;
+    _hasLoadedSavedAnswers = true;
+
+    bool hasSavedProgress = false;
+    for (final q in questions) {
+      if (q.userAnswer != null && q.userAnswer!.isNotEmpty) {
+        _answers[q.questionNumber - 1] = q.userAnswer!;
+        hasSavedProgress = true;
+      }
+    }
+
+    if (hasSavedProgress) {
+      // Jump to first unanswered question
+      int firstUnanswered = questions.length - 1;
+      for (int i = 0; i < questions.length; i++) {
+        if (!_answers.containsKey(i)) {
+          firstUnanswered = i;
+          break;
+        }
+      }
+
+      // Initialize combo from saved streak (count consecutive from start)
+      int savedCombo = 0;
+      for (int i = 0; i < questions.length; i++) {
+        if (_answers.containsKey(i)) {
+          savedCombo++;
+        } else {
+          break;
+        }
+      }
+      _comboCount = savedCombo;
+
+      // Use post-frame callback to avoid setState during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _currentIndex = firstUnanswered;
+          _answerController.text = _answers[_currentIndex] ?? '';
+        });
+      });
+    }
+  }
+
+  // ── Auto-save ───────────────────────────────────────────────────────
+
+  /// Save a single answer to the database (fire-and-forget).
+  void _autoSaveAnswer(List<TestQuestionModel> questions, int index) {
+    final answer = _answers[index];
+    if (answer == null || answer.isEmpty) return;
+    if (index >= questions.length) return;
+
+    final question = questions[index];
+    ref.read(testRepositoryProvider).saveQuestionAnswer(
+      testId: widget.testId,
+      questionId: question.id,
+      answer: answer,
+      currentIndex: _currentIndex,
+    ).catchError((_) {/* fire-and-forget, best-effort */});
+  }
+
+  // ── Navigation ──────────────────────────────────────────────────────
+
   void _nextQuestion(List<TestQuestionModel> questions) {
     // Prevent rapid taps during animation
     if (_slideController.isAnimating) return;
@@ -86,7 +160,15 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
     final answer = _answerController.text.trim();
     if (answer.isNotEmpty) {
       _answers[_currentIndex] = answer;
+      // Increment combo — answered this question
+      _comboCount++;
+    } else {
+      // Skipped a question → reset combo
+      _comboCount = 0;
     }
+    // Auto-save to DB
+    _autoSaveAnswer(questions, _currentIndex);
+    HapticFeedback.selectionClick();
 
     if (_currentIndex < questions.length - 1) {
       // Animate slide out
@@ -121,7 +203,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
     }
   }
 
-  void _prevQuestion() {
+  void _prevQuestion(List<TestQuestionModel> questions) {
     // Prevent rapid taps during animation
     if (_slideController.isAnimating) return;
 
@@ -131,6 +213,9 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
       if (answer.isNotEmpty) {
         _answers[_currentIndex] = answer;
       }
+      // Auto-save to DB
+      _autoSaveAnswer(questions, _currentIndex);
+      HapticFeedback.selectionClick();
 
       setState(() {
         _slideAnimation = Tween<Offset>(
@@ -207,6 +292,9 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
     HapticFeedback.mediumImpact();
 
     try {
+      // Mark as completed before evaluation
+      await ref.read(testRepositoryProvider).markTestCompleted(widget.testId);
+
       // Build answers list
       final answersList = questions.map((q) {
         return {
@@ -232,13 +320,16 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
       // Award XP for quiz completion
       _awardQuizXp(result.test.score);
 
+      // Remove from home screen banner
+      ref.invalidate(inProgressQuizzesProvider);
+
       if (!mounted) return;
 
       // Show celebration for perfect score
       if ((result.test.score ?? 0) >= 100) {
         CelebrationOverlay.show(
           context,
-          title: 'Perfect Score! 🎉',
+          title: 'Perfect Score! \u{1F389}',
           subtitle: 'You nailed every question!',
           icon: Icons.emoji_events,
           color: const Color(0xFFF59E0B),
@@ -296,11 +387,23 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
 
   Future<bool> _confirmExit() async {
     if (_isSubmitting) return false; // Don't leave while submitting
+
+    // Save current answer before showing dialog
+    final answer = _answerController.text.trim();
+    if (answer.isNotEmpty) {
+      _answers[_currentIndex] = answer;
+      if (_questions != null) {
+        _autoSaveAnswer(_questions!, _currentIndex);
+      }
+    }
+
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Leave quiz?'),
-        content: const Text('Your answers will be lost if you leave now.'),
+        content: const Text(
+          'Your progress is saved! You can continue this quiz later from the home screen.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -308,7 +411,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Leave'),
+            child: const Text('Leave for now'),
           ),
         ],
       ),
@@ -362,6 +465,10 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
   }
 
   Widget _buildQuizSession(List<TestQuestionModel> questions) {
+    // Cache questions ref for exit dialog & resume detection
+    _questions = questions;
+    _initFromSavedProgress(questions);
+
     final total = questions.length;
     final current = _currentIndex + 1;
     final progress = current / total;
@@ -412,7 +519,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                       children: [
                         // Close button
                         TapScale(
-                          onTap: () => _showExitDialog(),
+                          onTap: () => _showExitDialog(questions),
                           child: Container(
                             width: 44,
                             height: 44,
@@ -473,6 +580,13 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                   ],
                 ),
               ),
+
+              // Combo streak indicator
+              if (_comboCount >= 2)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
+                  child: QuizComboIndicator(count: _comboCount),
+                ),
 
               // Question area
               Expanded(
@@ -586,7 +700,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                     if (_currentIndex > 0)
                       Expanded(
                         child: TapScale(
-                          onTap: _prevQuestion,
+                          onTap: () => _prevQuestion(questions),
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             decoration: BoxDecoration(
@@ -761,12 +875,19 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
       XpPopup.show(
         context,
         xp: displayXp,
-        label: scorePercent >= 100 ? '🏆 Perfect!' : 'Quiz Complete',
+        label: scorePercent >= 100 ? '\u{1F3C6} Perfect!' : 'Quiz Complete',
       );
     }
   }
 
-  void _showExitDialog() {
+  void _showExitDialog(List<TestQuestionModel> questions) {
+    // Save current answer before showing dialog
+    final answer = _answerController.text.trim();
+    if (answer.isNotEmpty) {
+      _answers[_currentIndex] = answer;
+      _autoSaveAnswer(questions, _currentIndex);
+    }
+
     final brightness = Theme.of(context).brightness;
     final isDark = brightness == Brightness.dark;
     showDialog(
@@ -783,7 +904,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
           ),
         ),
         content: Text(
-          'Your progress will be lost. Are you sure you want to leave?',
+          'Your progress is saved! You can continue this quiz later from the home screen.',
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.textSecondaryFor(brightness),
           ),
@@ -804,9 +925,9 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
               Navigator.of(context).pop();
             },
             child: Text(
-              'Leave',
+              'Leave for now',
               style: AppTypography.labelLarge.copyWith(
-                color: AppColors.error,
+                color: AppColors.textSecondaryFor(brightness),
               ),
             ),
           ),

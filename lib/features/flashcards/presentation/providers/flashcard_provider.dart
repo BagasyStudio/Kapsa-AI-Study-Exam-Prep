@@ -42,6 +42,12 @@ final dueCardsCountForDeckProvider = FutureProvider.autoDispose
   return ref.watch(flashcardRepositoryProvider).getDueCardsCountForDeck(deckId);
 });
 
+/// Fetches due cards across ALL user courses (for Quick Review mode).
+final allDueCardsProvider =
+    FutureProvider.autoDispose<List<FlashcardModel>>((ref) async {
+  return ref.watch(flashcardRepositoryProvider).getAllDueCards(limit: 20);
+});
+
 /// Total due cards across ALL user courses (for home screen badge).
 final totalDueCardsProvider = FutureProvider.autoDispose<int>((ref) async {
   final client = ref.watch(supabaseClientProvider);

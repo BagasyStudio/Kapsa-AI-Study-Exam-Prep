@@ -35,6 +35,15 @@ import '../../../groups/presentation/widgets/group_card.dart';
 import '../widgets/weekly_stats_card.dart';
 import '../widgets/quick_actions_row.dart';
 import '../providers/study_activity_provider.dart';
+import '../providers/flashcard_quick_access_provider.dart';
+import '../providers/resume_quiz_provider.dart';
+import '../widgets/flashcard_quick_access_section.dart';
+import '../widgets/resume_quiz_banner.dart';
+import '../widgets/quick_review_card.dart';
+import '../../../flashcards/presentation/providers/flashcard_provider.dart';
+import '../../../gamification/data/models/achievement_model.dart';
+import '../../../gamification/presentation/providers/achievement_provider.dart';
+import '../../../gamification/presentation/widgets/achievement_popup.dart';
 import '../../../sharing/data/milestone_service.dart';
 import '../../../sharing/presentation/widgets/share_preview_sheet.dart';
 import '../../../sharing/presentation/widgets/micro_cards/streak_milestone_card.dart';
@@ -86,6 +95,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _checkExamDay();
         // Award streak XP once per day
         _awardStreakXp();
+        // Check for new achievement badges
+        _checkAchievements();
       });
     }
   }
@@ -106,6 +117,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     } catch (_) {
       // Best-effort — don't interrupt the user
+    }
+  }
+
+  Future<void> _checkAchievements() async {
+    try {
+      final repo = ref.read(achievementRepositoryProvider);
+      final newBadges = await repo.checkAndUnlock();
+      if (newBadges.isEmpty || !mounted) return;
+
+      // Show popup for the first newly unlocked badge
+      final badge = Badges.byKey[newBadges.first];
+      if (badge != null) {
+        // Small delay so it doesn't overlap with streak/XP popups
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (mounted) {
+          AchievementPopup.show(context, badge: badge);
+        }
+      }
+
+      ref.invalidate(unlockedAchievementsProvider);
+    } catch (_) {
+      // Best-effort
     }
   }
 
@@ -261,6 +294,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ref.invalidate(heatmapDataProvider);
                 ref.invalidate(xpTotalProvider);
                 ref.invalidate(studyActivityProvider);
+                ref.invalidate(flashcardQuickAccessProvider);
+                ref.invalidate(inProgressQuizzesProvider);
+                ref.invalidate(totalDueCardsProvider);
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(
@@ -299,6 +335,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                   // AI generation background banners
                   const GenerationBanner(),
+
+                  // Resume in-progress quiz banner
+                  const ResumeQuizBanner(),
+
+                  // Quick Review — micro SRS session across all courses
+                  const QuickReviewCard(),
+
+                  // Flashcard Quick Access — one-tap deck access
+                  const SizedBox(height: AppSpacing.lg),
+                  const FlashcardQuickAccessSection(),
 
                   // Snap & Solve — #1 acquisition hook
                   const SizedBox(height: AppSpacing.md),

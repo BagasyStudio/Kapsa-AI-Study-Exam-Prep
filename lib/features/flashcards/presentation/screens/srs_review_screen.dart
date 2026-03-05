@@ -27,10 +27,12 @@ import '../../../../core/constants/xp_config.dart';
 /// SRS Review screen — reviews all due cards for a course using FSRS ratings.
 ///
 /// Shows cards one by one, tap to reveal answer, then rate with 4 buttons.
+///
+/// When [courseId] is null, reviews due cards across ALL courses (Quick Review).
 class SrsReviewScreen extends ConsumerStatefulWidget {
-  final String courseId;
+  final String? courseId;
 
-  const SrsReviewScreen({super.key, required this.courseId});
+  const SrsReviewScreen({super.key, this.courseId});
 
   @override
   ConsumerState<SrsReviewScreen> createState() => _SrsReviewScreenState();
@@ -173,15 +175,17 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
     final total = _againCount + _hardCount + _goodCount + _easyCount;
 
     // Get course name
-    String courseName = 'My Course';
-    try {
-      final course = await Supabase.instance.client
-          .from('courses')
-          .select('title')
-          .eq('id', widget.courseId)
-          .maybeSingle();
-      courseName = course?['title'] as String? ?? 'My Course';
-    } catch (_) {}
+    String courseName = 'Quick Review';
+    if (widget.courseId != null) {
+      try {
+        final course = await Supabase.instance.client
+            .from('courses')
+            .select('title')
+            .eq('id', widget.courseId!)
+            .maybeSingle();
+        courseName = course?['title'] as String? ?? 'My Course';
+      } catch (_) {}
+    }
 
     if (!mounted) return;
 
@@ -204,10 +208,11 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
   }
 
   Future<void> _recalculateCourseProgress() async {
+    if (widget.courseId == null) return; // Quick review — skip per-course recalc
     try {
       await ref
           .read(courseRepositoryProvider)
-          .recalculateProgress(widget.courseId);
+          .recalculateProgress(widget.courseId!);
       ref.invalidate(coursesProvider);
     } catch (_) {
       // Best-effort
@@ -216,7 +221,9 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dueCardsAsync = ref.watch(dueCardsProvider(widget.courseId));
+    final dueCardsAsync = widget.courseId != null
+        ? ref.watch(dueCardsProvider(widget.courseId!))
+        : ref.watch(allDueCardsProvider);
     final brightness = Theme.of(context).brightness;
 
     return Scaffold(

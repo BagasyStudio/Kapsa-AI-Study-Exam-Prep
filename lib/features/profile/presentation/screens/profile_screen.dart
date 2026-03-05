@@ -23,6 +23,7 @@ import '../../../subscription/presentation/widgets/ai_consent_dialog.dart';
 import '../providers/profile_provider.dart';
 import '../../../gamification/presentation/providers/xp_provider.dart';
 import '../../../../core/constants/xp_config.dart';
+import '../../../gamification/presentation/widgets/achievement_collection.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -472,6 +473,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                         ),
                       ),
+
+                      const SizedBox(height: AppSpacing.xxl),
+
+                      // Achievement Badges
+                      const AchievementCollection(),
 
                       const SizedBox(height: AppSpacing.xxl),
 

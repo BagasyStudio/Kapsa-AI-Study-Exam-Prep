@@ -49,7 +49,7 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "Prefer": "wait=80",  // Hold connection up to 80s — eliminates polling
+      "Prefer": "wait=60",  // Replicate max is 60s
     },
     body: JSON.stringify({
       input: {
@@ -60,8 +60,13 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
   });
 
   if (!createRes.ok) {
+    const status = createRes.status;
     const errBody = await createRes.text();
-    throw new Error(`AI service unavailable (${createRes.status}): ${errBody.substring(0, 200)}`);
+    console.error(`Replicate HTTP ${status}: ${errBody.substring(0, 500)}`);
+    if (status === 401) throw new Error("HTTP 401: API key invalid");
+    if (status === 422) throw new Error("HTTP 422: model rejected");
+    if (status === 429) throw new Error("HTTP 429: rate limited");
+    throw new Error(`HTTP ${status}`);
   }
 
   let result = await createRes.json();
@@ -215,17 +220,19 @@ CRITICAL LANGUAGE RULE: The course material is in ${detectedLang}. You MUST gene
 Generate exactly ${cardsToGenerate} flashcards in JSON format. Each flashcard must have:
 - topic: The specific topic/category
 - question_before: The first part of the question before the key term
-- keyword: The key term/concept that should be highlighted (1-3 words)
+- keyword: A key SUBJECT term from the question (1-3 words). This is the topic being ASKED ABOUT, NOT the answer. It is shown highlighted in the question.
 - question_after: The rest of the question after the keyword (can be empty string)
-- answer: A clear, concise answer (1-3 sentences)
+- answer: A clear, concise answer (1-3 sentences). The answer MUST be DIFFERENT from the keyword. The answer is HIDDEN until the user flips the card.
 
-The question format should read naturally: question_before + keyword + question_after forms the full question.
+CRITICAL: The keyword is a SUBJECT TERM visible in the question. The answer is SEPARATE and HIDDEN. NEVER put the answer in the keyword field.
+
+The question format reads: question_before + keyword + question_after = full question shown to the user.
 
 Example (if material is in Spanish):
-{"topic":"Estructura Celular","question_before":"¿Cuál es la función principal de la ","keyword":"mitocondria","question_after":"?","answer":"Generar la mayor parte de la energía química necesaria para las reacciones bioquímicas de la célula mediante la producción de ATP."}
+{"topic":"Estructura Celular","question_before":"¿Cuál es la función principal de la ","keyword":"mitocondria","question_after":" en la célula?","answer":"Generar ATP mediante la respiración celular, proporcionando energía para las reacciones bioquímicas."}
 
 Example (if material is in English):
-{"topic":"Cell Structure","question_before":"What is the primary function of the ","keyword":"mitochondria","question_after":"?","answer":"Generate most of the chemical energy needed to power the cell's biochemical reactions through ATP production."}
+{"topic":"Cell Structure","question_before":"What is the primary function of the ","keyword":"mitochondria","question_after":" in cells?","answer":"Generate ATP through cellular respiration, providing energy for biochemical reactions."}
 
 For math/science flashcards, use LaTeX notation in answers: $...$ for inline math.
 
@@ -449,7 +456,10 @@ Deno.serve(async (req: Request) => {
     }
 
     if (allCards.length === 0) {
-      throw new Error("Failed to generate flashcards. Please try again.");
+      const firstError = batchResults.find(r => r.status === "rejected") as PromiseRejectedResult | undefined;
+      const reason = firstError?.reason?.message || "unknown";
+      console.error(`All ${chunkCards.length} batches failed. First error: ${reason}`);
+      throw new Error(reason);
     }
 
     if (failedBatches > 0) {
@@ -507,7 +517,8 @@ Deno.serve(async (req: Request) => {
       error.message.includes("timed out") ||
       error.message.includes("failed. Please") ||
       error.message.includes("Failed to generate") ||
-      error.message.includes("Failed to create")
+      error.message.includes("Failed to create") ||
+      error.message.startsWith("HTTP ")
     ) ? error.message : sanitizeErrorMessage(error);
 
     return new Response(JSON.stringify({ error: message }), {

@@ -45,7 +45,7 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "Prefer": "wait=80",
+      "Prefer": "wait=60",
     },
     body: JSON.stringify({
       input: {
@@ -56,8 +56,13 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
   });
 
   if (!createRes.ok) {
+    const status = createRes.status;
     const errBody = await createRes.text();
-    throw new Error(`AI service unavailable (${createRes.status}): ${errBody.substring(0, 200)}`);
+    console.error(`Replicate HTTP ${status}: ${errBody.substring(0, 500)}`);
+    if (status === 401) throw new Error("HTTP 401: API key invalid");
+    if (status === 422) throw new Error("HTTP 422: model rejected");
+    if (status === 429) throw new Error("HTTP 429: rate limited");
+    throw new Error(`HTTP ${status}`);
   }
 
   let result = await createRes.json();
@@ -309,7 +314,10 @@ IMPORTANT: Output ONLY the JSON object. No markdown code blocks, no extra text.`
     }
 
     if (partialSummaries.length === 0) {
-      throw new Error("Failed to generate summary. Please try again.");
+      const firstError = partialResults.find(r => r.status === "rejected") as PromiseRejectedResult | undefined;
+      const reason = firstError?.reason?.message || "unknown";
+      console.error(`All summary batches failed. First error: ${reason}`);
+      throw new Error(reason);
     }
 
     const phase1Elapsed = Date.now() - globalStart;
@@ -359,7 +367,8 @@ IMPORTANT: Output ONLY the JSON object. No markdown code blocks, no extra text.`
       error.message.includes("timed out") ||
       error.message.includes("failed. Please") ||
       error.message.includes("Failed to generate") ||
-      error.message.includes("Global deadline")
+      error.message.includes("Global deadline") ||
+      error.message.startsWith("HTTP ")
     ) ? error.message : sanitizeErrorMessage(error);
 
     return new Response(JSON.stringify({ error: message }), {

@@ -72,7 +72,7 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "Prefer": "wait=80",
+      "Prefer": "wait=60",
     },
     body: JSON.stringify({
       input: {
@@ -83,8 +83,13 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
   });
 
   if (!createRes.ok) {
+    const status = createRes.status;
     const errBody = await createRes.text();
-    throw new Error(`AI service unavailable (${createRes.status}): ${errBody.substring(0, 200)}`);
+    console.error(`Replicate HTTP ${status}: ${errBody.substring(0, 500)}`);
+    if (status === 401) throw new Error("HTTP 401: API key invalid");
+    if (status === 422) throw new Error(`HTTP 422: ${errBody.substring(0, 50)}`);
+    if (status === 429) throw new Error("HTTP 429: rate limited");
+    throw new Error(`HTTP ${status}`);
   }
 
   let result = await createRes.json();
@@ -439,7 +444,10 @@ Deno.serve(async (req: Request) => {
       }
 
       if (allQuestions.length === 0) {
-        throw new Error("Failed to generate quiz. Please try again.");
+        const firstError = batchResults.find(r => r.status === "rejected") as PromiseRejectedResult | undefined;
+        const reason = firstError?.reason?.message || "unknown";
+        console.error(`All ${chunkQuestions.length} batches failed. First error: ${reason}`);
+        throw new Error(reason);
       }
 
       if (failedBatches > 0) {
@@ -457,6 +465,7 @@ Deno.serve(async (req: Request) => {
             : `${course.title || "Quiz"} - Quiz`,
           total_count: allQuestions.length,
           is_practice_exam: isPracticeExam === true,
+          status: 'in_progress',
         })
         .select()
         .single();
@@ -638,6 +647,7 @@ One object per question, in order. No markdown, no explanation outside the JSON.
           grade,
           correct_count: correctCount,
           motivation_text: motivationText,
+          status: 'completed',
         })
         .eq("id", testId)
         .eq("user_id", user.id);
@@ -659,6 +669,7 @@ One object per question, in order. No markdown, no explanation outside the JSON.
         grade,
         correct_count: correctCount,
         motivation_text: motivationText,
+        status: 'completed',
       };
 
       const elapsed = Date.now() - globalStart;
@@ -797,7 +808,8 @@ IMPORTANT: Output ONLY the JSON object. No markdown code blocks, no explanation 
       error.message.includes("timed out") ||
       error.message.includes("failed. Please") ||
       error.message.includes("Failed to generate") ||
-      error.message.includes("Global deadline")
+      error.message.includes("Global deadline") ||
+      error.message.startsWith("HTTP ")
     ) ? error.message : sanitizeErrorMessage(error);
 
     console.error(`Quiz function error after ${elapsed}ms:`, message);

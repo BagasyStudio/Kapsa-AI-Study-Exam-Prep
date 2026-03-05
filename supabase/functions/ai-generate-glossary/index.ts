@@ -37,12 +37,17 @@ function buildLlamaPrompt(systemPrompt: string, userPrompt: string): string {
 async function callReplicate(apiKey: string, prompt: string, systemPrompt: string, maxTokens = 2048): Promise<string> {
   const createRes = await fetch(`https://api.replicate.com/v1/models/${LLAMA_MODEL}/predictions`, {
     method: "POST",
-    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json", "Prefer": "wait=80" },
+    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json", "Prefer": "wait=60" },
     body: JSON.stringify({ input: { prompt: buildLlamaPrompt(systemPrompt, prompt), max_tokens: maxTokens } }),
   });
   if (!createRes.ok) {
+    const status = createRes.status;
     const errBody = await createRes.text();
-    throw new Error(`AI service unavailable (${createRes.status}): ${errBody.substring(0, 200)}`);
+    console.error(`Replicate HTTP ${status}: ${errBody.substring(0, 500)}`);
+    if (status === 401) throw new Error("HTTP 401: API key invalid");
+    if (status === 422) throw new Error("HTTP 422: model rejected");
+    if (status === 429) throw new Error("HTTP 429: rate limited");
+    throw new Error(`HTTP ${status}`);
   }
   let result = await createRes.json();
 
@@ -221,7 +226,12 @@ Output ONLY a valid JSON array. No markdown, no explanation.`;
       if (r.status === "fulfilled") allTerms.push(...r.value);
     }
 
-    if (allTerms.length === 0) throw new Error("Failed to extract glossary terms. Please try again.");
+    if (allTerms.length === 0) {
+      const firstError = results.find(r => r.status === "rejected") as PromiseRejectedResult | undefined;
+      const reason = firstError?.reason?.message || "unknown";
+      console.error(`All glossary batches failed. First error: ${reason}`);
+      throw new Error(reason);
+    }
 
     // Deduplicate (case-insensitive, keep longer definitions)
     const termMap = new Map<string, any>();
@@ -273,7 +283,7 @@ Output ONLY a valid JSON array. No markdown, no explanation.`;
     const message = error instanceof Error && (
       error.message.includes("unavailable") || error.message.includes("timed out") ||
       error.message.includes("failed. Please") || error.message.includes("Failed to extract") ||
-      error.message.includes("Global deadline")
+      error.message.includes("Global deadline") || error.message.startsWith("HTTP ")
     ) ? error.message : sanitizeErrorMessage(error);
     return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },

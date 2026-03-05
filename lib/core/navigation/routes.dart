@@ -35,6 +35,7 @@ abstract final class Routes {
   static const summary = '/summary/:summaryId';
   static const glossary = '/glossary/:courseId';
   static const studyPath = '/study-path';
+  static const quickReview = '/quick-review';
 
   // ── Legal & Compliance ──
   static const terms = '/terms';

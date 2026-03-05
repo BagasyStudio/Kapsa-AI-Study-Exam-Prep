@@ -11,6 +11,37 @@ class TestWithQuestions {
   const TestWithQuestions({required this.test, required this.questions});
 }
 
+/// An in-progress quiz with its course name, for the home resume banner.
+class InProgressQuiz {
+  final TestModel test;
+  final String courseName;
+
+  const InProgressQuiz({required this.test, required this.courseName});
+
+  /// Number of questions answered so far.
+  int get answeredCount => test.currentQuestion;
+
+  /// Progress fraction (0.0 to 1.0).
+  double get progress =>
+      test.totalCount > 0 ? answeredCount / test.totalCount : 0.0;
+
+  /// Motivational text based on progress.
+  String get motivationText {
+    final pct = progress;
+    if (pct <= 0.3) return 'You just started! Keep going';
+    if (pct <= 0.7) return "You're on fire! Don't stop now";
+    return 'Almost there! Finish strong';
+  }
+
+  /// Emoji matching the motivation level.
+  String get motivationEmoji {
+    final pct = progress;
+    if (pct <= 0.3) return '\u{1F4AA}'; // 💪
+    if (pct <= 0.7) return '\u{1F525}'; // 🔥
+    return '\u{1F3C6}'; // 🏆
+  }
+}
+
 /// Repository for test/quiz operations.
 class TestRepository {
   final SupabaseClient _client;
@@ -123,5 +154,58 @@ class TestRepository {
         .eq('course_id', courseId)
         .order('created_at', ascending: false);
     return (data as List).map((e) => TestModel.fromJson(e)).toList();
+  }
+
+  // ── Auto-save & Resume ───────────────────────────────────────────────
+
+  /// Save a single question answer and update the current position.
+  ///
+  /// Called fire-and-forget from the quiz session on each navigation.
+  Future<void> saveQuestionAnswer({
+    required String testId,
+    required String questionId,
+    required String answer,
+    required int currentIndex,
+  }) async {
+    await Future.wait([
+      _client
+          .from('test_questions')
+          .update({'user_answer': answer})
+          .eq('id', questionId),
+      _client
+          .from('tests')
+          .update({'current_question': currentIndex})
+          .eq('id', testId),
+    ]);
+  }
+
+  /// Fetch all in-progress quizzes for the current user (for home banner).
+  Future<List<InProgressQuiz>> getInProgressQuizzes() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return [];
+    final data = await _client
+        .from('tests')
+        .select('*, courses!inner(title)')
+        .eq('user_id', userId)
+        .eq('status', 'in_progress')
+        .order('created_at', ascending: false);
+    return (data as List).map((e) {
+      final coursesJoin = e['courses'];
+      final courseName = coursesJoin is Map
+          ? (coursesJoin['title'] as String? ?? 'Course')
+          : 'Course';
+      return InProgressQuiz(
+        test: TestModel.fromJson(e),
+        courseName: courseName,
+      );
+    }).toList();
+  }
+
+  /// Mark a test as completed (called before submitting for evaluation).
+  Future<void> markTestCompleted(String testId) async {
+    await _client
+        .from('tests')
+        .update({'status': 'completed'})
+        .eq('id', testId);
   }
 }

@@ -344,6 +344,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(
+        path: Routes.quickReview,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          child: const SrsReviewScreen(), // no courseId → all courses
+          transitionDuration: AppAnimations.durationSlow,
+          reverseTransitionDuration: AppAnimations.durationSlow,
+          transitionsBuilder: (_, animation, __, child) =>
+              FadeTransition(opacity: animation, child: child),
+        ),
+      ),
+
+      GoRoute(
         path: Routes.chat,
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) => _slideFromRight(

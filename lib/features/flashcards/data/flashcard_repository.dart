@@ -118,6 +118,35 @@ class FlashcardRepository {
     return (data as List).map((e) => FlashcardModel.fromJson(e)).toList();
   }
 
+  /// Fetch all due cards across ALL of the user's courses (for quick review).
+  ///
+  /// Limited to [limit] cards, ordered by oldest due first.
+  Future<List<FlashcardModel>> getAllDueCards({int limit = 20}) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return [];
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    // Get all deck IDs for the current user
+    final decks = await _client
+        .from('flashcard_decks')
+        .select('id')
+        .eq('user_id', userId);
+
+    if ((decks as List).isEmpty) return [];
+
+    final deckIds = decks.map((d) => d['id'] as String).toList();
+
+    final data = await _client
+        .from('flashcards')
+        .select()
+        .inFilter('deck_id', deckIds)
+        .lte('due', now)
+        .order('due', ascending: true)
+        .limit(limit);
+
+    return (data as List).map((e) => FlashcardModel.fromJson(e)).toList();
+  }
+
   /// Count cards due for review in a course.
   Future<int> getDueCardsCount(String courseId) async {
     final now = DateTime.now().toUtc().toIso8601String();
@@ -151,6 +180,21 @@ class FlashcardRepository {
         .lte('due', now);
 
     return (response as List).length;
+  }
+
+  /// Fetch all decks across all courses with their course name (for home quick access).
+  Future<List<Map<String, dynamic>>> getAllDecksWithCourseName({
+    int limit = 10,
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return [];
+    final data = await _client
+        .from('flashcard_decks')
+        .select('*, courses!inner(title)')
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .limit(limit);
+    return List<Map<String, dynamic>>.from(data as List);
   }
 
   /// Get the course ID for a deck.
