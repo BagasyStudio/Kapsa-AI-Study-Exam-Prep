@@ -101,7 +101,7 @@ class FlashcardQuickAccessSection extends ConsumerWidget {
 
             // Horizontal deck list
             SizedBox(
-              height: 195,
+              height: 210,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),

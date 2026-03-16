@@ -138,6 +138,20 @@ class _ActiveCard extends ConsumerWidget {
     required this.nodes,
   });
 
+  static String _ctaText(JourneyNode? node) {
+    if (node == null) return 'Continue Journey';
+    return switch (node.type) {
+      JourneyNodeType.flashcardReview => 'Review Flashcards',
+      JourneyNodeType.quiz => 'Take Quiz',
+      JourneyNodeType.materialReview => 'Review Material',
+      JourneyNodeType.summary => 'Read Summary',
+      JourneyNodeType.oracle => 'Ask the Oracle',
+      JourneyNodeType.checkpoint => 'Take Checkpoint',
+      JourneyNodeType.reward => 'Claim Reward',
+      JourneyNodeType.bossExam => 'Start Final Exam',
+    };
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final streakDays = ref.watch(profileProvider.select(
@@ -394,7 +408,7 @@ class _ActiveCard extends ConsumerWidget {
                         ],
                       ),
                       child: Text(
-                        'Continue Journey',
+                        _ctaText(activeNode),
                         textAlign: TextAlign.center,
                         style: AppTypography.labelLarge.copyWith(
                           color: AppColors.ctaLimeText,
@@ -655,8 +669,8 @@ class _MiniProgressRing extends StatelessWidget {
   Widget build(BuildContext context) {
     final percent = (progress * 100).toInt();
     return SizedBox(
-      width: 44,
-      height: 44,
+      width: 48,
+      height: 48,
       child: CustomPaint(
         painter: _ProgressRingPainter(progress: progress),
         child: Center(
@@ -665,7 +679,7 @@ class _MiniProgressRing extends StatelessWidget {
             style: AppTypography.caption.copyWith(
               color: AppColors.ctaLime,
               fontWeight: FontWeight.w800,
-              fontSize: 10,
+              fontSize: 11,
             ),
           ),
         ),
@@ -747,7 +761,7 @@ class _MiniNode extends StatelessWidget {
     final isActive = node.state == JourneyNodeState.active;
     final isCompleted = node.state == JourneyNodeState.completed;
     final accent = node.accentColor;
-    final size = isActive ? 40.0 : 28.0;
+    final size = isActive ? 44.0 : 28.0;
 
     if (isActive) {
       return Container(
@@ -762,14 +776,14 @@ class _MiniNode extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: accent.withValues(alpha: 0.40),
-              blurRadius: 10,
-              spreadRadius: 1,
+              color: accent.withValues(alpha: 0.45),
+              blurRadius: 14,
+              spreadRadius: 2,
             ),
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(6),
+          padding: const EdgeInsets.all(7),
           child: Image.asset(node.assetPath),
         ),
       );
@@ -848,7 +862,7 @@ class _ProgressRingPainter extends CustomPainter {
     final bgPaint = Paint()
       ..color = Colors.white.withValues(alpha: 0.06)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.5
+      ..strokeWidth = 4.0
       ..strokeCap = StrokeCap.round;
     canvas.drawCircle(center, radius, bgPaint);
 
@@ -857,7 +871,7 @@ class _ProgressRingPainter extends CustomPainter {
       final progressPaint = Paint()
         ..color = AppColors.ctaLime
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.5
+        ..strokeWidth = 4.0
         ..strokeCap = StrokeCap.round;
 
       canvas.drawArc(

@@ -58,7 +58,7 @@ class FlashcardQuickAccessCard extends ConsumerWidget {
             // ── Banner image or icon ──
             if (hasBanner)
               SizedBox(
-                height: 56,
+                height: 72,
                 width: double.infinity,
                 child: Stack(
                   fit: StackFit.expand,

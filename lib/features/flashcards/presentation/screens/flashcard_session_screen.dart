@@ -7,6 +7,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/error_handler.dart';
 import '../../../../core/widgets/confetti_overlay.dart';
+import '../../../home/data/models/journey_node_model.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../widgets/session_progress_bar.dart';
 import '../widgets/flashcard_widget.dart';
@@ -237,7 +238,7 @@ class _FlashcardSessionScreenState
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
         final shouldLeave = await _confirmExit();
-        if (shouldLeave && context.mounted) Navigator.of(context).pop();
+        if (shouldLeave && context.mounted) Navigator.of(context).pop(JourneyResult.cancelled);
       },
       child: Scaffold(
       backgroundColor: AppColors.immersiveBg,
@@ -270,7 +271,7 @@ class _FlashcardSessionScreenState
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => Navigator.of(context).pop(JourneyResult.cancelled),
                   child: const Text('Go Back'),
                 ),
               ],
@@ -306,7 +307,7 @@ class _FlashcardSessionScreenState
                       ),
                       const SizedBox(height: AppSpacing.xl),
                       TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () => Navigator.of(context).pop(JourneyResult.cancelled),
                         child: const Text('Go Back'),
                       ),
                     ],
@@ -431,7 +432,7 @@ class _FlashcardSessionScreenState
                   current: displayIndex,
                   total: totalCards,
                   courseLabel: 'Flashcards',
-                  onClose: () => Navigator.of(context).pop(),
+                  onClose: () => Navigator.of(context).pop(JourneyResult.cancelled),
                 ),
               ),
 
@@ -734,7 +735,7 @@ class _FlashcardSessionScreenState
 
                     // Done button
                     TapScale(
-                      onTap: () => Navigator.of(context).pop(),
+                      onTap: () => Navigator.of(context).pop(JourneyResult.completed),
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 14),

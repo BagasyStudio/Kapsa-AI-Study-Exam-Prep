@@ -1059,8 +1059,20 @@ class _StudyToolsTab extends ConsumerWidget {
       context: context,
     );
     if (!canUse || !context.mounted) return;
+
+    // Show count selector bottom sheet
+    final selectedCount = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _FlashcardCountSelector(
+        isPro: ref.read(isProProvider).whenOrNull(data: (v) => v) ?? false,
+      ),
+    );
+    if (selectedCount == null || !context.mounted) return;
+
     _startBackgroundGeneration(
       context, ref, GenerationType.flashcards, 'flashcards',
+      flashcardCount: selectedCount,
     );
   }
 
@@ -1105,8 +1117,9 @@ class _StudyToolsTab extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     GenerationType type,
-    String featureName,
-  ) {
+    String featureName, {
+    int? flashcardCount,
+  }) {
     final notifier = ref.read(generationProvider.notifier);
 
     // Prevent duplicate generation
@@ -1127,7 +1140,8 @@ class _StudyToolsTab extends ConsumerWidget {
 
     // Start background generation
     final started = switch (type) {
-      GenerationType.flashcards => notifier.generateFlashcards(courseId, courseName),
+      GenerationType.flashcards => notifier.generateFlashcards(
+          courseId, courseName, count: flashcardCount),
       GenerationType.quiz => notifier.generateQuiz(courseId, courseName),
       GenerationType.summary => notifier.generateSummary(courseId, courseName),
       GenerationType.glossary => notifier.generateGlossary(courseId, courseName),
@@ -1335,6 +1349,175 @@ class _EmptyMaterials extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Flashcard Count Selector Bottom Sheet
+// =============================================================================
+
+class _FlashcardCountSelector extends StatefulWidget {
+  final bool isPro;
+
+  const _FlashcardCountSelector({required this.isPro});
+
+  @override
+  State<_FlashcardCountSelector> createState() =>
+      _FlashcardCountSelectorState();
+}
+
+class _FlashcardCountSelectorState extends State<_FlashcardCountSelector> {
+  int _selected = 30;
+
+  static const _options = [20, 30, 50, 80];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.xxl,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.immersiveCard,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle bar
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(100),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            'How many flashcards?',
+            style: AppTypography.h4.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Choose the number of cards to generate',
+            style: AppTypography.caption.copyWith(color: Colors.white38),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          // Count pills
+          Row(
+            children: _options.map((count) {
+              final isSelected = _selected == count;
+              final isLocked = !widget.isPro && count > 30;
+
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: GestureDetector(
+                    onTap: isLocked
+                        ? null
+                        : () => setState(() => _selected = count),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.ctaLime.withValues(alpha: 0.12)
+                            : isLocked
+                                ? Colors.white.withValues(alpha: 0.03)
+                                : Colors.white.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.ctaLime.withValues(alpha: 0.50)
+                              : isLocked
+                                  ? Colors.white.withValues(alpha: 0.06)
+                                  : Colors.white.withValues(alpha: 0.10),
+                          width: isSelected ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            '$count',
+                            style: AppTypography.h4.copyWith(
+                              color: isSelected
+                                  ? AppColors.ctaLime
+                                  : isLocked
+                                      ? Colors.white24
+                                      : Colors.white70,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          if (isLocked) ...[
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFFF59E0B),
+                                    Color(0xFFF97316),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(100),
+                              ),
+                              child: Text(
+                                'PRO',
+                                style: AppTypography.caption.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 8,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          // Generate button
+          SizedBox(
+            width: double.infinity,
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(_selected),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.ctaLime,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.ctaLime.withValues(alpha: 0.25),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  'Generate $_selected Flashcards',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.labelLarge.copyWith(
+                    color: AppColors.ctaLimeText,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

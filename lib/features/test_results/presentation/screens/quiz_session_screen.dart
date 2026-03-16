@@ -22,6 +22,7 @@ import '../../../../core/constants/xp_config.dart';
 import '../../../../core/widgets/celebration_overlay.dart';
 import '../../../../core/services/review_service.dart';
 import '../../../home/presentation/providers/resume_quiz_provider.dart';
+import '../../../home/data/models/journey_node_model.dart';
 
 /// Full-screen quiz session where users answer AI-generated questions.
 ///
@@ -342,8 +343,9 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
       if (!mounted) return;
       // Trigger in-app review at strategic moments
       ReviewService.recordPositiveEvent();
-      // Navigate to results, replacing this screen
-      context.pushReplacement(Routes.testResultsPath(result.test.id));
+      // Navigate to results, then pop back with completion signal for journey
+      await context.push(Routes.testResultsPath(result.test.id));
+      if (mounted) Navigator.of(context).pop(JourneyResult.completed);
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
@@ -360,7 +362,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
         final shouldLeave = await _confirmExit();
-        if (shouldLeave && context.mounted) Navigator.of(context).pop();
+        if (shouldLeave && context.mounted) Navigator.of(context).pop(JourneyResult.cancelled);
       },
       child: Scaffold(
       backgroundColor: AppColors.immersiveBg,
@@ -455,7 +457,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                   textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.xl),
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => Navigator.of(context).pop(JourneyResult.cancelled),
                 child: Text('Go Back',
                     style: TextStyle(color: Colors.white70)),
               ),
@@ -933,7 +935,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              Navigator.of(context).pop();
+              Navigator.of(context).pop(JourneyResult.cancelled);
             },
             child: Text(
               'Leave for now',

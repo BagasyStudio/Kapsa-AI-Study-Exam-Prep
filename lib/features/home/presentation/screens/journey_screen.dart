@@ -117,6 +117,8 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
             nodes: nodes,
             courseId: courseId,
             onNodeTap: _handleNodeTap,
+            isPro: ref.watch(isProProvider).whenOrNull(data: (v) => v) ?? false,
+            gateIndex: ref.watch(firstCheckpointIndexProvider(courseId)),
           ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 120)),
@@ -125,21 +127,38 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
   }
 
   void _handleNodeTap(JourneyNode node) {
-    // Locked nodes → paywall for free users
+    // Locked nodes → gated logic
     if (node.state == JourneyNodeState.locked) {
       final isPro =
           ref.read(isProProvider).whenOrNull(data: (v) => v) ?? false;
-      if (!isPro) context.push(Routes.paywall);
+      if (!isPro) {
+        final gateIndex =
+            ref.read(firstCheckpointIndexProvider(courseId)) ?? 3;
+        if (node.position > gateIndex) {
+          // Beyond free zone → paywall
+          context.push(Routes.paywall);
+          return;
+        }
+      }
+      // Within free zone (or pro user) but locked by progression
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Complete the previous step first'),
+          duration: Duration(seconds: 2),
+        ),
+      );
       return;
     }
 
+    // Already completed → allow revisiting without re-awarding
     if (node.state == JourneyNodeState.completed) {
-      // Allow re-visiting completed nodes without re-awarding
       if (node.route != null) context.push(node.route!);
       return;
     }
 
-    // Reward nodes: celebration + delayed completion
+    // ── Active node ──
+
+    // Reward: celebration + immediate completion
     if (node.type == JourneyNodeType.reward) {
       CelebrationOverlay.show(
         context,
@@ -149,62 +168,42 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
       );
       Future.delayed(const Duration(milliseconds: 600), () {
         if (!mounted) return;
-        ref
-            .read(journeyCompletionProvider(courseId).notifier)
-            .markCompleted(node.id, node.xpReward);
-        XpPopup.show(context, xp: node.xpReward, label: 'Reward');
+        _completeNode(node);
       });
       return;
     }
 
-    // Navigate to the node's route
     if (node.route == null) return;
 
-    // Completion heuristics by type
-    final completionTypes = {
-      JourneyNodeType.materialReview,
-      JourneyNodeType.oracle,
-      JourneyNodeType.summary,
-    };
-
-    if (completionTypes.contains(node.type)) {
-      // Open = complete (material review, oracle, summary)
-      context.push(node.route!);
-      ref
-          .read(journeyCompletionProvider(courseId).notifier)
-          .markCompleted(node.id, node.xpReward);
-      HapticFeedback.mediumImpact();
-      XpPopup.show(context, xp: node.xpReward, label: node.title);
-    } else if (node.type == JourneyNodeType.flashcardReview) {
-      // Flashcard: complete after returning if spent > 10s
+    // Material, Oracle, Summary → complete if user spent ≥ 5s
+    if ({JourneyNodeType.materialReview, JourneyNodeType.oracle, JourneyNodeType.summary}
+        .contains(node.type)) {
       final startTime = DateTime.now();
       context.push(node.route!).then((_) {
-        final elapsed = DateTime.now().difference(startTime);
-        if (elapsed.inSeconds >= 10) {
-          if (!mounted) return;
-          HapticFeedback.mediumImpact();
-          XpPopup.show(context, xp: node.xpReward, label: node.title);
-          ref
-              .read(journeyCompletionProvider(courseId).notifier)
-              .markCompleted(node.id, node.xpReward);
-        }
-      });
-    } else {
-      // Quiz, checkpoint, boss exam: complete after returning
-      // (user engaged with the quiz flow)
-      final startTime = DateTime.now();
-      context.push(node.route!).then((_) {
+        if (!mounted) return;
         final elapsed = DateTime.now().difference(startTime);
         if (elapsed.inSeconds >= 5) {
-          if (!mounted) return;
-          HapticFeedback.mediumImpact();
-          XpPopup.show(context, xp: node.xpReward, label: node.title);
-          ref
-              .read(journeyCompletionProvider(courseId).notifier)
-              .markCompleted(node.id, node.xpReward);
+          _completeNode(node);
         }
       });
+      return;
     }
+
+    // Flashcard, Quiz, Checkpoint, Boss → complete only with explicit result
+    context.push<JourneyResult>(node.route!).then((result) {
+      if (!mounted) return;
+      if (result == JourneyResult.completed) {
+        _completeNode(node);
+      }
+    });
+  }
+
+  void _completeNode(JourneyNode node) {
+    HapticFeedback.mediumImpact();
+    XpPopup.show(context, xp: node.xpReward, label: node.title);
+    ref
+        .read(journeyCompletionProvider(courseId).notifier)
+        .markCompleted(node.id, node.xpReward);
   }
 
   // ── Loading State ──────────────────────────────────────────────────────────
@@ -645,15 +644,22 @@ class _TodaysChallenge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Next 3 incomplete nodes
-    final upcoming = nodes
-        .where((n) => n.state != JourneyNodeState.completed)
-        .take(3)
-        .toList();
+    // Pick 3 nodes: mix of completed (today's) + next upcoming
+    final challengeNodes = <JourneyNode>[];
+    final active = nodes.where((n) => n.state == JourneyNodeState.active);
+    final locked = nodes.where((n) => n.state == JourneyNodeState.locked);
+    // Add active node first
+    challengeNodes.addAll(active.take(1));
+    // Fill remaining with locked
+    challengeNodes.addAll(locked.take(3 - challengeNodes.length));
 
-    if (upcoming.isEmpty) return const SizedBox.shrink();
+    if (challengeNodes.isEmpty) return const SizedBox.shrink();
 
-    final totalXp = upcoming.fold<int>(0, (sum, n) => sum + n.xpReward);
+    final completedCount = 0; // Today's completed tracked separately
+    final totalXp = challengeNodes.fold<int>(0, (sum, n) => sum + n.xpReward);
+    final progress = challengeNodes.isEmpty
+        ? 0.0
+        : completedCount / challengeNodes.length;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
@@ -662,17 +668,12 @@ class _TodaysChallenge extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.immersiveCard,
           borderRadius: BorderRadius.circular(20),
-          border: const Border(
-            left: BorderSide(color: Color(0x33BEF264), width: 3),
-            top: BorderSide(color: AppColors.immersiveBorder),
-            right: BorderSide(color: AppColors.immersiveBorder),
-            bottom: BorderSide(color: AppColors.immersiveBorder),
-          )
+          border: Border.all(color: AppColors.immersiveBorder),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
+            // Header with counter pill
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -685,61 +686,129 @@ class _TodaysChallenge extends StatelessWidget {
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 3,
+                    horizontal: 10, vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.ctaLime.withValues(alpha: 0.12),
+                    color: Colors.white.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(100),
-                    border: Border.all(
-                      color: AppColors.ctaLime.withValues(alpha: 0.25),
-                    ),
                   ),
                   child: Text(
-                    '+$totalXp XP',
+                    '$completedCount/${challengeNodes.length}',
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.ctaLime,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 10,
+                      color: Colors.white60,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
                     ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            // Challenge rows
-            ...upcoming.map((node) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: Row(
-                    children: [
-                      Image.asset(
+            // Challenge rows with checkbox states
+            ...challengeNodes.asMap().entries.map((entry) {
+              final node = entry.value;
+              final isCompleted = node.state == JourneyNodeState.completed;
+              final isActive = node.state == JourneyNodeState.active;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    // Checkbox circle
+                    Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isCompleted
+                            ? AppColors.ctaLime
+                            : Colors.transparent,
+                        border: Border.all(
+                          color: isCompleted
+                              ? AppColors.ctaLime
+                              : isActive
+                                  ? AppColors.ctaLime.withValues(alpha: 0.60)
+                                  : Colors.white.withValues(alpha: 0.12),
+                          width: isActive ? 2 : 1.5,
+                        ),
+                      ),
+                      child: isCompleted
+                          ? const Icon(Icons.check, size: 14,
+                              color: AppColors.ctaLimeText)
+                          : null,
+                    ),
+                    const SizedBox(width: 10),
+                    // Asset icon
+                    Opacity(
+                      opacity: isCompleted ? 0.5 : 1.0,
+                      child: Image.asset(
                         node.assetPath,
                         width: 28,
                         height: 28,
                       ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          node.title,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: Colors.white70,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(width: 10),
+                    // Title
+                    Expanded(
+                      child: Text(
+                        node.title,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: isCompleted
+                              ? Colors.white38
+                              : Colors.white70,
+                          decoration: isCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    // XP pill
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: node.accentColor.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Text(
+                        '+${node.xpReward}',
+                        style: AppTypography.caption.copyWith(
+                          color: node.accentColor.withValues(alpha: 0.70),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 9,
                         ),
                       ),
-                      Container(
-                        width: 18,
-                        height: 18,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.15),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: AppSpacing.sm),
+            // Progress bar
+            ClipRRect(
+              borderRadius: BorderRadius.circular(100),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 3,
+                backgroundColor: Colors.white.withValues(alpha: 0.06),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  AppColors.ctaLime,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Footer
+            Text(
+              'Complete all for +$totalXp XP bonus',
+              style: AppTypography.caption.copyWith(
+                color: AppColors.ctaLime.withValues(alpha: 0.60),
+                fontWeight: FontWeight.w600,
+                fontSize: 10,
+              ),
+            ),
           ],
         ),
       ),

@@ -83,7 +83,7 @@ final journeyNodesProvider = FutureProvider.autoDispose
         title: 'Flashcards: ${d.displayTitle}',
         subtitle: '${d.cardCount} cards',
         xpReward: JourneyNode.defaultXp(JourneyNodeType.flashcardReview),
-        route: Routes.deckDetailPath(d.id),
+        route: Routes.flashcardSessionPath(d.id),
         entityId: d.id,
         position: pos++,
       ));

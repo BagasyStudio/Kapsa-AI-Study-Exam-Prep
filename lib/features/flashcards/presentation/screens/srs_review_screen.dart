@@ -23,6 +23,7 @@ import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../sharing/presentation/widgets/share_preview_sheet.dart';
 import '../../../sharing/presentation/widgets/srs_review_share_card.dart';
 import '../../../../core/constants/xp_config.dart';
+import '../../../home/data/models/journey_node_model.dart';
 
 /// SRS Review screen — reviews all due cards for a course using FSRS ratings.
 ///
@@ -256,7 +257,7 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => Navigator.of(context).pop(JourneyResult.cancelled),
                   child: const Text('Go Back'),
                 ),
               ],
@@ -304,7 +305,7 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
               ),
               const SizedBox(height: AppSpacing.xxl),
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => Navigator.of(context).pop(JourneyResult.cancelled),
                 child: Text(
                   'Go Back',
                   style: AppTypography.labelLarge.copyWith(
@@ -329,7 +330,7 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
         goodCount: _goodCount,
         easyCount: _easyCount,
         xpEarned: _sessionXp,
-        onDone: () => Navigator.of(context).pop(),
+        onDone: () => Navigator.of(context).pop(JourneyResult.completed),
         onShare: _showSrsShareSheet,
       ),
     );
@@ -358,7 +359,7 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
               current: displayIndex,
               total: totalCards,
               courseLabel: 'Review',
-              onClose: () => Navigator.of(context).pop(),
+              onClose: () => Navigator.of(context).pop(JourneyResult.cancelled),
             ),
           ),
 

@@ -19,6 +19,9 @@ enum JourneyNodeState {
   locked,
 }
 
+/// Result returned by destination screens when popped back to the journey.
+enum JourneyResult { completed, cancelled }
+
 /// A single node on the per-course learning journey path.
 class JourneyNode {
   final String id;

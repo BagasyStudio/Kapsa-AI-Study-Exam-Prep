@@ -9,20 +9,24 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../data/models/journey_node_model.dart';
 
-/// Vertical zigzag path of connected journey nodes.
+/// Duolingo-style vertical path of connected journey nodes.
 ///
-/// Renders completed, active, and locked nodes with curved
-/// bezier connectors and unlock micro-interactions.
+/// Renders nodes along a sinusoidal wave: completed = check circles,
+/// active = bouncing hero circle, locked = dim numbered circles.
 class JourneyPath extends StatefulWidget {
   final List<JourneyNode> nodes;
   final String courseId;
   final void Function(JourneyNode) onNodeTap;
+  final bool isPro;
+  final int? gateIndex;
 
   const JourneyPath({
     super.key,
     required this.nodes,
     required this.courseId,
     required this.onNodeTap,
+    this.isPro = true,
+    this.gateIndex,
   });
 
   @override
@@ -71,7 +75,8 @@ class _JourneyPathState extends State<JourneyPath>
 
     for (int i = 0; i < widget.nodes.length; i++) {
       final staggerIdx = math.min(i, count - 1);
-      final startMs = staggerIdx * AppAnimations.staggerInterval.inMilliseconds;
+      final startMs =
+          staggerIdx * AppAnimations.staggerInterval.inMilliseconds;
       final endMs = startMs + AppAnimations.durationEntrance.inMilliseconds;
       final begin = startMs / totalMs;
       final end = math.min(endMs / totalMs, 1.0);
@@ -99,6 +104,14 @@ class _JourneyPathState extends State<JourneyPath>
     super.dispose();
   }
 
+  /// Sinusoidal horizontal offset for node at [index].
+  /// Returns value in [-1, 1] range for alignment.
+  double _waveOffset(int index, JourneyNode node) {
+    if (node.isCentered) return 0.0;
+    // Gentle sine wave with period of 4 nodes
+    return math.sin(index * math.pi / 2) * 0.50;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.nodes.isEmpty) return const SizedBox.shrink();
@@ -110,11 +123,11 @@ class _JourneyPathState extends State<JourneyPath>
           for (int i = 0; i < widget.nodes.length; i++) ...[
             // Connector (skip before first node)
             if (i > 0)
-              _ConnectorLine(
+              _ConnectorSegment(
                 fromNode: widget.nodes[i - 1],
                 toNode: widget.nodes[i],
-                fromIndex: i - 1,
-                toIndex: i,
+                fromOffset: _waveOffset(i - 1, widget.nodes[i - 1]),
+                toOffset: _waveOffset(i, widget.nodes[i]),
               ),
 
             // Node with stagger animation
@@ -123,89 +136,100 @@ class _JourneyPathState extends State<JourneyPath>
                 opacity: _fadeAnimations[i],
                 child: SlideTransition(
                   position: _slideAnimations[i],
-                  child: _PositionedNode(
-                    node: widget.nodes[i],
-                    index: i,
-                    onTap: () => widget.onNodeTap(widget.nodes[i]),
-                  ),
+                  child: _buildNode(i),
                 ),
               )
             else
-              _PositionedNode(
-                node: widget.nodes[i],
-                index: i,
-                onTap: () => widget.onNodeTap(widget.nodes[i]),
-              ),
+              _buildNode(i),
           ],
+          const SizedBox(height: AppSpacing.xl),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNode(int i) {
+    final node = widget.nodes[i];
+    final alignment = Alignment(_waveOffset(i, node), 0);
+    final premiumGated =
+        !widget.isPro && node.position > (widget.gateIndex ?? 3);
+
+    return Align(
+      alignment: alignment,
+      child: _NodeRenderer(
+        node: node,
+        index: i,
+        levelNumber: i + 1,
+        onTap: () => widget.onNodeTap(node),
+        isPremiumGated: premiumGated,
       ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Positioned Node (zigzag layout)
-// ═══════════════════════════════════════════════════════════════════════════════
+// =============================================================================
+// Node Renderer — dispatches to the correct visual based on state/type
+// =============================================================================
 
-class _PositionedNode extends StatelessWidget {
+class _NodeRenderer extends StatelessWidget {
   final JourneyNode node;
   final int index;
+  final int levelNumber;
   final VoidCallback onTap;
+  final bool isPremiumGated;
 
-  const _PositionedNode({
+  const _NodeRenderer({
     required this.node,
     required this.index,
+    required this.levelNumber,
     required this.onTap,
+    this.isPremiumGated = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Active, reward, boss → centered; otherwise zigzag
-    final Alignment alignment;
-    if (node.state == JourneyNodeState.active || node.isCentered) {
-      alignment = Alignment.center;
-    } else {
-      alignment = index % 2 == 0
-          ? const Alignment(-0.45, 0)
-          : const Alignment(0.45, 0);
-    }
-
-    return Align(
-      alignment: alignment,
-      child: _buildNodeWidget(),
-    );
-  }
-
-  Widget _buildNodeWidget() {
     switch (node.state) {
       case JourneyNodeState.completed:
-        return _CompletedNode(node: node, onTap: onTap);
+        return _CompletedCircle(node: node, onTap: onTap);
       case JourneyNodeState.active:
         if (node.type == JourneyNodeType.reward) {
           return _RewardNode(node: node, onTap: onTap);
         }
         if (node.type == JourneyNodeType.bossExam) {
-          return _BossExamNode(node: node, onTap: onTap, isActive: true);
+          return _BossNode(node: node, onTap: onTap, isActive: true);
         }
-        return _ActiveNode(node: node, onTap: onTap);
+        return _ActiveCircle(node: node, onTap: onTap);
       case JourneyNodeState.locked:
-        if (node.type == JourneyNodeType.bossExam) {
-          return _BossExamNode(node: node, onTap: onTap, isActive: false);
+        if (node.type == JourneyNodeType.reward) {
+          return _LockedRewardCircle(
+              node: node, onTap: onTap, isPremiumGated: isPremiumGated);
         }
-        return _LockedNode(node: node, onTap: onTap);
+        if (node.type == JourneyNodeType.bossExam) {
+          return _BossNode(
+              node: node,
+              onTap: onTap,
+              isActive: false,
+              isPremiumGated: isPremiumGated);
+        }
+        return _LockedCircle(
+          node: node,
+          levelNumber: levelNumber,
+          onTap: onTap,
+          isPremiumGated: isPremiumGated,
+        );
     }
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Completed Node — solid fill, 72px, drop shadow, star badge
-// ═══════════════════════════════════════════════════════════════════════════════
+// =============================================================================
+// Completed Circle — solid accent + white check
+// =============================================================================
 
-class _CompletedNode extends StatelessWidget {
+class _CompletedCircle extends StatelessWidget {
   final JourneyNode node;
   final VoidCallback onTap;
 
-  const _CompletedNode({required this.node, required this.onTap});
+  const _CompletedCircle({required this.node, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -216,70 +240,35 @@ class _CompletedNode extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: 80,
-            height: 80,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                // Main circle — solid gradient fill + shadow
-                Center(
-                  child: Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          accent,
-                          accent.withValues(alpha: 0.75),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: accent.withValues(alpha: 0.35),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        ),
-                        BoxShadow(
-                          color: accent.withValues(alpha: 0.15),
-                          blurRadius: 6,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Image.asset(
-                        node.assetPath,
-                        width: 40,
-                        height: 40,
-                      ),
-                    ),
-                  ),
-                ),
-                // Star check badge (bottom-right)
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0.0, end: 1.0),
-                    duration: AppAnimations.durationMedium,
-                    curve: AppAnimations.curveBounce,
-                    builder: (_, value, child) => Transform.scale(
-                      scale: value,
-                      child: child,
-                    ),
-                    child: Image.asset(
-                      'assets/images/journey/star_check.png',
-                      width: 28,
-                      height: 28,
-                    ),
-                  ),
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  accent,
+                  Color.lerp(accent, Colors.white, 0.18)!,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: accent.withValues(alpha: 0.35),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
                 ),
               ],
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.15),
+                width: 2,
+              ),
+            ),
+            child: const Icon(
+              Icons.check_rounded,
+              color: Colors.white,
+              size: 30,
             ),
           ),
           const SizedBox(height: 6),
@@ -291,6 +280,7 @@ class _CompletedNode extends StatelessWidget {
               style: AppTypography.caption.copyWith(
                 color: Colors.white54,
                 fontSize: 10,
+                height: 1.2,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -302,44 +292,53 @@ class _CompletedNode extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Active Node — expanded card, breathing glow + bounce, UP NEXT badge
-// ═══════════════════════════════════════════════════════════════════════════════
+// =============================================================================
+// Active Circle — hero node with breathing glow, asset icon, START CTA
+// =============================================================================
 
-class _ActiveNode extends StatefulWidget {
+class _ActiveCircle extends StatefulWidget {
   final JourneyNode node;
   final VoidCallback onTap;
 
-  const _ActiveNode({required this.node, required this.onTap});
+  const _ActiveCircle({required this.node, required this.onTap});
 
   @override
-  State<_ActiveNode> createState() => _ActiveNodeState();
+  State<_ActiveCircle> createState() => _ActiveCircleState();
 }
 
-class _ActiveNodeState extends State<_ActiveNode>
+class _ActiveCircleState extends State<_ActiveCircle>
     with SingleTickerProviderStateMixin {
-  late AnimationController _glowController;
-  late Animation<double> _glowAnimation;
-  late Animation<double> _scaleAnimation;
+  late AnimationController _breatheController;
+  late Animation<double> _glowAlpha;
+  late Animation<double> _scale;
+  late Animation<double> _ringSize;
+  late Animation<double> _bounce;
 
   @override
   void initState() {
     super.initState();
-    _glowController = AnimationController(
+    _breatheController = AnimationController(
       vsync: this,
       duration: AppAnimations.durationBreathing,
     )..repeat(reverse: true);
-    _glowAnimation = Tween<double>(begin: 0.10, end: 0.30).animate(
-      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+
+    _glowAlpha = Tween<double>(begin: 0.15, end: 0.40).animate(
+      CurvedAnimation(parent: _breatheController, curve: Curves.easeInOut),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.03).animate(
-      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+    _scale = Tween<double>(begin: 1.0, end: 1.04).animate(
+      CurvedAnimation(parent: _breatheController, curve: Curves.easeInOut),
+    );
+    _ringSize = Tween<double>(begin: 94.0, end: 100.0).animate(
+      CurvedAnimation(parent: _breatheController, curve: Curves.easeInOut),
+    );
+    _bounce = Tween<double>(begin: 0.0, end: -4.0).animate(
+      CurvedAnimation(parent: _breatheController, curve: Curves.easeInOut),
     );
   }
 
   @override
   void dispose() {
-    _glowController.dispose();
+    _breatheController.dispose();
     super.dispose();
   }
 
@@ -348,28 +347,31 @@ class _ActiveNodeState extends State<_ActiveNode>
     final accent = widget.node.accentColor;
 
     return AnimatedBuilder(
-      animation: _glowAnimation,
-      builder: (context, child) {
+      animation: _breatheController,
+      builder: (context, _) {
         return Transform.scale(
-          scale: _scaleAnimation.value,
+          scale: _scale.value,
           child: TapScale(
-            onTap: widget.onTap,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              widget.onTap();
+            },
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // UP NEXT pill
+                // "UP NEXT" pill
                 Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 4,
-                  ),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                   decoration: BoxDecoration(
                     color: AppColors.ctaLime,
                     borderRadius: BorderRadius.circular(100),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.ctaLime.withValues(alpha: 0.30),
-                        blurRadius: 8,
+                        color: AppColors.ctaLime
+                            .withValues(alpha: 0.3 + _glowAlpha.value * 0.3),
+                        blurRadius: 14,
                         offset: const Offset(0, 2),
                       ),
                     ],
@@ -384,136 +386,144 @@ class _ActiveNodeState extends State<_ActiveNode>
                     ),
                   ),
                 ),
-                // Card
-                Container(
-                  width: 220,
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  decoration: BoxDecoration(
-                    color: AppColors.immersiveCard,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: accent.withValues(alpha: 0.45),
-                      width: 2,
+
+                // Circle with breathing ring
+                Transform.translate(
+                  offset: Offset(0, _bounce.value),
+                  child: SizedBox(
+                    width: 108,
+                    height: 108,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Outer pulsing ring
+                        Container(
+                          width: _ringSize.value,
+                          height: _ringSize.value,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: accent.withValues(alpha: 0.40),
+                              width: 2.5,
+                            ),
+                          ),
+                        ),
+                        // Main circle
+                        Container(
+                          width: 82,
+                          height: 82,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [
+                                accent,
+                                accent.withValues(alpha: 0.75),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    accent.withValues(alpha: _glowAlpha.value),
+                                blurRadius: 32,
+                                spreadRadius: 4,
+                              ),
+                              BoxShadow(
+                                color: accent.withValues(alpha: 0.20),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.20),
+                              width: 3,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Image.asset(
+                              widget.node.assetPath,
+                              width: 44,
+                              height: 44,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Title
+                SizedBox(
+                  width: 160,
+                  child: Text(
+                    widget.node.title,
+                    textAlign: TextAlign.center,
+                    style: AppTypography.labelLarge.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      height: 1.2,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widget.node.subtitle,
+                  style: AppTypography.caption.copyWith(
+                    color: Colors.white54,
+                    fontSize: 11,
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // START button
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 28, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.ctaLime,
+                    borderRadius: BorderRadius.circular(100),
                     boxShadow: [
                       BoxShadow(
-                        color: accent.withValues(alpha: _glowAnimation.value),
-                        blurRadius: 28,
-                        spreadRadius: 2,
-                      ),
-                      BoxShadow(
-                        color: accent.withValues(alpha: 0.10),
-                        blurRadius: 8,
+                        color: AppColors.ctaLime.withValues(alpha: 0.35),
+                        blurRadius: 14,
                         offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Asset image circle
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [
-                              accent,
-                              accent.withValues(alpha: 0.7),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: accent.withValues(alpha: 0.40),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Image.asset(
-                            widget.node.assetPath,
-                            width: 40,
-                            height: 40,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
+                  child: Text(
+                    'START',
+                    style: AppTypography.labelMedium.copyWith(
+                      color: AppColors.ctaLimeText,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
 
-                      // Title
-                      Text(
-                        widget.node.title,
-                        textAlign: TextAlign.center,
-                        style: AppTypography.labelLarge.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-
-                      // Subtitle
-                      Text(
-                        widget.node.subtitle,
-                        textAlign: TextAlign.center,
-                        style: AppTypography.caption.copyWith(
-                          color: Colors.white60,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // CTA button
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.xl,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.ctaLime,
-                          borderRadius: BorderRadius.circular(100),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.ctaLime.withValues(alpha: 0.30),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          'CONTINUE',
-                          style: AppTypography.labelMedium.copyWith(
-                            color: AppColors.ctaLimeText,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // XP pill
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.ctaLime.withValues(alpha: 0.10),
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                        child: Text(
-                          '+${widget.node.xpReward} XP',
-                          style: AppTypography.caption.copyWith(
-                            color: AppColors.ctaLime,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ),
-                    ],
+                // XP pill
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.ctaLime.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  child: Text(
+                    '+${widget.node.xpReward} XP',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.ctaLime,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
+                    ),
                   ),
                 ),
               ],
@@ -525,42 +535,47 @@ class _ActiveNodeState extends State<_ActiveNode>
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Locked Node — 68px, drop shadow, dimmed asset, locked chest badge
-// ═══════════════════════════════════════════════════════════════════════════════
+// =============================================================================
+// Locked Circle — dim numbered circle with lock badge
+// =============================================================================
 
-class _LockedNode extends StatelessWidget {
+class _LockedCircle extends StatelessWidget {
   final JourneyNode node;
+  final int levelNumber;
   final VoidCallback onTap;
+  final bool isPremiumGated;
 
-  const _LockedNode({required this.node, required this.onTap});
+  const _LockedCircle({
+    required this.node,
+    required this.levelNumber,
+    required this.onTap,
+    this.isPremiumGated = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final accent = node.accentColor;
-
     return TapScale(
       onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 80,
-            height: 80,
+            width: 72,
+            height: 72,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                // Main circle — subtle fill + shadow
+                // Main circle — grey with subtle accent tint
                 Center(
                   child: Container(
-                    width: 68,
-                    height: 68,
+                    width: 58,
+                    height: 58,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: accent.withValues(alpha: 0.08),
+                      color: AppColors.immersiveCard,
                       border: Border.all(
-                        color: accent.withValues(alpha: 0.18),
-                        width: 2,
+                        color: AppColors.immersiveBorder,
+                        width: 2.5,
                       ),
                       boxShadow: [
                         BoxShadow(
@@ -570,55 +585,172 @@ class _LockedNode extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: Opacity(
-                      opacity: 0.40,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
+                    child: Center(
+                      child: Opacity(
+                        opacity: 0.18,
                         child: Image.asset(
                           node.assetPath,
-                          width: 40,
-                          height: 40,
-                          color: Colors.white,
-                          colorBlendMode: BlendMode.saturation,
+                          width: 28,
+                          height: 28,
                         ),
                       ),
                     ),
                   ),
                 ),
-                // Locked chest badge (bottom-right)
+                // Lock badge or PRO pill
                 Positioned(
-                  right: 0,
+                  right: isPremiumGated ? -4 : 4,
                   bottom: 0,
-                  child: Image.asset(
-                    'assets/images/journey/chest_locked.png',
-                    width: 28,
-                    height: 28,
-                  ),
+                  child: isPremiumGated ? _proPill() : _lockBadge(),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 6),
-          // Title
+          const SizedBox(height: 4),
           SizedBox(
-            width: 100,
+            width: 90,
             child: Text(
               node.title,
               textAlign: TextAlign.center,
               style: AppTypography.caption.copyWith(
-                color: Colors.white30,
-                fontSize: 10,
+                color: Colors.white24,
+                fontSize: 9,
+                height: 1.2,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          // XP label
-          const SizedBox(height: 2),
+        ],
+      ),
+    );
+  }
+
+  Widget _lockBadge() {
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.immersiveCard,
+        border: Border.all(
+          color: AppColors.immersiveBorder,
+          width: 1.5,
+        ),
+      ),
+      child: Icon(
+        Icons.lock_rounded,
+        size: 11,
+        color: Colors.white.withValues(alpha: 0.30),
+      ),
+    );
+  }
+
+  Widget _proPill() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFF59E0B), Color(0xFFF97316)],
+        ),
+        borderRadius: BorderRadius.circular(100),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.30),
+            blurRadius: 6,
+          ),
+        ],
+      ),
+      child: Text(
+        'PRO',
+        style: AppTypography.caption.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 8,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Locked Reward Circle — small locked chest
+// =============================================================================
+
+class _LockedRewardCircle extends StatelessWidget {
+  final JourneyNode node;
+  final VoidCallback onTap;
+  final bool isPremiumGated;
+
+  const _LockedRewardCircle({
+    required this.node,
+    required this.onTap,
+    this.isPremiumGated = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TapScale(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 72,
+            height: 72,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Center(
+                  child: Opacity(
+                    opacity: 0.30,
+                    child: Image.asset(
+                      'assets/images/journey/chest_locked.png',
+                      width: 56,
+                      height: 56,
+                    ),
+                  ),
+                ),
+                if (isPremiumGated)
+                  Positioned(
+                    right: -4,
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFF59E0B), Color(0xFFF97316)],
+                        ),
+                        borderRadius: BorderRadius.circular(100),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFF59E0B)
+                                .withValues(alpha: 0.30),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        'PRO',
+                        style: AppTypography.caption.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 8,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
           Text(
             '+${node.xpReward} XP',
             style: AppTypography.caption.copyWith(
-              color: accent.withValues(alpha: 0.30),
+              color: const Color(0xFFFBBF24).withValues(alpha: 0.25),
               fontWeight: FontWeight.w600,
               fontSize: 9,
             ),
@@ -629,9 +761,9 @@ class _LockedNode extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Reward Node (active — floating chest with gold CTA)
-// ═══════════════════════════════════════════════════════════════════════════════
+// =============================================================================
+// Reward Node (active — floating chest with gold shimmer)
+// =============================================================================
 
 class _RewardNode extends StatefulWidget {
   final JourneyNode node;
@@ -644,9 +776,10 @@ class _RewardNode extends StatefulWidget {
 }
 
 class _RewardNodeState extends State<_RewardNode>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _floatController;
   late Animation<double> _floatAnimation;
+  late AnimationController _shimmerController;
 
   @override
   void initState() {
@@ -655,14 +788,19 @@ class _RewardNodeState extends State<_RewardNode>
       vsync: this,
       duration: const Duration(milliseconds: 2000),
     )..repeat(reverse: true);
-    _floatAnimation = Tween<double>(begin: 0.0, end: -6.0).animate(
+    _floatAnimation = Tween<double>(begin: 0.0, end: -8.0).animate(
       CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
     );
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat();
   }
 
   @override
   void dispose() {
     _floatController.dispose();
+    _shimmerController.dispose();
     super.dispose();
   }
 
@@ -673,114 +811,110 @@ class _RewardNodeState extends State<_RewardNode>
         HapticFeedback.mediumImpact();
         widget.onTap();
       },
-      child: Container(
-        width: 180,
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(
-          color: AppColors.immersiveCard,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: const Color(0xFFF59E0B).withValues(alpha: 0.45),
-            width: 2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFF59E0B).withValues(alpha: 0.20),
-              blurRadius: 24,
-              spreadRadius: 2,
-            ),
-            BoxShadow(
-              color: const Color(0xFFF59E0B).withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Floating chest
-            AnimatedBuilder(
-              animation: _floatAnimation,
-              builder: (context, child) => Transform.translate(
-                offset: Offset(0, _floatAnimation.value),
-                child: child,
-              ),
-              child: Image.asset(
-                'assets/images/journey/chest_open.png',
-                width: 72,
-                height: 72,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Reward Chest',
-              style: AppTypography.labelLarge.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '+${widget.node.xpReward} XP',
-              style: AppTypography.caption.copyWith(
-                color: const Color(0xFFFBBF24),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg, vertical: 8,
-              ),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFF59E0B), Color(0xFFFBBF24)],
+      child: AnimatedBuilder(
+        animation: _shimmerController,
+        builder: (context, _) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Floating chest with gold glow
+              AnimatedBuilder(
+                animation: _floatAnimation,
+                builder: (context, child) => Transform.translate(
+                  offset: Offset(0, _floatAnimation.value),
+                  child: child,
                 ),
-                borderRadius: BorderRadius.circular(100),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFF59E0B).withValues(alpha: 0.30),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.30),
+                        blurRadius: 32,
+                        spreadRadius: 4,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Text(
-                'OPEN',
-                style: AppTypography.labelMedium.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.8,
+                  child: Image.asset(
+                    'assets/images/journey/chest_open.png',
+                    width: 72,
+                    height: 72,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(height: 8),
+              Text(
+                'Reward Chest',
+                style: AppTypography.labelLarge.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '+${widget.node.xpReward} XP',
+                style: AppTypography.caption.copyWith(
+                  color: const Color(0xFFFBBF24),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFF59E0B), Color(0xFFFBBF24)],
+                  ),
+                  borderRadius: BorderRadius.circular(100),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.35),
+                      blurRadius: 14,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  'OPEN',
+                  style: AppTypography.labelMedium.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Boss Exam Node (larger shield with drop shadow)
-// ═══════════════════════════════════════════════════════════════════════════════
+// =============================================================================
+// Boss Node — shield with red glow (active) or dimmed (locked)
+// =============================================================================
 
-class _BossExamNode extends StatelessWidget {
+class _BossNode extends StatelessWidget {
   final JourneyNode node;
   final VoidCallback onTap;
   final bool isActive;
+  final bool isPremiumGated;
 
-  const _BossExamNode({
+  const _BossNode({
     required this.node,
     required this.onTap,
     required this.isActive,
+    this.isPremiumGated = false,
   });
 
   @override
   Widget build(BuildContext context) {
     if (!isActive) {
-      // Locked boss exam
       return TapScale(
         onTap: onTap,
         child: Column(
@@ -792,21 +926,20 @@ class _BossExamNode extends StatelessWidget {
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  // Boss shield (dimmed) with shadow
                   Center(
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.25),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                            color: Colors.black.withValues(alpha: 0.20),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
                           ),
                         ],
                       ),
                       child: Opacity(
-                        opacity: 0.40,
+                        opacity: 0.28,
                         child: Image.asset(
                           'assets/images/journey/shield_boss.png',
                           width: 64,
@@ -815,36 +948,68 @@ class _BossExamNode extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Locked chest badge
                   Positioned(
-                    right: 2,
-                    bottom: 2,
-                    child: Image.asset(
-                      'assets/images/journey/chest_locked.png',
-                      width: 28,
-                      height: 28,
-                    ),
+                    right: isPremiumGated ? -4 : 4,
+                    bottom: 0,
+                    child: isPremiumGated
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFFF59E0B),
+                                  Color(0xFFF97316)
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(100),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFF59E0B)
+                                      .withValues(alpha: 0.3),
+                                  blurRadius: 6,
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              'PRO',
+                              style: AppTypography.caption.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 8,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          )
+                        : Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.immersiveCard,
+                              border: Border.all(
+                                color: AppColors.immersiveBorder,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.lock_rounded,
+                              size: 11,
+                              color: Colors.white.withValues(alpha: 0.30),
+                            ),
+                          ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               'FINAL EXAM',
               style: AppTypography.caption.copyWith(
-                color: const Color(0xFFEF4444).withValues(alpha: 0.45),
+                color: const Color(0xFFEF4444).withValues(alpha: 0.35),
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.0,
                 fontSize: 10,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              '+${node.xpReward} XP',
-              style: AppTypography.caption.copyWith(
-                color: const Color(0xFFEF4444).withValues(alpha: 0.30),
-                fontWeight: FontWeight.w600,
-                fontSize: 9,
               ),
             ),
           ],
@@ -852,149 +1017,117 @@ class _BossExamNode extends StatelessWidget {
       );
     }
 
-    // Active boss exam
+    // Active boss
     return TapScale(
-      onTap: onTap,
-      child: Container(
-        width: 200,
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(
-          color: AppColors.immersiveCard,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: const Color(0xFFEF4444).withValues(alpha: 0.45),
-            width: 2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFEF4444).withValues(alpha: 0.20),
-              blurRadius: 24,
-              spreadRadius: 2,
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        onTap();
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Shield with red glow
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.30),
+                  blurRadius: 32,
+                  spreadRadius: 4,
+                ),
+              ],
             ),
-            BoxShadow(
-              color: const Color(0xFFEF4444).withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
+            child: Image.asset(
               'assets/images/journey/shield_boss.png',
-              width: 80,
-              height: 80,
+              width: 88,
+              height: 88,
             ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Final Exam',
-              style: AppTypography.labelLarge.copyWith(
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Final Exam',
+            style: AppTypography.labelLarge.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Comprehensive test',
+            style: AppTypography.caption.copyWith(color: Colors.white54),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '+${node.xpReward} XP',
+            style: AppTypography.caption.copyWith(
+              color: const Color(0xFFFCA5A5),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEF4444),
+              borderRadius: BorderRadius.circular(100),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.35),
+                  blurRadius: 14,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Text(
+              'START EXAM',
+              style: AppTypography.labelMedium.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
+                letterSpacing: 0.8,
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Comprehensive test',
-              style: AppTypography.caption.copyWith(
-                color: Colors.white60,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              '+${node.xpReward} XP',
-              style: AppTypography.caption.copyWith(
-                color: const Color(0xFFFCA5A5),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.xl, vertical: 10,
-              ),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEF4444),
-                borderRadius: BorderRadius.circular(100),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFEF4444).withValues(alpha: 0.30),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Text(
-                'START EXAM',
-                style: AppTypography.labelMedium.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Connector Line — thicker bezier curves, brighter completed gradient
-// ═══════════════════════════════════════════════════════════════════════════════
+// =============================================================================
+// Connector Segment — smooth bezier curves between nodes
+// =============================================================================
 
-class _ConnectorLine extends StatelessWidget {
+class _ConnectorSegment extends StatelessWidget {
   final JourneyNode fromNode;
   final JourneyNode toNode;
-  final int fromIndex;
-  final int toIndex;
+  final double fromOffset;
+  final double toOffset;
 
-  const _ConnectorLine({
+  const _ConnectorSegment({
     required this.fromNode,
     required this.toNode,
-    required this.fromIndex,
-    required this.toIndex,
+    required this.fromOffset,
+    required this.toOffset,
   });
-
-  double _alignmentX(JourneyNode node, int index) {
-    if (node.state == JourneyNodeState.active || node.isCentered) return 0.0;
-    return index % 2 == 0 ? -0.45 : 0.45;
-  }
 
   @override
   Widget build(BuildContext context) {
     final isCompleted = fromNode.state == JourneyNodeState.completed &&
-        toNode.state == JourneyNodeState.completed;
-    final isNextActive = fromNode.state == JourneyNodeState.completed &&
-        toNode.state == JourneyNodeState.active;
-
-    const height = 56.0;
-    final Color lineColor;
-    final double strokeWidth;
-    final bool isDashed;
-
-    if (isCompleted || isNextActive) {
-      lineColor = AppColors.ctaLime.withValues(alpha: 0.65);
-      strokeWidth = 3.5;
-      isDashed = false;
-    } else {
-      lineColor = AppColors.immersiveBorder.withValues(alpha: 0.6);
-      strokeWidth = 2.5;
-      isDashed = true;
-    }
+        (toNode.state == JourneyNodeState.completed ||
+            toNode.state == JourneyNodeState.active);
 
     return SizedBox(
-      height: height,
+      height: 48,
       width: double.infinity,
       child: CustomPaint(
         painter: _ConnectorPainter(
-          color: lineColor,
-          strokeWidth: strokeWidth,
-          isDashed: isDashed,
-          fromAlignX: _alignmentX(fromNode, fromIndex),
-          toAlignX: _alignmentX(toNode, toIndex),
+          isCompleted: isCompleted,
+          fromAlignX: fromOffset,
+          toAlignX: toOffset,
         ),
       ),
     );
@@ -1002,28 +1135,18 @@ class _ConnectorLine extends StatelessWidget {
 }
 
 class _ConnectorPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-  final bool isDashed;
+  final bool isCompleted;
   final double fromAlignX;
   final double toAlignX;
 
   _ConnectorPainter({
-    required this.color,
-    required this.strokeWidth,
-    required this.isDashed,
+    required this.isCompleted,
     required this.fromAlignX,
     required this.toAlignX,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
     final centerX = size.width / 2;
     final startX = centerX + (fromAlignX * centerX);
     final endX = centerX + (toAlignX * centerX);
@@ -1032,33 +1155,54 @@ class _ConnectorPainter extends CustomPainter {
     final path = Path();
     path.moveTo(startX, 0);
     path.cubicTo(
-      startX, midY,
-      endX, midY,
-      endX, size.height,
+      startX,
+      midY,
+      endX,
+      midY,
+      endX,
+      size.height,
     );
 
-    if (isDashed) {
+    if (isCompleted) {
+      // Solid gradient stroke
+      final paint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.ctaLime.withValues(alpha: 0.65),
+            AppColors.ctaLime.withValues(alpha: 0.30),
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
+        ..strokeWidth = 3.0
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawPath(path, paint);
+    } else {
+      // Dashed locked connector
+      final paint = Paint()
+        ..color = AppColors.immersiveBorder.withValues(alpha: 0.40)
+        ..strokeWidth = 2.0
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
       for (final metric in path.computeMetrics()) {
         var distance = 0.0;
-        const dashLength = 7.0;
-        const dashGap = 5.0;
+        const dashLength = 4.0;
+        const dashGap = 6.0;
         while (distance < metric.length) {
           final nextDash = math.min(distance + dashLength, metric.length);
-          final extractedPath = metric.extractPath(distance, nextDash);
-          canvas.drawPath(extractedPath, paint);
+          canvas.drawPath(metric.extractPath(distance, nextDash), paint);
           distance = nextDash + dashGap;
         }
       }
-    } else {
-      canvas.drawPath(path, paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _ConnectorPainter oldDelegate) =>
-      color != oldDelegate.color ||
-      strokeWidth != oldDelegate.strokeWidth ||
-      isDashed != oldDelegate.isDashed ||
-      fromAlignX != oldDelegate.fromAlignX ||
-      toAlignX != oldDelegate.toAlignX;
+  bool shouldRepaint(covariant _ConnectorPainter old) =>
+      isCompleted != old.isCompleted ||
+      fromAlignX != old.fromAlignX ||
+      toAlignX != old.toAlignX;
 }
