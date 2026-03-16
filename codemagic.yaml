@@ -64,8 +64,9 @@ workflows:
 
       - name: Flutter build IPA
         script: |
+          PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
           flutter build ipa --release \
-            --build-name=1.3.0 \
+            --build-name=$PUBSPEC_VERSION \
             --build-number=$(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID") + 1)) \
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \
             --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
