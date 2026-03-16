@@ -1,12 +1,9 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
-import '../../../../core/providers/theme_provider.dart';
-
 /// A task/study item in the calendar timeline.
 ///
 /// Shows a colored icon circle, task title, subtitle, and optional
@@ -37,33 +34,25 @@ class TaskItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.isDark;
-    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: AppRadius.borderRadiusLg,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.10)
-                  : Colors.white.withValues(alpha: 0.82),
-              borderRadius: AppRadius.borderRadiusLg,
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.2),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.05),
-                  blurRadius: 32,
-                  offset: const Offset(0, 8),
-                ),
-              ],
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: AppColors.immersiveCard,
+          borderRadius: AppRadius.borderRadiusLg,
+          border: Border.all(
+            color: AppColors.immersiveBorder,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.05),
+              blurRadius: 32,
+              offset: const Offset(0, 8),
             ),
-            child: Opacity(
+          ],
+        ),
+        child: Opacity(
               opacity: isCompleted ? 0.6 : 1.0,
               child: Row(
                 children: [
@@ -101,7 +90,7 @@ class TaskItem extends StatelessWidget {
                         border: Border.all(
                           color: isCompleted
                               ? AppColors.success
-                              : AppColors.textMutedFor(brightness),
+                              : Colors.white38,
                           width: 2,
                         ),
                       ),
@@ -128,8 +117,8 @@ class TaskItem extends StatelessWidget {
                                 ? TextDecoration.lineThrough
                                 : null,
                             color: isCompleted
-                                ? AppColors.textMutedFor(brightness)
-                                : AppColors.textPrimaryFor(brightness),
+                                ? Colors.white38
+                                : Colors.white,
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
@@ -139,7 +128,7 @@ class TaskItem extends StatelessWidget {
                           Text(
                             time,
                             style: AppTypography.caption.copyWith(
-                              color: AppColors.textMutedFor(brightness),
+                              color: Colors.white38,
                               fontSize: 12,
                             ),
                           ),
@@ -169,15 +158,13 @@ class TaskItem extends StatelessWidget {
                       child: Icon(
                         Icons.check_circle_outline,
                         size: 24,
-                        color: AppColors.textMutedFor(brightness),
+                        color: Colors.white38,
                       ),
                     ),
                 ],
               ),
             ),
           ),
-        ),
-      ),
     );
   }
 }

@@ -132,9 +132,7 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
               margin: const EdgeInsets.symmetric(horizontal: 40),
               padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? AppColors.surfaceDark
-                    : Colors.white,
+                color: AppColors.surfaceDark,
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
                   BoxShadow(
@@ -162,8 +160,7 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
                     widget.title,
                     style: AppTypography.h2.copyWith(
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimaryFor(
-                          Theme.of(context).brightness),
+                      color: Colors.white,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -172,8 +169,7 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
                     Text(
                       widget.subtitle!,
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondaryFor(
-                            Theme.of(context).brightness),
+                        color: Colors.white60,
                       ),
                       textAlign: TextAlign.center,
                     ),

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -149,7 +148,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         // Let the animation finish gracefully before popping
         setState(() {
           _realPhase = 'done';
-          _pendingPopMessage = 'Scanned and processed: ${material.title}';
+          _pendingPopMessage = 'Scanned and processed: ${material.displayTitle}';
         });
       }
     } catch (e) {
@@ -241,7 +240,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         SoundService.playProcessingComplete();
         setState(() {
           _realPhase = 'done';
-          _pendingPopMessage = 'Transcribed: ${material.title}';
+          _pendingPopMessage = 'Transcribed: ${material.displayTitle}';
         });
       }
     } catch (e) {
@@ -348,7 +347,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         SoundService.playProcessingComplete();
         setState(() {
           _realPhase = 'done';
-          _pendingPopMessage = 'Uploaded and processed: ${material.title}';
+          _pendingPopMessage = 'Uploaded and processed: ${material.displayTitle}';
         });
       }
     } catch (e) {
@@ -395,7 +394,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         SoundService.playProcessingComplete();
         setState(() => _isProcessing = false);
         Navigator.of(context)
-            .pop('Saved: ${material.title}');
+            .pop('Saved: ${material.displayTitle}');
       }
     } catch (e) {
       if (mounted) {
@@ -432,7 +431,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
               final course = courses[i];
               return ListTile(
                 leading: Icon(course.icon, color: course.color),
-                title: Text(course.title),
+                title: Text(course.displayTitle),
                 subtitle:
                     course.subtitle != null ? Text(course.subtitle!) : null,
                 onTap: () => Navigator.of(ctx).pop(course.id),
@@ -493,28 +492,17 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     final coursesAsync = ref.watch(coursesProvider);
     final recentAsync = ref.watch(recentMaterialsProvider);
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final brightness = Theme.of(context).brightness;
-
     return PopScope(
       canPop: !_isProcessing,
       onPopInvokedWithResult: (didPop, result) {
         // When processing, system back press is blocked by canPop.
       },
-      child: ClipRRect(
-          borderRadius: AppRadius.borderRadiusSheet,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: Container(
+      child: Container(
               decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.surfaceDark.withValues(alpha: 0.95)
-                    : Colors.white.withValues(alpha: 0.88),
+                color: AppColors.immersiveSurface,
                 borderRadius: AppRadius.borderRadiusSheet,
                 border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Colors.white.withValues(alpha: 0.5),
+                  color: AppColors.immersiveBorder,
                 ),
               ),
               child: Column(
@@ -530,7 +518,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                           width: 48,
                           height: 5,
                           decoration: BoxDecoration(
-                            color: Colors.grey.withValues(alpha: 0.3),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: AppRadius.borderRadiusPill,
                           ),
                         ),
@@ -543,15 +531,13 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                               width: 32,
                               height: 32,
                               decoration: BoxDecoration(
-                                color: Colors.grey.withValues(alpha: 0.15),
+                                color: Colors.white.withValues(alpha: 0.08),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 Icons.close_rounded,
                                 size: 18,
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.6)
-                                    : Colors.black.withValues(alpha: 0.5),
+                                color: Colors.white.withValues(alpha: 0.6),
                               ),
                             ),
                           ),
@@ -595,7 +581,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                   'New Capture',
                                   style: AppTypography.h2.copyWith(
                                     fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimaryFor(brightness),
+                                    color: Colors.white,
                                   ),
                                 ),
                               ),
@@ -604,7 +590,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                 child: Text(
                                   'Choose how you want to add materials',
                                   style: AppTypography.bodySmall.copyWith(
-                                    color: AppColors.textSecondaryFor(brightness),
+                                    color: Colors.white60,
                                   ),
                                 ),
                               ),
@@ -669,7 +655,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                   Text(
                                     'RECENT',
                                     style: AppTypography.sectionHeader.copyWith(
-                                      color: AppColors.textMutedFor(brightness),
+                                      color: Colors.white60,
                                     ),
                                   ),
                                   Text(
@@ -704,10 +690,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                         .take(3)
                                         .map((m) => Padding(
                                               padding: const EdgeInsets.only(
-                                                  bottom: AppSpacing.sm),
+                                                  bottom: AppSpacing.md),
                                               child: _RecentItem(
                                                 icon: _iconForType(m.type),
-                                                title: m.title,
+                                                title: m.displayTitle,
                                                 subtitle: m.sizeLabel.isNotEmpty
                                                     ? m.sizeLabel
                                                     : m.typeLabel,
@@ -728,12 +714,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                   padding: const EdgeInsets.symmetric(
                                       vertical: 16),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey
-                                        .withValues(alpha: 0.1),
+                                    color: Colors.white.withValues(alpha: 0.06),
                                     borderRadius: AppRadius.borderRadiusPill,
                                     border: Border.all(
-                                      color: Colors.grey
-                                          .withValues(alpha: 0.2),
+                                      color: AppColors.immersiveBorder,
                                     ),
                                   ),
                                   child: Center(
@@ -741,7 +725,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                       'Cancel',
                                       style:
                                           AppTypography.labelLarge.copyWith(
-                                        color: AppColors.textSecondaryFor(brightness),
+                                        color: Colors.white60,
                                       ),
                                     ),
                                   ),
@@ -755,8 +739,6 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                 ],
               ),
             ),
-          ),
-        ),
     );
   }
 
@@ -791,8 +773,6 @@ class _CaptureAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final brightness = Theme.of(context).brightness;
     return GlassButton(
       onTap: onTap,
       borderRadius: BorderRadius.circular(32),
@@ -803,13 +783,11 @@ class _CaptureAction extends StatelessWidget {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: isDark
-                  ? AppColors.primary.withValues(alpha: 0.12)
-                  : Colors.white,
+              color: AppColors.primary.withValues(alpha: 0.12),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.1),
+                  color: AppColors.primary.withValues(alpha: 0.2),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -821,7 +799,8 @@ class _CaptureAction extends StatelessWidget {
           Text(
             label,
             style: AppTypography.labelLarge.copyWith(
-              color: AppColors.textPrimaryFor(brightness),
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
             ),
             textAlign: TextAlign.center,
           ),
@@ -830,11 +809,11 @@ class _CaptureAction extends StatelessWidget {
             Text(
               subtitle!,
               style: AppTypography.caption.copyWith(
-                color: AppColors.textMutedFor(brightness),
+                color: Colors.white38,
                 fontSize: 10,
               ),
               textAlign: TextAlign.center,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ],
@@ -857,19 +836,13 @@ class _RecentItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final brightness = Theme.of(context).brightness;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.06)
-            : Colors.white.withValues(alpha: 0.4),
+        color: AppColors.immersiveCard,
         borderRadius: AppRadius.borderRadiusLg,
         border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.1)
-              : Colors.white.withValues(alpha: 0.5),
+          color: AppColors.immersiveBorder,
         ),
       ),
       child: Row(
@@ -891,13 +864,13 @@ class _RecentItem extends StatelessWidget {
                 Text(
                   title,
                   style: AppTypography.labelLarge.copyWith(
-                    color: AppColors.textPrimaryFor(brightness),
+                    color: Colors.white,
                   ),
                 ),
                 Text(
                   subtitle,
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.textMutedFor(brightness),
+                    color: Colors.white38,
                   ),
                 ),
               ],
@@ -906,7 +879,7 @@ class _RecentItem extends StatelessWidget {
           Icon(
             Icons.chevron_right_rounded,
             size: 16,
-            color: AppColors.textMutedFor(brightness),
+            color: Colors.white38,
           ),
         ],
       ),
@@ -1297,8 +1270,6 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView>
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
     final l = AppLocalizations.of(context)!;
     final steps = _getSteps(l);
 
@@ -1432,7 +1403,7 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView>
                 key: ValueKey(_currentStep == steps.length - 1 && _realDone),
                 style: AppTypography.h3.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimaryFor(brightness),
+                  color: Colors.white,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -1456,7 +1427,7 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView>
                 steps[_currentStep].loading,
                 key: ValueKey('sub_$_currentStep'),
                 style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textMutedFor(brightness),
+                  color: Colors.white38,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -1474,7 +1445,7 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView>
                     height: 8,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(100),
-                      color: AppColors.primary.withValues(alpha: isDark ? 0.10 : 0.08),
+                      color: AppColors.primary.withValues(alpha: 0.10),
                     ),
                   ),
                   // Animated fill
@@ -1570,17 +1541,15 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView>
                     decoration: BoxDecoration(
                       gradient: isComplete
                           ? LinearGradient(colors: [
-                              AppColors.success.withValues(alpha: isDark ? 0.08 : 0.05),
-                              AppColors.success.withValues(alpha: isDark ? 0.03 : 0.01),
+                              AppColors.success.withValues(alpha: 0.08),
+                              AppColors.success.withValues(alpha: 0.03),
                             ])
                           : null,
                       color: isComplete
                           ? null
                           : isCurrent
-                              ? AppColors.primary.withValues(alpha: isDark ? 0.08 : 0.04)
-                              : isDark
-                                  ? Colors.white.withValues(alpha: 0.025)
-                                  : Colors.black.withValues(alpha: 0.015),
+                              ? AppColors.primary.withValues(alpha: 0.08)
+                              : Colors.white.withValues(alpha: 0.025),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
                         color: isComplete
@@ -1639,8 +1608,7 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView>
                                         Icons.circle_outlined,
                                         key: ValueKey('wait_$i'),
                                         size: 20,
-                                        color: AppColors.textMutedFor(brightness)
-                                            .withValues(alpha: 0.25),
+                                        color: Colors.white.withValues(alpha: 0.15),
                                       ),
                           ),
                         ),
@@ -1653,9 +1621,8 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView>
                               color: isComplete
                                   ? AppColors.success
                                   : isCurrent
-                                      ? AppColors.textPrimaryFor(brightness)
-                                      : AppColors.textMutedFor(brightness)
-                                          .withValues(alpha: 0.45),
+                                      ? Colors.white
+                                      : Colors.white.withValues(alpha: 0.25),
                               fontWeight: isCurrent || isComplete
                                   ? FontWeight.w600
                                   : FontWeight.w400,
@@ -1695,17 +1662,17 @@ class _EnhancedProcessingViewState extends State<_EnhancedProcessingView>
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.08),
+                    color: Colors.white.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(100),
                     border: Border.all(
-                      color: Colors.grey.withValues(alpha: 0.15),
+                      color: AppColors.immersiveBorder,
                     ),
                   ),
                   child: Center(
                     child: Text(
                       l.commonCancel,
                       style: AppTypography.labelLarge.copyWith(
-                        color: AppColors.textSecondaryFor(brightness),
+                        color: Colors.white60,
                       ),
                     ),
                   ),
@@ -1985,7 +1952,7 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
             Text(
               'Max ${_maxDurationSeconds ~/ 60} min',
               style: AppTypography.caption.copyWith(
-                color: AppColors.textMutedFor(Theme.of(context).brightness),
+                color: Colors.white38,
               ),
             ),
           ],
@@ -2015,9 +1982,9 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
                   icon: const Icon(Icons.refresh, size: 18),
                   label: const Text('Re-record'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textSecondaryFor(Theme.of(context).brightness),
+                    foregroundColor: Colors.white60,
                     side: BorderSide(
-                      color: AppColors.textMutedFor(Theme.of(context).brightness).withValues(alpha: 0.3),
+                      color: Colors.white.withValues(alpha: 0.2),
                     ),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -2049,9 +2016,9 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
                 // Cancel
                 TextButton(
                   onPressed: _cancelRecording,
-                  child: Text(
+                  child: const Text(
                     'Cancel',
-                    style: TextStyle(color: AppColors.textSecondaryFor(Theme.of(context).brightness)),
+                    style: TextStyle(color: Colors.white60),
                   ),
                 ),
                 const SizedBox(width: 16),

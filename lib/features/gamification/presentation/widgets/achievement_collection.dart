@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../data/models/achievement_model.dart';
@@ -10,15 +9,13 @@ import 'achievement_badge_widget.dart';
 
 /// Grid display of all achievement badges, showing unlocked and locked states.
 ///
-/// Used on the profile screen.
+/// Used on the profile screen — forced immersive dark styling.
 class AchievementCollection extends ConsumerWidget {
   const AchievementCollection({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final achievementsAsync = ref.watch(unlockedAchievementsProvider);
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
 
     return achievementsAsync.when(
       loading: () => const SizedBox.shrink(),
@@ -41,15 +38,13 @@ class AchievementCollection extends ConsumerWidget {
                   Icon(
                     Icons.emoji_events_rounded,
                     size: 18,
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.5)
-                        : Colors.black45,
+                    color: Colors.white.withValues(alpha: 0.5),
                   ),
                   const SizedBox(width: 6),
                   Text(
                     'ACHIEVEMENTS',
                     style: AppTypography.sectionHeader.copyWith(
-                      color: AppColors.textMutedFor(brightness),
+                      color: Colors.white38,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.2,
                     ),
@@ -61,15 +56,13 @@ class AchievementCollection extends ConsumerWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.08)
-                          : Colors.grey.withValues(alpha: 0.1),
+                      color: Colors.white.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(100),
                     ),
                     child: Text(
                       '$unlockedCount/$totalCount',
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.textMutedFor(brightness),
+                        color: Colors.white38,
                         fontWeight: FontWeight.w600,
                         fontSize: 11,
                       ),

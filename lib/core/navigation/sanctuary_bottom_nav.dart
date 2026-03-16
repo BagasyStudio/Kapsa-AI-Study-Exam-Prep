@@ -26,10 +26,9 @@ class KapsaBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Gradient fade color adapts to theme
-    final fadeColor = isDark ? AppColors.backgroundDark : Colors.white;
+    // Gradient fade always uses immersive dark
+    const fadeColor = AppColors.immersiveBg;
 
     return SizedBox(
       height: 80 + bottomPadding,
@@ -142,7 +141,7 @@ class _NavIcon extends StatelessWidget {
                 size: 26,
                 color: isSelected
                     ? AppColors.primary
-                    : AppColors.textMutedFor(Theme.of(context).brightness),
+                    : Colors.white38,
               ),
             ),
           ),
@@ -163,15 +162,6 @@ class _CapturePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final pillFillColor = isDark
-        ? Colors.white.withValues(alpha: 0.12)
-        : Colors.white.withValues(alpha: 0.45);
-    final pillBorderColor = isDark
-        ? Colors.white.withValues(alpha: 0.18)
-        : Colors.white.withValues(alpha: 0.5);
-    final textColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimary;
-
     return TapScale(
       onTap: onTap,
       scaleDown: 0.95,
@@ -200,12 +190,14 @@ class _CapturePill extends StatelessWidget {
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: pillFillColor,
+                  color: Colors.white.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(100),
-                  border: Border.all(color: pillBorderColor),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.18),
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+                      color: Colors.black.withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -236,13 +228,13 @@ class _CapturePill extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Text(
+                    const Text(
                       'Capture',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: textColor,
+                        color: Colors.white,
                         letterSpacing: 0.3,
                       ),
                     ),

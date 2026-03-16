@@ -70,10 +70,9 @@ class _KnowledgeScoreScreenState extends ConsumerState<KnowledgeScoreScreen> {
   @override
   Widget build(BuildContext context) {
     final scoreAsync = ref.watch(knowledgeScoreProvider);
-    final brightness = Theme.of(context).brightness;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       body: Stack(
         children: [
           const Positioned.fill(child: FloatingOrbs()),
@@ -157,8 +156,6 @@ class _KnowledgeScoreScreenState extends ConsumerState<KnowledgeScoreScreen> {
   }
 
   Widget _buildContent(BuildContext context, KnowledgeScoreModel score) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
     final rankColor = Color(KnowledgeScoreModel.rankColorValue(score.rank));
 
     return SingleChildScrollView(
@@ -189,7 +186,7 @@ class _KnowledgeScoreScreenState extends ConsumerState<KnowledgeScoreScreen> {
                     Text(
                       '${score.overallScore.round()}',
                       style: TextStyle(
-                        color: AppColors.textPrimaryFor(brightness),
+                        color: Colors.white,
                         fontSize: 56,
                         fontWeight: FontWeight.w800,
                         height: 1,
@@ -199,7 +196,7 @@ class _KnowledgeScoreScreenState extends ConsumerState<KnowledgeScoreScreen> {
                     Text(
                       'Knowledge Score',
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.textMutedFor(brightness),
+                        color: Colors.white38,
                         fontSize: 12,
                       ),
                     ),
@@ -249,13 +246,9 @@ class _KnowledgeScoreScreenState extends ConsumerState<KnowledgeScoreScreen> {
             padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.06)
-                  : Colors.white.withValues(alpha: 0.7),
+              color: Colors.white.withValues(alpha: 0.06),
               border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : Colors.black.withValues(alpha: 0.05),
+                color: Colors.white.withValues(alpha: 0.08),
               ),
             ),
             child: Column(
@@ -283,8 +276,7 @@ class _KnowledgeScoreScreenState extends ConsumerState<KnowledgeScoreScreen> {
                       score.oracleAnalysis ??
                       _generateLocalAnalysis(score),
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondaryFor(
-                        Theme.of(context).brightness),
+                    color: Colors.white60,
                     height: 1.5,
                   ),
                 ),
@@ -297,8 +289,6 @@ class _KnowledgeScoreScreenState extends ConsumerState<KnowledgeScoreScreen> {
   }
 
   Widget _buildMetricsGrid(BuildContext context, KnowledgeScoreModel score) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
     final metrics = score.metricsMap.entries.toList();
     final infoMap = KnowledgeScoreModel.metricInfoMap;
 
@@ -322,13 +312,9 @@ class _KnowledgeScoreScreenState extends ConsumerState<KnowledgeScoreScreen> {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.06)
-                : Colors.white.withValues(alpha: 0.7),
+            color: Colors.white.withValues(alpha: 0.06),
             border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.04),
+              color: Colors.white.withValues(alpha: 0.08),
             ),
           ),
           child: Column(
@@ -341,7 +327,7 @@ class _KnowledgeScoreScreenState extends ConsumerState<KnowledgeScoreScreen> {
                   Text(
                     info?.label ?? entry.key,
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textMutedFor(brightness),
+                      color: Colors.white38,
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
                     ),
@@ -469,8 +455,6 @@ class _GlassBackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: onTap,
       scaleDown: 0.90,
@@ -479,17 +463,13 @@ class _GlassBackButton extends StatelessWidget {
         height: 40,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.1)
-              : Colors.white.withValues(alpha: 0.45),
+          color: Colors.white.withValues(alpha: 0.1),
           border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.15)
-                : Colors.white.withValues(alpha: 0.5),
+            color: Colors.white.withValues(alpha: 0.15),
           ),
         ),
         child: Icon(Icons.chevron_left,
-            color: AppColors.textSecondaryFor(brightness), size: 22),
+            color: Colors.white60, size: 22),
       ),
     );
   }
@@ -501,8 +481,6 @@ class _GlassShareButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: onTap,
       scaleDown: 0.90,
@@ -511,17 +489,13 @@ class _GlassShareButton extends StatelessWidget {
         height: 40,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.1)
-              : Colors.white.withValues(alpha: 0.45),
+          color: Colors.white.withValues(alpha: 0.1),
           border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.15)
-                : Colors.white.withValues(alpha: 0.5),
+            color: Colors.white.withValues(alpha: 0.15),
           ),
         ),
         child: Icon(Icons.ios_share,
-            color: AppColors.textSecondaryFor(brightness), size: 18),
+            color: Colors.white60, size: 18),
       ),
     );
   }

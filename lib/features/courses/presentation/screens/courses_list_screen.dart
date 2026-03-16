@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,8 +13,9 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/course_provider.dart';
 import '../../data/models/course_model.dart';
 import '../../../../core/utils/error_handler.dart';
-import '../../../../core/providers/theme_provider.dart';
 import '../../../flashcards/presentation/providers/flashcard_provider.dart';
+import '../../../home/presentation/widgets/flashcard_quick_access_section.dart';
+import '../../../home/presentation/widgets/recent_materials_grid.dart';
 
 /// Available icons for course creation (name → IconData).
 const _courseIconNames = <String>[
@@ -67,10 +67,9 @@ class CoursesListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final coursesAsync = ref.watch(coursesProvider);
-    final brightness = Theme.of(context).brightness;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
@@ -97,7 +96,7 @@ class CoursesListScreen extends ConsumerWidget {
                   'My Courses',
                   style: AppTypography.h1.copyWith(
                     fontFamily: 'Outfit',
-                    color: AppColors.textPrimaryFor(brightness),
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xl),
@@ -131,6 +130,14 @@ class CoursesListScreen extends ConsumerWidget {
                     );
                   },
                 ),
+
+                // Flashcard Quick Access — one-tap deck access
+                const SizedBox(height: AppSpacing.lg),
+                const FlashcardQuickAccessSection(),
+
+                // Recent Materials Grid
+                const SizedBox(height: AppSpacing.xxl),
+                RecentMaterialsGrid(),
               ],
             ),
           ),
@@ -154,20 +161,20 @@ class CoursesListScreen extends ConsumerWidget {
       useRootNavigator: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.3),
-      builder: (ctx) => const _CreateCourseSheet(),
+      builder: (ctx) => const CreateCourseSheet(),
     );
   }
 }
 
 /// Bottom sheet for creating a new course with icon, color, and optional exam date.
-class _CreateCourseSheet extends ConsumerStatefulWidget {
-  const _CreateCourseSheet();
+class CreateCourseSheet extends ConsumerStatefulWidget {
+  const CreateCourseSheet({super.key});
 
   @override
-  ConsumerState<_CreateCourseSheet> createState() => _CreateCourseSheetState();
+  ConsumerState<CreateCourseSheet> createState() => CreateCourseSheetState();
 }
 
-class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
+class CreateCourseSheetState extends ConsumerState<CreateCourseSheet> {
   final _titleController = TextEditingController();
   final _subtitleController = TextEditingController();
   int _selectedIconIndex = 0;
@@ -246,14 +253,11 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.isDark;
-    final brightness = Theme.of(context).brightness;
-
     return Container(
       margin: const EdgeInsets.only(top: 80),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      decoration: const BoxDecoration(
+        color: AppColors.immersiveSurface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Padding(
         padding: EdgeInsets.fromLTRB(
@@ -273,7 +277,7 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF94A3B8).withValues(alpha: 0.3),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(100),
                   ),
                 ),
@@ -286,7 +290,7 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
                   'New Course',
                   style: AppTypography.h2.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimaryFor(brightness),
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -297,22 +301,24 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
                 controller: _titleController,
                 autofocus: true,
                 textCapitalization: TextCapitalization.words,
-                style: TextStyle(color: AppColors.textPrimaryFor(brightness)),
+                style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: 'Course Name',
+                  labelStyle: const TextStyle(color: Colors.white60),
                   hintText: 'e.g. Biology 101',
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                   filled: true,
-                  fillColor: isDark ? AppColors.cardDark : Colors.white,
+                  fillColor: AppColors.immersiveCard,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(
-                      color: AppColors.textMutedFor(brightness).withValues(alpha: 0.2),
+                    borderSide: const BorderSide(
+                      color: AppColors.immersiveBorder,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(
-                      color: AppColors.textMutedFor(brightness).withValues(alpha: 0.2),
+                    borderSide: const BorderSide(
+                      color: AppColors.immersiveBorder,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
@@ -327,22 +333,24 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
               TextField(
                 controller: _subtitleController,
                 textCapitalization: TextCapitalization.sentences,
-                style: TextStyle(color: AppColors.textPrimaryFor(brightness)),
+                style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: 'Subject (optional)',
+                  labelStyle: const TextStyle(color: Colors.white60),
                   hintText: 'e.g. Cell Structure & Function',
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                   filled: true,
-                  fillColor: isDark ? AppColors.cardDark : Colors.white,
+                  fillColor: AppColors.immersiveCard,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(
-                      color: AppColors.textMutedFor(brightness).withValues(alpha: 0.2),
+                    borderSide: const BorderSide(
+                      color: AppColors.immersiveBorder,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(
-                      color: AppColors.textMutedFor(brightness).withValues(alpha: 0.2),
+                    borderSide: const BorderSide(
+                      color: AppColors.immersiveBorder,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
@@ -374,16 +382,12 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
                         color: isSelected
                             ? _courseColors[_selectedColorIndex]
                                 .withValues(alpha: 0.15)
-                            : isDark
-                                ? AppColors.cardDark
-                                : Colors.white,
+                            : AppColors.immersiveCard,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isSelected
                               ? _courseColors[_selectedColorIndex]
-                              : isDark
-                                  ? Colors.white.withValues(alpha: 0.1)
-                                  : const Color(0xFFE2E8F0),
+                              : AppColors.immersiveBorder,
                           width: isSelected ? 2 : 1,
                         ),
                       ),
@@ -392,7 +396,7 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
                         size: 22,
                         color: isSelected
                             ? _courseColors[_selectedColorIndex]
-                            : AppColors.textMutedFor(brightness),
+                            : Colors.white38,
                       ),
                     ),
                   );
@@ -463,10 +467,10 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
                     vertical: 14,
                   ),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.cardDark : Colors.white,
+                    color: AppColors.immersiveCard,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: AppColors.textMutedFor(brightness).withValues(alpha: 0.2),
+                      color: AppColors.immersiveBorder,
                     ),
                   ),
                   child: Row(
@@ -476,7 +480,7 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
                         size: 20,
                         color: _examDate != null
                             ? AppColors.primary
-                            : AppColors.textMutedFor(brightness),
+                            : Colors.white38,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -486,18 +490,18 @@ class _CreateCourseSheetState extends ConsumerState<_CreateCourseSheet> {
                               : 'Select exam date',
                           style: AppTypography.bodyMedium.copyWith(
                             color: _examDate != null
-                                ? AppColors.textPrimaryFor(brightness)
-                                : AppColors.textMutedFor(brightness),
+                                ? Colors.white
+                                : Colors.white38,
                           ),
                         ),
                       ),
                       if (_examDate != null)
                         GestureDetector(
                           onTap: () => setState(() => _examDate = null),
-                          child: Icon(
+                          child: const Icon(
                             Icons.close,
                             size: 18,
-                            color: AppColors.textMutedFor(brightness),
+                            color: Colors.white38,
                           ),
                         ),
                     ],
@@ -578,7 +582,6 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return Center(
       child: Padding(
         padding: const EdgeInsets.only(top: 60),
@@ -591,14 +594,14 @@ class _EmptyState extends StatelessWidget {
             Text(
               'No courses yet',
               style: AppTypography.h3.copyWith(
-                color: AppColors.textSecondaryFor(brightness),
+                color: Colors.white60,
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               'Create your first course to start studying',
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textMutedFor(brightness),
+                color: Colors.white38,
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
@@ -633,29 +636,19 @@ class _CourseCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = context.isDark;
-    final brightness = Theme.of(context).brightness;
     final dueCount = ref
         .watch(dueCardsCountProvider(course.id))
         .whenOrNull(data: (c) => c) ?? 0;
 
     return TapScale(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: AppRadius.borderRadiusXxl,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
+      child: Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.10)
-                  : Colors.white.withValues(alpha: 0.82),
+              color: AppColors.immersiveCard,
               borderRadius: AppRadius.borderRadiusXxl,
               border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.12)
-                    : Colors.black.withValues(alpha: 0.06),
+                color: AppColors.immersiveBorder,
               ),
               boxShadow: [
                 BoxShadow(
@@ -725,9 +718,9 @@ class _CourseCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        course.title,
+                        course.displayTitle,
                         style: AppTypography.labelLarge.copyWith(
-                          color: AppColors.textPrimaryFor(brightness),
+                          color: Colors.white,
                         ),
                       ),
                       if (course.subtitle != null) ...[
@@ -735,14 +728,14 @@ class _CourseCard extends ConsumerWidget {
                         Text(
                           course.subtitle!,
                           style: AppTypography.caption.copyWith(
-                            color: AppColors.textMutedFor(brightness),
+                            color: Colors.white38,
                           ),
                         ),
                       ],
                       // Exam urgency
                       if (course.examDate != null) ...[
                         const SizedBox(height: 4),
-                        _ExamUrgencyRow(examDate: course.examDate!, isDark: isDark),
+                        _ExamUrgencyRow(examDate: course.examDate!),
                       ],
                       // Due cards info
                       if (dueCount > 0) ...[
@@ -794,15 +787,13 @@ class _CourseCard extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
-                Icon(
+                const Icon(
                   Icons.chevron_right_rounded,
-                  color: AppColors.textMutedFor(brightness),
+                  color: Colors.white38,
                 ),
               ],
             ),
           ),
-        ),
-      ),
     );
   }
 }
@@ -815,9 +806,8 @@ Color _progressColor(double progress) {
 
 class _ExamUrgencyRow extends StatelessWidget {
   final DateTime examDate;
-  final bool isDark;
 
-  const _ExamUrgencyRow({required this.examDate, required this.isDark});
+  const _ExamUrgencyRow({required this.examDate});
 
   @override
   Widget build(BuildContext context) {
@@ -835,9 +825,7 @@ class _ExamUrgencyRow extends StatelessWidget {
     } else if (days < 14) {
       urgencyColor = const Color(0xFFF59E0B); // Yellow/Amber
     } else {
-      urgencyColor = isDark
-          ? Colors.white.withValues(alpha: 0.4)
-          : Colors.black.withValues(alpha: 0.4);
+      urgencyColor = Colors.white.withValues(alpha: 0.4);
     }
 
     final String label;

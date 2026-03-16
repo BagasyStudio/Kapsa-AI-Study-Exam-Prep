@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_animations.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 
 /// A pricing plan card for the paywall.
 ///
-/// Dark immersive glass card with gradient borders when selected.
+/// Dark immersive card with subtle border when selected.
 /// Badge floats above the card with amber/gold accent.
+/// Designed to NOT visually compete with the lime CTA button.
 class PricingCard extends StatelessWidget {
   final String planName;
   final String price;
@@ -38,117 +40,84 @@ class PricingCard extends StatelessWidget {
           AnimatedContainer(
             duration: AppAnimations.durationMedium,
             curve: AppAnimations.curveStandard,
-            height: isSelected ? 192 : 176,
+            height: isSelected ? 148 : 136,
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
               color: isSelected
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.white.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(24),
+                  ? AppColors.immersiveCard
+                  : AppColors.immersiveSurface,
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: isSelected
-                    ? const Color(0xFF6467F2).withValues(alpha: 0.6)
-                    : Colors.white.withValues(alpha: 0.08),
+                    ? Colors.white.withValues(alpha: 0.18)
+                    : AppColors.immersiveBorder,
                 width: isSelected ? 1.5 : 1,
               ),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: const Color(0xFF6467F2).withValues(alpha: 0.15),
-                        blurRadius: 24,
-                        spreadRadius: 0,
-                      ),
-                    ]
-                  : null,
             ),
-            child: Stack(
-              children: [
-                // Subtle inner gradient for selected
-                if (isSelected)
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(22),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            const Color(0xFF6467F2).withValues(alpha: 0.08),
-                            Colors.transparent,
-                            const Color(0xFF4338CA).withValues(alpha: 0.05),
-                          ],
-                        ),
-                      ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Plan name
+                  Text(
+                    planName,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: isSelected
+                          ? Colors.white.withValues(alpha: 0.9)
+                          : Colors.white.withValues(alpha: 0.5),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
+                  const SizedBox(height: AppSpacing.xs),
 
-                // Content
-                Center(
-                  child: Column(
+                  // Price
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
                     children: [
-                      // Plan name
                       Text(
-                        planName,
-                        style: AppTypography.bodyMedium.copyWith(
+                        price,
+                        style: AppTypography.h1.copyWith(
                           color: isSelected
-                              ? Colors.white.withValues(alpha: 0.9)
-                              : Colors.white.withValues(alpha: 0.5),
-                          fontWeight: FontWeight.w500,
+                              ? Colors.white
+                              : Colors.white.withValues(alpha: 0.7),
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.xs),
-
-                      // Price
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            price,
-                            style: AppTypography.h1.copyWith(
-                              color: isSelected
-                                  ? Colors.white
-                                  : Colors.white.withValues(alpha: 0.7),
-                              fontSize: 28,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            period,
-                            style: AppTypography.bodyLarge.copyWith(
-                              color: Colors.white.withValues(alpha: 0.5),
-                              fontWeight: FontWeight.w400,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      // Subtitle
-                      if (subtitle != null) ...[
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          subtitle!,
-                          style: AppTypography.caption.copyWith(
-                            color: const Color(0xFF34D399).withValues(alpha: 0.8),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
+                      Text(
+                        period,
+                        style: AppTypography.bodyLarge.copyWith(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontWeight: FontWeight.w400,
+                          fontSize: 14,
                         ),
-                      ],
+                      ),
                     ],
                   ),
-                ),
-              ],
+
+                  // Subtitle
+                  if (subtitle != null) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      subtitle!,
+                      style: AppTypography.caption.copyWith(
+                        color: const Color(0xFF34D399).withValues(alpha: 0.8),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
 
           // Badge
           if (badgeText != null)
             Positioned(
-              top: -12,
+              top: -11,
               left: 0,
               right: 0,
               child: Center(
@@ -167,7 +136,7 @@ class PricingCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(100),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFFBBF24).withValues(alpha: 0.3),
+                        color: const Color(0xFFFBBF24).withValues(alpha: 0.25),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),

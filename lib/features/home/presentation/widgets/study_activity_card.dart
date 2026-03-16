@@ -8,7 +8,6 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/empty_state.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
-import '../../../../core/providers/theme_provider.dart';
 import '../../../test_results/data/models/test_model.dart';
 import '../../../flashcards/data/models/deck_model.dart';
 import '../providers/study_activity_provider.dart';
@@ -16,6 +15,7 @@ import '../providers/study_activity_provider.dart';
 /// Card shown on the home screen with recent flashcard decks and quiz results.
 ///
 /// Displays the latest study activity, allowing quick access to review.
+/// Forced immersive dark styling.
 class StudyActivityCard extends ConsumerWidget {
   const StudyActivityCard({super.key});
 
@@ -45,7 +45,7 @@ class StudyActivityCard extends ConsumerWidget {
                     Text(
                       'Study Activity',
                       style: AppTypography.h4.copyWith(
-                        color: AppColors.textPrimaryFor(Theme.of(context).brightness),
+                        color: Colors.white,
                         fontSize: 17,
                       ),
                     ),
@@ -76,7 +76,7 @@ class StudyActivityCard extends ConsumerWidget {
                   Text(
                     'Study Activity',
                     style: AppTypography.h4.copyWith(
-                      color: AppColors.textPrimaryFor(Theme.of(context).brightness),
+                      color: Colors.white,
                       fontSize: 17,
                     ),
                   ),
@@ -124,8 +124,6 @@ class _QuizActivityItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.isDark;
-    final brightness = Theme.of(context).brightness;
     final score = test.percentage;
     final color = score >= 80
         ? const Color(0xFF22C55E)
@@ -138,23 +136,11 @@ class _QuizActivityItem extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.10)
-              : Colors.white.withValues(alpha: 0.82),
+          color: AppColors.immersiveCard,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.white.withValues(alpha: 0.5),
+            color: AppColors.immersiveBorder,
           ),
-          boxShadow: [
-            if (!isDark)
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-          ],
         ),
         child: Row(
           children: [
@@ -187,7 +173,7 @@ class _QuizActivityItem extends StatelessWidget {
                     test.title ?? 'Quiz',
                     style: AppTypography.labelLarge.copyWith(
                       fontSize: 13,
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -200,7 +186,7 @@ class _QuizActivityItem extends StatelessWidget {
                       _timeAgo(test.createdAt),
                     ].where((s) => s.isNotEmpty).join(' · '),
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textMutedFor(brightness),
+                      color: Colors.white38,
                       fontSize: 11,
                     ),
                     maxLines: 1,
@@ -256,30 +242,16 @@ class _DeckActivityItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.isDark;
-    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: () => context.push(Routes.flashcardSessionPath(deck.id)),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.10)
-              : Colors.white.withValues(alpha: 0.82),
+          color: AppColors.immersiveCard,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.white.withValues(alpha: 0.5),
+            color: AppColors.immersiveBorder,
           ),
-          boxShadow: [
-            if (!isDark)
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-          ],
         ),
         child: Row(
           children: [
@@ -308,7 +280,7 @@ class _DeckActivityItem extends StatelessWidget {
                     deck.title,
                     style: AppTypography.labelLarge.copyWith(
                       fontSize: 13,
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -321,7 +293,7 @@ class _DeckActivityItem extends StatelessWidget {
                       _timeAgo(deck.createdAt),
                     ].where((s) => s.isNotEmpty).join(' · '),
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textMutedFor(brightness),
+                      color: Colors.white38,
                       fontSize: 11,
                     ),
                     maxLines: 1,

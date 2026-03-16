@@ -67,6 +67,17 @@ abstract final class AppColors {
   static const examPinkStart = Color(0xFFFF9A9E);
   static const examPinkEnd = Color(0xFFFECFEF);
 
+  // ── Immersive Dark (forced dark for wizard/deck detail) ──
+  static const immersiveBg = Color(0xFF0D0E1A);
+  static const immersiveSurface = Color(0xFF161729);
+  static const immersiveCard = Color(0xFF1E1F33);
+  static const immersiveBorder = Color(0xFF2A2B45);
+
+  // ── CTA Lime accent (primary actions in dark contexts) ──
+  static const ctaLime = Color(0xFFBEF264);
+  static const ctaLimeDark = Color(0xFF84CC16);
+  static const ctaLimeText = Color(0xFF1A2E05);
+
   // ── Adaptive helpers ──
   /// Returns the appropriate text primary color for the given brightness.
   static Color textPrimaryFor(Brightness b) =>

@@ -1,4 +1,4 @@
-import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -24,6 +24,9 @@ import '../providers/profile_provider.dart';
 import '../../../gamification/presentation/providers/xp_provider.dart';
 import '../../../../core/constants/xp_config.dart';
 import '../../../gamification/presentation/widgets/achievement_collection.dart';
+import '../../../gamification/presentation/widgets/study_heatmap.dart';
+import '../../../home/presentation/widgets/weekly_stats_card.dart';
+import '../../../home/presentation/widgets/study_activity_card.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -35,24 +38,23 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _showSignOutDialog(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppColors.cardDark : const Color(0xFFF8FAFC),
+        backgroundColor: AppColors.immersiveCard,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
         title: Text(
           'Sign Out',
           style: AppTypography.h3.copyWith(
-            color: AppColors.textPrimaryFor(Theme.of(ctx).brightness),
+            color: Colors.white,
           ),
         ),
         content: Text(
           'Are you sure you want to sign out?',
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondaryFor(Theme.of(ctx).brightness),
+            color: Colors.white60,
           ),
         ),
         actions: [
@@ -61,7 +63,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Text(
               'Cancel',
               style: AppTypography.labelLarge.copyWith(
-                color: AppColors.textSecondaryFor(Theme.of(ctx).brightness),
+                color: Colors.white60,
               ),
             ),
           ),
@@ -92,14 +94,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final currentUser = ref.watch(currentUserProvider);
     final xpTotal = ref.watch(xpTotalProvider).valueOrNull ?? 0;
     final xpLevel = XpConfig.levelFromXp(xpTotal);
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       body: Stack(
         children: [
-          // Ethereal mesh gradients (matches calendar style)
+          // Ethereal mesh gradients — forced dark opacities
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -107,8 +107,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   center: const Alignment(-1.0, -1.0),
                   radius: 1.2,
                   colors: [
-                    (isDark ? const Color(0xFF1E1A2E) : const Color(0xFFE4E0ED))
-                        .withValues(alpha: isDark ? 0.6 : 0.8),
+                    const Color(0xFF1E1A2E).withValues(alpha: 0.6),
                     Colors.transparent,
                   ],
                 ),
@@ -122,8 +121,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   center: const Alignment(0.0, -1.0),
                   radius: 1.0,
                   colors: [
-                    (isDark ? const Color(0xFF1A1E30) : const Color(0xFFCED6EA))
-                        .withValues(alpha: isDark ? 0.4 : 0.6),
+                    const Color(0xFF1A1E30).withValues(alpha: 0.4),
                     Colors.transparent,
                   ],
                 ),
@@ -137,8 +135,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   center: const Alignment(1.0, -1.0),
                   radius: 1.0,
                   colors: [
-                    (isDark ? const Color(0xFF2A1A22) : const Color(0xFFEDD6DD))
-                        .withValues(alpha: isDark ? 0.3 : 0.5),
+                    const Color(0xFF2A1A22).withValues(alpha: 0.3),
                     Colors.transparent,
                   ],
                 ),
@@ -168,7 +165,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: Text(
                       'Error loading profile',
                       style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textSecondaryFor(brightness),
+                        color: Colors.white60,
                       ),
                     ),
                   ),
@@ -193,7 +190,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           shape: BoxShape.circle,
                           gradient: AppGradients.primaryToIndigo,
                           border: Border.all(
-                            color: isDark ? AppColors.cardDark : Colors.white,
+                            color: AppColors.immersiveSurface,
                             width: 3,
                           ),
                           boxShadow: [
@@ -222,7 +219,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       Text(
                         displayName,
                         style: AppTypography.h2.copyWith(
-                          color: AppColors.textPrimaryFor(brightness),
+                          color: Colors.white,
                           fontSize: 22,
                         ),
                       ),
@@ -230,7 +227,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       Text(
                         displayEmail,
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.textSecondaryFor(brightness),
+                          color: Colors.white60,
                         ),
                       ),
 
@@ -345,15 +342,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  const Color(0xFF6467F2).withValues(alpha: isDark ? 0.15 : 0.08),
-                                  const Color(0xFF8B5CF6).withValues(alpha: isDark ? 0.1 : 0.05),
-                                  const Color(0xFFEC4899).withValues(alpha: isDark ? 0.08 : 0.04),
+                                  const Color(0xFF6467F2).withValues(alpha: 0.15),
+                                  const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+                                  const Color(0xFFEC4899).withValues(alpha: 0.08),
                                 ],
                               ),
                               border: Border.all(
-                                color: isDark
-                                    ? const Color(0xFF6467F2).withValues(alpha: 0.2)
-                                    : const Color(0xFF6467F2).withValues(alpha: 0.15),
+                                color: const Color(0xFF6467F2).withValues(alpha: 0.3),
                               ),
                             ),
                             child: Row(
@@ -381,7 +376,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       Text(
                                         'Knowledge Score',
                                         style: AppTypography.labelLarge.copyWith(
-                                          color: AppColors.textPrimaryFor(brightness),
+                                          color: Colors.white,
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
@@ -389,7 +384,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       Text(
                                         'See your academic profile & share it',
                                         style: AppTypography.caption.copyWith(
-                                          color: AppColors.textSecondaryFor(brightness),
+                                          color: Colors.white60,
+                                          fontSize: 12,
                                         ),
                                       ),
                                     ],
@@ -422,14 +418,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  const Color(0xFF10B981).withValues(alpha: isDark ? 0.12 : 0.06),
-                                  const Color(0xFF3B82F6).withValues(alpha: isDark ? 0.08 : 0.04),
+                                  const Color(0xFF10B981).withValues(alpha: 0.12),
+                                  const Color(0xFF3B82F6).withValues(alpha: 0.08),
                                 ],
                               ),
                               border: Border.all(
-                                color: isDark
-                                    ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                                    : const Color(0xFF10B981).withValues(alpha: 0.12),
+                                color: const Color(0xFF10B981).withValues(alpha: 0.2),
                               ),
                             ),
                             child: Row(
@@ -453,7 +447,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       Text(
                                         'Month in Review',
                                         style: AppTypography.labelLarge.copyWith(
-                                          color: AppColors.textPrimaryFor(brightness),
+                                          color: Colors.white,
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
@@ -461,7 +455,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       Text(
                                         'Your study highlights & personality',
                                         style: AppTypography.caption.copyWith(
-                                          color: AppColors.textSecondaryFor(brightness),
+                                          color: Colors.white60,
+                                          fontSize: 12,
                                         ),
                                       ),
                                     ],
@@ -481,6 +476,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                       const SizedBox(height: AppSpacing.xxl),
 
+                      // My Stats section
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'MY STATS',
+                              style: AppTypography.sectionHeader.copyWith(
+                                color: Colors.white38,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            const StudyHeatmap(),
+                            const SizedBox(height: AppSpacing.md),
+                            const WeeklyStatsCard(),
+                            const SizedBox(height: AppSpacing.md),
+                            const StudyActivityCard(),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: AppSpacing.xxl),
+
                       // Settings section
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
@@ -489,11 +508,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           children: [
                             Text(
                               'SETTINGS',
-                              style: AppTypography.sectionHeader,
+                              style: AppTypography.sectionHeader.copyWith(
+                                color: Colors.white38,
+                              ),
                             ),
                             const SizedBox(height: AppSpacing.md),
 
-                            _NotificationToggleTile(),
+                            if (!kIsWeb) _NotificationToggleTile(),
                             _SoundToggleTile(),
                             _TtsToggleTile(),
                             _TtsAutoReadToggleTile(),
@@ -513,7 +534,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             Padding(
                               padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                               child: Divider(
-                                color: AppColors.textMutedFor(brightness).withValues(alpha: 0.35),
+                                color: AppColors.immersiveBorder.withValues(alpha: 0.6),
                               ),
                             ),
 
@@ -543,7 +564,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 child: Text(
                                   'Sign Out',
                                   style: AppTypography.labelLarge.copyWith(
-                                    color: AppColors.textSecondaryFor(brightness),
+                                    color: Colors.white60,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -579,7 +600,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   return Text(
                                     'Version $version${build.isNotEmpty ? ' ($build)' : ''}',
                                     style: AppTypography.caption.copyWith(
-                                      color: AppColors.textMutedFor(brightness).withValues(alpha: 0.6),
+                                      color: Colors.white38.withValues(alpha: 0.4),
                                       fontSize: 11,
                                     ),
                                   );
@@ -631,12 +652,7 @@ class _SubscriptionSection extends ConsumerWidget {
   }
 
   Widget _buildProBadge(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
+    return Container(
           width: double.infinity,
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
@@ -676,7 +692,7 @@ class _SubscriptionSection extends ConsumerWidget {
                     Text(
                       'Kapsa Pro Active',
                       style: AppTypography.labelLarge.copyWith(
-                        color: AppColors.textPrimaryFor(brightness),
+                        color: Colors.white,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -684,7 +700,7 @@ class _SubscriptionSection extends ConsumerWidget {
                     Text(
                       'All features unlocked',
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.textSecondaryFor(brightness),
+                        color: Colors.white60,
                       ),
                     ),
                   ],
@@ -697,20 +713,13 @@ class _SubscriptionSection extends ConsumerWidget {
               ),
             ],
           ),
-        ),
-      ),
     );
   }
 
   Widget _buildUpgradeCard(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: () => context.push(Routes.paywall),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
+      child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
@@ -748,7 +757,7 @@ class _SubscriptionSection extends ConsumerWidget {
                       Text(
                         'Upgrade to Pro',
                         style: AppTypography.labelLarge.copyWith(
-                          color: AppColors.textPrimaryFor(brightness),
+                          color: Colors.white,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -756,7 +765,7 @@ class _SubscriptionSection extends ConsumerWidget {
                       Text(
                         'Unlock AI Oracle & Smart Study Plans',
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.textSecondaryFor(brightness),
+                          color: Colors.white60,
                         ),
                       ),
                     ],
@@ -770,13 +779,10 @@ class _SubscriptionSection extends ConsumerWidget {
               ],
             ),
           ),
-        ),
-      ),
     );
   }
 
   Widget _buildRestoreButton(BuildContext context, WidgetRef ref) {
-    final brightness = Theme.of(context).brightness;
     return Center(
       child: TapScale(
         onTap: () async {
@@ -798,11 +804,11 @@ class _SubscriptionSection extends ConsumerWidget {
         child: Text(
           'Restore Purchases',
           style: AppTypography.bodySmall.copyWith(
-            color: AppColors.textSecondaryFor(brightness),
+            color: Colors.white60,
             fontWeight: FontWeight.w500,
             fontSize: 13,
             decoration: TextDecoration.underline,
-            decorationColor: AppColors.textMutedFor(brightness).withValues(alpha: 0.5),
+            decorationColor: Colors.white38.withValues(alpha: 0.5),
           ),
         ),
       ),
@@ -810,7 +816,7 @@ class _SubscriptionSection extends ConsumerWidget {
   }
 }
 
-/// Glass stat card for profile stats.
+/// Glass stat card for profile stats — immersive dark.
 class _StatCard extends StatelessWidget {
   final String value;
   final String label;
@@ -826,31 +832,21 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
+    return Container(
           padding: const EdgeInsets.symmetric(
             vertical: AppSpacing.md,
             horizontal: AppSpacing.xs,
           ),
           constraints: const BoxConstraints(minHeight: 100),
           decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.white.withValues(alpha: 0.85),
+            color: AppColors.immersiveCard,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.black.withValues(alpha: 0.04),
+              color: AppColors.immersiveBorder,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
+                color: Colors.black.withValues(alpha: 0.25),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
               ),
@@ -864,7 +860,7 @@ class _StatCard extends StatelessWidget {
                 height: 36,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: iconColor.withValues(alpha: 0.1),
+                  color: iconColor.withValues(alpha: 0.15),
                 ),
                 child: Icon(icon, color: iconColor, size: 18),
               ),
@@ -872,7 +868,7 @@ class _StatCard extends StatelessWidget {
               Text(
                 value,
                 style: AppTypography.h3.copyWith(
-                  color: AppColors.textPrimaryFor(brightness),
+                  color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                 ),
@@ -881,16 +877,14 @@ class _StatCard extends StatelessWidget {
               Text(
                 label,
                 style: AppTypography.caption.copyWith(
-                  color: AppColors.textSecondaryFor(brightness),
-                  fontSize: 11,
+                  color: Colors.white60,
+                  fontSize: 12,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
-        ),
-      ),
     );
   }
 }
@@ -935,6 +929,7 @@ class _NotificationToggleTileState
     }
 
     await NotificationService.setEnabled(value);
+    if (!mounted) return;
     setState(() => _enabled = value);
 
     if (value) {
@@ -956,7 +951,7 @@ class _NotificationToggleTileState
 
     final exams = courses
         .where((c) => c.examDate != null && c.examDate!.isAfter(DateTime.now()))
-        .map((c) => ExamReminder(courseName: c.title, date: c.examDate!))
+        .map((c) => ExamReminder(courseName: c.displayTitle, date: c.examDate!))
         .toList();
 
     // Query due SRS cards for notification
@@ -997,7 +992,6 @@ class _NotificationToggleTileState
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: () => _toggle(!_enabled),
       child: Padding(
@@ -1021,7 +1015,7 @@ class _NotificationToggleTileState
                 size: 18,
                 color: _enabled
                     ? AppColors.primary
-                    : AppColors.textSecondaryFor(brightness),
+                    : Colors.white60,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -1032,14 +1026,14 @@ class _NotificationToggleTileState
                   Text(
                     'Study Reminders',
                     style: AppTypography.labelLarge.copyWith(
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
                     _enabled ? 'On — daily at 8:00 PM' : 'Off',
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textMutedFor(brightness),
+                      color: Colors.white38,
                     ),
                   ),
                 ],
@@ -1080,7 +1074,6 @@ class _SoundToggleTileState extends State<_SoundToggleTile> {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: () => _toggle(!_enabled),
       child: Padding(
@@ -1102,7 +1095,7 @@ class _SoundToggleTileState extends State<_SoundToggleTile> {
                 size: 18,
                 color: _enabled
                     ? AppColors.primary
-                    : AppColors.textSecondaryFor(brightness),
+                    : Colors.white60,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -1113,14 +1106,14 @@ class _SoundToggleTileState extends State<_SoundToggleTile> {
                   Text(
                     'Sound Effects',
                     style: AppTypography.labelLarge.copyWith(
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
                     _enabled ? 'On' : 'Off',
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textMutedFor(brightness),
+                      color: Colors.white38,
                     ),
                   ),
                 ],
@@ -1154,7 +1147,6 @@ class _TtsToggleTileState extends State<_TtsToggleTile> {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: () => _toggle(!_enabled),
       child: Padding(
@@ -1176,7 +1168,7 @@ class _TtsToggleTileState extends State<_TtsToggleTile> {
                 size: 18,
                 color: _enabled
                     ? const Color(0xFF14B8A6)
-                    : AppColors.textSecondaryFor(brightness),
+                    : Colors.white60,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -1187,14 +1179,14 @@ class _TtsToggleTileState extends State<_TtsToggleTile> {
                   Text(
                     'Text-to-Speech',
                     style: AppTypography.labelLarge.copyWith(
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
                     _enabled ? 'Read flashcards aloud' : 'Off',
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textMutedFor(brightness),
+                      color: Colors.white38,
                     ),
                   ),
                 ],
@@ -1228,7 +1220,6 @@ class _TtsAutoReadToggleTileState extends State<_TtsAutoReadToggleTile> {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     if (!TtsService.instance.isEnabled) return const SizedBox.shrink();
     return TapScale(
       onTap: () => _toggle(!_enabled),
@@ -1248,7 +1239,7 @@ class _TtsAutoReadToggleTileState extends State<_TtsAutoReadToggleTile> {
                 size: 15,
                 color: _enabled
                     ? const Color(0xFF14B8A6)
-                    : AppColors.textSecondaryFor(brightness),
+                    : Colors.white60,
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
@@ -1256,7 +1247,7 @@ class _TtsAutoReadToggleTileState extends State<_TtsAutoReadToggleTile> {
               child: Text(
                 'Auto-read answers',
                 style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textSecondaryFor(brightness),
+                  color: Colors.white60,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1334,7 +1325,6 @@ class _AiDataToggleTileState extends ConsumerState<_AiDataToggleTile> {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: () => _toggle(!_enabled),
       child: Padding(
@@ -1356,7 +1346,7 @@ class _AiDataToggleTileState extends ConsumerState<_AiDataToggleTile> {
                 size: 18,
                 color: _enabled
                     ? AppColors.primary
-                    : AppColors.textSecondaryFor(brightness),
+                    : Colors.white60,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -1367,14 +1357,14 @@ class _AiDataToggleTileState extends ConsumerState<_AiDataToggleTile> {
                   Text(
                     'AI Data Processing',
                     style: AppTypography.labelLarge.copyWith(
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
                     _enabled ? 'Allowed' : 'Not allowed',
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textMutedFor(brightness),
+                      color: Colors.white38,
                     ),
                   ),
                 ],
@@ -1403,7 +1393,6 @@ class _AiDataToggleTileState extends ConsumerState<_AiDataToggleTile> {
 class _ThemeToggleTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final brightness = Theme.of(context).brightness;
     final themeMode = ref.watch(themeModeProvider);
 
     final label = switch (themeMode) {
@@ -1448,14 +1437,14 @@ class _ThemeToggleTile extends ConsumerWidget {
                   Text(
                     'Appearance',
                     style: AppTypography.labelLarge.copyWith(
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
                     label,
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textMutedFor(brightness),
+                      color: Colors.white38,
                     ),
                   ),
                 ],
@@ -1463,7 +1452,7 @@ class _ThemeToggleTile extends ConsumerWidget {
             ),
             Icon(
               Icons.chevron_right,
-              color: AppColors.textMutedFor(brightness),
+              color: Colors.white38,
               size: 20,
             ),
           ],
@@ -1473,12 +1462,9 @@ class _ThemeToggleTile extends ConsumerWidget {
   }
 
   void _showThemePicker(BuildContext context, WidgetRef ref, ThemeMode current) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+      backgroundColor: AppColors.immersiveCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1492,7 +1478,7 @@ class _ThemeToggleTile extends ConsumerWidget {
               Text(
                 'Appearance',
                 style: AppTypography.h3.copyWith(
-                  color: AppColors.textPrimaryFor(brightness),
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -1553,7 +1539,6 @@ class _ThemeOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: onTap,
       child: Container(
@@ -1575,7 +1560,7 @@ class _ThemeOption extends StatelessWidget {
               size: 22,
               color: isSelected
                   ? AppColors.primary
-                  : AppColors.textSecondaryFor(brightness),
+                  : Colors.white60,
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
@@ -1587,14 +1572,14 @@ class _ThemeOption extends StatelessWidget {
                     style: AppTypography.labelLarge.copyWith(
                       color: isSelected
                           ? AppColors.primary
-                          : AppColors.textPrimaryFor(brightness),
+                          : Colors.white,
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     ),
                   ),
                   Text(
                     subtitle,
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textMutedFor(brightness),
+                      color: Colors.white38,
                     ),
                   ),
                 ],
@@ -1609,7 +1594,7 @@ class _ThemeOption extends StatelessWidget {
   }
 }
 
-/// Settings list tile with glass style.
+/// Settings list tile — immersive dark.
 class _SettingsTile extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -1623,7 +1608,6 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: onTap,
       child: Padding(
@@ -1643,7 +1627,7 @@ class _SettingsTile extends StatelessWidget {
               child: Icon(
                 icon,
                 size: 18,
-                color: AppColors.textSecondaryFor(brightness),
+                color: Colors.white60,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -1651,14 +1635,14 @@ class _SettingsTile extends StatelessWidget {
               child: Text(
                 label,
                 style: AppTypography.labelLarge.copyWith(
-                  color: AppColors.textPrimaryFor(brightness),
+                  color: Colors.white,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ),
             Icon(
               Icons.chevron_right,
-              color: AppColors.textMutedFor(brightness),
+              color: Colors.white38,
               size: 20,
             ),
           ],

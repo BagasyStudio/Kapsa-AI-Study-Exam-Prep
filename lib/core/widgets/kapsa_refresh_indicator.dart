@@ -13,13 +13,10 @@ class KapsaRefreshIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-
     return RefreshIndicator(
       onRefresh: onRefresh,
       color: AppColors.primary,
-      backgroundColor: isDark ? const Color(0xFF1E1F3B) : Colors.white,
+      backgroundColor: const Color(0xFF1E1F3B),
       strokeWidth: 2.5,
       displacement: 50,
       child: child,

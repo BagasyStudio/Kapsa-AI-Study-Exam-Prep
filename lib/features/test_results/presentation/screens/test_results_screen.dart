@@ -138,9 +138,8 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
   Widget build(BuildContext context) {
     final resultsAsync = ref.watch(testResultsProvider(widget.testId));
 
-    final brightness = Theme.of(context).brightness;
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       body: Stack(
         children: [
           // Animated ambient orbs
@@ -164,7 +163,7 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
                     children: [
                       Icon(Icons.error_outline,
                           size: 48,
-                          color: AppColors.textMutedFor(brightness)),
+                          color: Colors.white38),
                       const SizedBox(height: AppSpacing.md),
                       Text('Could not load results',
                           style: AppTypography.h3),
@@ -258,6 +257,7 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
                                   .generateFlashcards(
                                     courseId: result.test.courseId,
                                     topic: 'weak areas',
+                                    count: 15,
                                   );
                               if (context.mounted) {
                                 context.push(Routes.flashcardSessionPath(deck.id));
@@ -284,8 +284,6 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
   }
 
   Widget _buildResults(TestWithQuestions result) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final brightness = Theme.of(context).brightness;
     final test = result.test;
     final questions = result.questions;
     final correctCount = test.correctCount;
@@ -357,7 +355,7 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
                       'Keep studying to improve your score!',
                   textAlign: TextAlign.center,
                   style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textSecondaryFor(brightness),
+                    color: Colors.white60,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -375,7 +373,7 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
                       Text(
                         'Detailed Breakdown',
                         style: AppTypography.h4.copyWith(
-                          color: AppColors.textPrimaryFor(brightness),
+                          color: Colors.white,
                           fontSize: 18,
                         ),
                       ),
@@ -385,15 +383,13 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.1)
-                              : Colors.white.withValues(alpha: 0.5),
+                          color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(100),
                         ),
                         child: Text(
                           '$mistakeCount Mistakes',
                           style: AppTypography.caption.copyWith(
-                            color: AppColors.textMutedFor(brightness),
+                            color: Colors.white38,
                             fontWeight: FontWeight.w500,
                             fontSize: 11,
                           ),
@@ -463,8 +459,6 @@ class _GlassIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: onTap,
       scaleDown: 0.90,
@@ -473,13 +467,9 @@ class _GlassIconButton extends StatelessWidget {
         height: 40,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.1)
-              : Colors.white.withValues(alpha: 0.45),
+          color: Colors.white.withValues(alpha: 0.1),
           border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.15)
-                : Colors.white.withValues(alpha: 0.5),
+            color: Colors.white.withValues(alpha: 0.15),
           ),
           boxShadow: [
             BoxShadow(
@@ -491,7 +481,7 @@ class _GlassIconButton extends StatelessWidget {
         ),
         child: Icon(
           icon,
-          color: AppColors.textSecondaryFor(brightness),
+          color: Colors.white60,
           size: iconSize,
         ),
       ),

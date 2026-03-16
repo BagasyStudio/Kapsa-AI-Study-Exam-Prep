@@ -90,8 +90,6 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
     final screenH = MediaQuery.of(context).size.height;
     final imgSize = (screenH * 0.13).clamp(75.0, 110.0);
 
@@ -183,7 +181,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                                   fontWeight: FontWeight.w700,
                                   height: 1.2,
                                   letterSpacing: -0.5,
-                                  color: AppColors.textPrimaryFor(brightness),
+                                  color: Colors.white,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -201,7 +199,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                       child: Text(
                         l.rateFeedbackHelps,
                         style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondaryFor(brightness),
+                          color: Colors.white60,
                           height: 1.55,
                         ),
                         textAlign: TextAlign.center,
@@ -226,7 +224,6 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                               gradient: const LinearGradient(
                                 colors: [Color(0xFF6467F2), Color(0xFF818CF8)],
                               ),
-                              isDark: isDark,
                               onTap: _onLoveIt,
                             ),
                           ),
@@ -237,7 +234,6 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                               emoji: '🤔',
                               label: l.rateNotYet,
                               gradient: null,
-                              isDark: isDark,
                               onTap: _onCouldBeBetter,
                             ),
                           ),
@@ -251,7 +247,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                   // Social proof below the buttons
                   Opacity(
                     opacity: gateProgress,
-                    child: _buildAvatarRow(brightness),
+                    child: _buildAvatarRow(),
                   ),
                 ],
 
@@ -278,7 +274,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                           Text(
                             l.rateAwesome,
                             style: AppTypography.h3.copyWith(
-                              color: AppColors.textPrimaryFor(brightness),
+                              color: Colors.white,
                               fontWeight: FontWeight.w600,
                               fontSize: 18,
                             ),
@@ -288,7 +284,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                           Text(
                             l.rateAskStars,
                             style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.textSecondaryFor(brightness),
+                              color: Colors.white60,
                               height: 1.55,
                             ),
                             textAlign: TextAlign.center,
@@ -305,7 +301,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                     opacity: phaseAnim,
                     child: Transform.translate(
                       offset: Offset(0, 16 * (1 - phaseAnim)),
-                      child: _buildTestimonialCard(brightness, isDark, l),
+                      child: _buildTestimonialCard(l),
                     ),
                   ),
 
@@ -367,11 +363,11 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                         child: Text(
                           l.rateMaybeLater,
                           style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textMutedFor(brightness),
+                            color: Colors.white38,
                             fontWeight: FontWeight.w500,
                             decoration: TextDecoration.underline,
                             decorationColor:
-                                AppColors.textMutedFor(brightness),
+                                Colors.white38,
                           ),
                         ),
                       ),
@@ -391,7 +387,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                           Text(
                             l.rateHonestyAppreciated,
                             style: AppTypography.h3.copyWith(
-                              color: AppColors.textPrimaryFor(brightness),
+                              color: Colors.white,
                               fontWeight: FontWeight.w600,
                               fontSize: 17,
                             ),
@@ -401,7 +397,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                           Text(
                             l.rateAlwaysImproving,
                             style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.textSecondaryFor(brightness),
+                              color: Colors.white60,
                               height: 1.55,
                             ),
                             textAlign: TextAlign.center,
@@ -414,14 +410,10 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                             width: double.infinity,
                             padding: const EdgeInsets.all(AppSpacing.md),
                             decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.08)
-                                  : Colors.white.withValues(alpha: 0.55),
+                              color: Colors.white.withValues(alpha: 0.08),
                               borderRadius: AppRadius.borderRadiusLg,
                               border: Border.all(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.1)
-                                    : Colors.white.withValues(alpha: 0.2),
+                                color: Colors.white.withValues(alpha: 0.1),
                               ),
                             ),
                             child: Column(
@@ -433,7 +425,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                                   l.rateWeShipUpdates,
                                   style: AppTypography.labelLarge.copyWith(
                                     color:
-                                        AppColors.textPrimaryFor(brightness),
+                                        Colors.white,
                                     fontWeight: FontWeight.w600,
                                   ),
                                   textAlign: TextAlign.center,
@@ -443,7 +435,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                                   l.rateGetsBetter,
                                   style: AppTypography.bodySmall.copyWith(
                                     color:
-                                        AppColors.textSecondaryFor(brightness),
+                                        Colors.white60,
                                     height: 1.5,
                                   ),
                                   textAlign: TextAlign.center,
@@ -547,7 +539,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
 
   // ── Overlapping avatars ──
 
-  Widget _buildAvatarRow(Brightness brightness) {
+  Widget _buildAvatarRow() {
     const avatarImages = [
       'assets/images/avatars/avatar_social_04_female.png',
       'assets/images/avatars/avatar_social_04_male.png',
@@ -555,9 +547,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
       'assets/images/avatars/avatar_social_02_female.png',
     ];
 
-    final bgColor = brightness == Brightness.dark
-        ? AppColors.backgroundDark
-        : AppColors.backgroundLight;
+    final bgColor = AppColors.backgroundDark;
 
     return Column(
       children: [
@@ -588,7 +578,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
         Text(
           '+50,000 students',
           style: AppTypography.caption.copyWith(
-            color: AppColors.textMutedFor(brightness),
+            color: Colors.white38,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -598,19 +588,15 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
 
   // ── Testimonial card ──
 
-  Widget _buildTestimonialCard(Brightness brightness, bool isDark, AppLocalizations l) {
+  Widget _buildTestimonialCard(AppLocalizations l) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.08)
-            : Colors.white.withValues(alpha: 0.55),
+        color: Colors.white.withValues(alpha: 0.08),
         borderRadius: AppRadius.borderRadiusLg,
         border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.1)
-              : Colors.white.withValues(alpha: 0.2),
+          color: Colors.white.withValues(alpha: 0.1),
         ),
       ),
       child: Column(
@@ -638,14 +624,14 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
                     Text(
                       l.testimonialSofiaName,
                       style: AppTypography.labelLarge.copyWith(
-                        color: AppColors.textPrimaryFor(brightness),
+                        color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
                       l.testimonialSofiaRole,
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.textMutedFor(brightness),
+                        color: Colors.white38,
                       ),
                     ),
                   ],
@@ -668,7 +654,7 @@ class _OnboardingRatePageState extends State<OnboardingRatePage>
           Text(
             l.testimonialSofiaQuote,
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textPrimaryFor(brightness),
+              color: Colors.white,
               fontStyle: FontStyle.italic,
               height: 1.5,
             ),
@@ -687,14 +673,12 @@ class _GateButton extends StatelessWidget {
   final String emoji;
   final String label;
   final Gradient? gradient; // null = glass/outline style
-  final bool isDark;
   final VoidCallback onTap;
 
   const _GateButton({
     required this.emoji,
     required this.label,
     required this.gradient,
-    required this.isDark,
     required this.onTap,
   });
 
@@ -709,16 +693,12 @@ class _GateButton extends StatelessWidget {
           gradient: isPrimary ? gradient : null,
           color: isPrimary
               ? null
-              : isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.white.withValues(alpha: 0.55),
+              : Colors.white.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(20),
           border: isPrimary
               ? null
               : Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.12)
-                      : Colors.white.withValues(alpha: 0.3),
+                  color: Colors.white.withValues(alpha: 0.12),
                 ),
           boxShadow: isPrimary
               ? [
@@ -737,11 +717,7 @@ class _GateButton extends StatelessWidget {
             Text(
               label,
               style: AppTypography.labelLarge.copyWith(
-                color: isPrimary
-                    ? Colors.white
-                    : AppColors.textPrimaryFor(
-                        Theme.of(context).brightness,
-                      ),
+                color: Colors.white,
                 fontWeight: FontWeight.w600,
               ),
             ),

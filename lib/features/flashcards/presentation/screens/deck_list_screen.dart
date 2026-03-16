@@ -11,6 +11,7 @@ import '../../../../core/widgets/staggered_list.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../providers/flashcard_provider.dart';
 import '../../data/models/deck_model.dart';
+import '../widgets/deck_cover_gradient.dart';
 
 /// Screen showing all flashcard decks for a course.
 ///
@@ -22,12 +23,10 @@ class DeckListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final decksAsync = ref.watch(flashcardDecksProvider(courseId));
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
+    final decksAsync = ref.watch(parentDecksProvider(courseId));
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -47,17 +46,13 @@ class DeckListScreen extends ConsumerWidget {
                       height: 40,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.08)
-                            : Colors.white.withValues(alpha: 0.45),
+                        color: Colors.white.withValues(alpha: 0.08),
                         border: Border.all(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.1)
-                              : Colors.white.withValues(alpha: 0.6),
+                          color: Colors.white.withValues(alpha: 0.1),
                         ),
                       ),
                       child: Icon(Icons.arrow_back,
-                          color: AppColors.textSecondaryFor(brightness)),
+                          color: Colors.white60),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -65,7 +60,7 @@ class DeckListScreen extends ConsumerWidget {
                     child: Text(
                       'Flashcard Decks',
                       style: AppTypography.h3.copyWith(
-                        color: AppColors.textPrimaryFor(brightness),
+                        color: Colors.white,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -78,17 +73,13 @@ class DeckListScreen extends ConsumerWidget {
                       height: 40,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.08)
-                            : Colors.white.withValues(alpha: 0.45),
+                        color: Colors.white.withValues(alpha: 0.08),
                         border: Border.all(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.1)
-                              : Colors.white.withValues(alpha: 0.6),
+                          color: Colors.white.withValues(alpha: 0.1),
                         ),
                       ),
                       child: Icon(Icons.download_rounded,
-                          color: AppColors.textSecondaryFor(brightness),
+                          color: Colors.white60,
                           size: 20),
                     ),
                   ),
@@ -111,7 +102,7 @@ class DeckListScreen extends ConsumerWidget {
                     child: Text(
                       AppErrorHandler.friendlyMessage(e),
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textMutedFor(brightness),
+                        color: Colors.white38,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -119,7 +110,7 @@ class DeckListScreen extends ConsumerWidget {
                 ),
                 data: (decks) {
                   if (decks.isEmpty) {
-                    return _buildEmptyState(context, brightness);
+                    return _buildEmptyState(context);
                   }
                   return SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
@@ -148,7 +139,7 @@ class DeckListScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, Brightness brightness) {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -172,14 +163,14 @@ class DeckListScreen extends ConsumerWidget {
             Text(
               'No decks yet',
               style: AppTypography.h3.copyWith(
-                color: AppColors.textPrimaryFor(brightness),
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               'Generate flashcards from your course materials to start studying.',
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textMutedFor(brightness),
+                color: Colors.white38,
               ),
               textAlign: TextAlign.center,
             ),
@@ -197,26 +188,20 @@ class _DeckCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
     final timeAgo = _formatTimeAgo(deck.createdAt);
     final dueCount = ref
         .watch(dueCardsCountForDeckProvider(deck.id))
         .whenOrNull(data: (c) => c) ?? 0;
 
     return TapScale(
-      onTap: () => context.push(Routes.flashcardSessionPath(deck.id)),
+      onTap: () => context.push(Routes.deckDetailPath(deck.id)),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.06)
-              : Colors.white.withValues(alpha: 0.45),
+          color: Colors.white.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.white.withValues(alpha: 0.6),
+            color: Colors.white.withValues(alpha: 0.08),
           ),
         ),
         child: Row(
@@ -229,9 +214,7 @@ class _DeckCard extends ConsumerWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF6467F2), Color(0xFF8B5CF6)],
-                    ),
+                    gradient: DeckCoverGradient.forIndex(deck.coverGradientIndex),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Icon(Icons.style, color: Colors.white, size: 22),
@@ -276,9 +259,9 @@ class _DeckCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    deck.title,
+                    deck.displayTitle,
                     style: AppTypography.labelLarge.copyWith(
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
                     maxLines: 1,
@@ -289,23 +272,23 @@ class _DeckCard extends ConsumerWidget {
                     children: [
                       Icon(Icons.layers,
                           size: 13,
-                          color: AppColors.textMutedFor(brightness)),
+                          color: Colors.white38),
                       const SizedBox(width: 4),
                       Text(
                         '${deck.cardCount} cards',
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.textMutedFor(brightness),
+                          color: Colors.white38,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Icon(Icons.access_time,
                           size: 13,
-                          color: AppColors.textMutedFor(brightness)),
+                          color: Colors.white38),
                       const SizedBox(width: 4),
                       Text(
                         timeAgo,
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.textMutedFor(brightness),
+                          color: Colors.white38,
                         ),
                       ),
                       // Due indicator text
@@ -313,16 +296,12 @@ class _DeckCard extends ConsumerWidget {
                         const SizedBox(width: 12),
                         Icon(Icons.schedule,
                             size: 13,
-                            color: isDark
-                                ? const Color(0xFFFBBF24)
-                                : const Color(0xFFD97706)),
+                            color: const Color(0xFFFBBF24)),
                         const SizedBox(width: 4),
                         Text(
                           '$dueCount due',
                           style: AppTypography.caption.copyWith(
-                            color: isDark
-                                ? const Color(0xFFFBBF24)
-                                : const Color(0xFFD97706),
+                            color: const Color(0xFFFBBF24),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -334,7 +313,7 @@ class _DeckCard extends ConsumerWidget {
             ),
             // Arrow
             Icon(Icons.play_arrow_rounded,
-                color: AppColors.textMutedFor(brightness), size: 24),
+                color: Colors.white38, size: 24),
           ],
         ),
       ),

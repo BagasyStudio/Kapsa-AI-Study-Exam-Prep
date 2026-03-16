@@ -30,8 +30,6 @@ class ActivityFeedItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
@@ -57,7 +55,7 @@ class ActivityFeedItem extends StatelessWidget {
                       TextSpan(
                         text: activity.userName ?? 'Someone',
                         style: AppTypography.labelLarge.copyWith(
-                          color: AppColors.textPrimaryFor(brightness),
+                          color: Colors.white,
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
@@ -65,7 +63,7 @@ class ActivityFeedItem extends StatelessWidget {
                       TextSpan(
                         text: ' ${activity.title}',
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.textSecondaryFor(brightness),
+                          color: Colors.white60,
                         ),
                       ),
                     ],
@@ -75,7 +73,7 @@ class ActivityFeedItem extends StatelessWidget {
                 Text(
                   activity.timeAgo,
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.textMutedFor(brightness),
+                    color: Colors.white38,
                     fontSize: 11,
                   ),
                 ),

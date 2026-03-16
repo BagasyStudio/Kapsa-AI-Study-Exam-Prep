@@ -37,6 +37,9 @@ import '../../features/sharing/presentation/screens/month_review_screen.dart';
 import '../../features/summaries/presentation/screens/summary_screen.dart';
 import '../../features/glossary/presentation/screens/glossary_screen.dart';
 import '../../features/home/presentation/screens/study_path_screen.dart';
+import '../../features/home/presentation/screens/journey_screen.dart';
+import '../../features/home/presentation/screens/first_deck_wizard.dart';
+import '../../features/flashcards/presentation/screens/deck_detail_screen.dart';
 import '../theme/app_animations.dart';
 import 'routes.dart';
 import 'sanctuary_shell.dart';
@@ -432,9 +435,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.practiceExam,
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => _slideFromRight(
-          const PracticeExamSetupScreen(),
-        ),
+        pageBuilder: (context, state) {
+          final courseId = state.uri.queryParameters['courseId'];
+          return _slideFromRight(
+            PracticeExamSetupScreen(initialCourseId: courseId),
+          );
+        },
       ),
 
       GoRoute(
@@ -532,6 +538,49 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) => _slideFromRight(
           const StudyPathScreen(),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.journey,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _slideFromRight(
+          JourneyScreen(
+            courseId: state.pathParameters['courseId'] ?? '',
+          ),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.firstDeckWizard,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _slideFromRight(
+          const FirstDeckWizard(),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.deckDetail,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => CustomTransitionPage<void>(
+          child: DeckDetailScreen(
+            deckId: state.pathParameters['deckId'] ?? '',
+          ),
+          transitionDuration: const Duration(milliseconds: 400),
+          reverseTransitionDuration: const Duration(milliseconds: 300),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final curved = CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOut,
+            );
+            return FadeTransition(
+              opacity: curved,
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.94, end: 1.0).animate(curved),
+                child: child,
+              ),
+            );
+          },
         ),
       ),
 

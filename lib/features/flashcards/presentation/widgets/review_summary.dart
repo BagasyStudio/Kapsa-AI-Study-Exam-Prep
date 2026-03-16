@@ -29,8 +29,6 @@ class ReviewSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
     final retention = totalReviewed > 0
         ? ((goodCount + easyCount) / totalReviewed * 100).round()
         : 0;
@@ -46,10 +44,11 @@ class ReviewSummary extends StatelessWidget {
             height: 80,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
+              color: AppColors.immersiveSurface,
               gradient: LinearGradient(
                 colors: [
                   AppColors.primary.withValues(alpha: 0.2),
-                  AppColors.primaryLight.withValues(alpha: 0.1),
+                  AppColors.immersiveSurface,
                 ],
               ),
             ),
@@ -65,7 +64,7 @@ class ReviewSummary extends StatelessWidget {
           Text(
             'Session Complete!',
             style: AppTypography.h2.copyWith(
-              color: AppColors.textPrimaryFor(brightness),
+              color: Colors.white,
             ),
           ),
 
@@ -74,7 +73,7 @@ class ReviewSummary extends StatelessWidget {
           Text(
             '$totalReviewed cards reviewed',
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textMutedFor(brightness),
+              color: Colors.white60,
             ),
           ),
 
@@ -117,13 +116,9 @@ class ReviewSummary extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.white.withValues(alpha: 0.5),
+              color: AppColors.immersiveSurface,
               border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.1)
-                    : Colors.white.withValues(alpha: 0.6),
+                color: AppColors.immersiveBorder,
               ),
             ),
             child: Row(
@@ -142,7 +137,7 @@ class ReviewSummary extends StatelessWidget {
                 Text(
                   '$retention% retention',
                   style: AppTypography.labelLarge.copyWith(
-                    color: AppColors.textPrimaryFor(brightness),
+                    color: Colors.white,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -228,11 +223,10 @@ class ReviewSummary extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: isDark ? 0.08 : 0.5),
+                  color: AppColors.immersiveSurface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color:
-                        Colors.white.withValues(alpha: isDark ? 0.12 : 0.6),
+                    color: AppColors.immersiveBorder,
                   ),
                 ),
                 child: Row(
@@ -240,7 +234,7 @@ class ReviewSummary extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.ios_share,
-                      color: AppColors.textSecondaryFor(brightness),
+                      color: Colors.white70,
                       size: 18,
                     ),
                     const SizedBox(width: 8),
@@ -248,7 +242,7 @@ class ReviewSummary extends StatelessWidget {
                       'Share Results',
                       textAlign: TextAlign.center,
                       style: AppTypography.labelLarge.copyWith(
-                        color: AppColors.textSecondaryFor(brightness),
+                        color: Colors.white70,
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
                       ),
@@ -277,7 +271,6 @@ class _StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return Column(
       children: [
         Container(
@@ -301,7 +294,7 @@ class _StatChip extends StatelessWidget {
         Text(
           label,
           style: AppTypography.caption.copyWith(
-            color: AppColors.textMutedFor(brightness),
+            color: Colors.white38,
             fontSize: 11,
           ),
         ),

@@ -115,9 +115,6 @@ class _OnboardingUploadMaterialPageState
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
@@ -173,7 +170,7 @@ class _OnboardingUploadMaterialPageState
                         fontWeight: FontWeight.w700,
                         height: 1.2,
                         letterSpacing: -0.5,
-                        color: AppColors.textPrimaryFor(brightness),
+                        color: Colors.white,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -188,7 +185,7 @@ class _OnboardingUploadMaterialPageState
                   child: Text(
                     l.uploadSubtitle,
                     style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textSecondaryFor(brightness),
+                      color: Colors.white60,
                       height: 1.55,
                     ),
                     textAlign: TextAlign.center,
@@ -210,8 +207,6 @@ class _OnboardingUploadMaterialPageState
                           title: l.uploadScanPages,
                           subtitle: l.uploadScanSub,
                           isPrimary: true,
-                          isDark: isDark,
-                          brightness: brightness,
                           isLoading: _isPicking,
                           onTap: _scanPages,
                         ),
@@ -224,8 +219,6 @@ class _OnboardingUploadMaterialPageState
                           title: l.uploadPdf,
                           subtitle: l.uploadPdfSub,
                           isPrimary: false,
-                          isDark: isDark,
-                          brightness: brightness,
                           isLoading: _isPicking,
                           onTap: _uploadPdf,
                         ),
@@ -246,10 +239,10 @@ class _OnboardingUploadMaterialPageState
                       child: Text(
                         l.commonSkip,
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.textMutedFor(brightness),
+                          color: Colors.white38,
                           fontWeight: FontWeight.w500,
                           decoration: TextDecoration.underline,
-                          decorationColor: AppColors.textMutedFor(brightness),
+                          decorationColor: Colors.white38,
                         ),
                       ),
                     ),
@@ -275,8 +268,6 @@ class _ActionButton extends StatelessWidget {
   final String title;
   final String subtitle;
   final bool isPrimary;
-  final bool isDark;
-  final Brightness brightness;
   final bool isLoading;
   final VoidCallback onTap;
 
@@ -285,8 +276,6 @@ class _ActionButton extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.isPrimary,
-    required this.isDark,
-    required this.brightness,
     required this.isLoading,
     required this.onTap,
   });
@@ -300,17 +289,13 @@ class _ActionButton extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
           color: isPrimary
-              ? AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.08)
-              : isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.white.withValues(alpha: 0.7),
+              ? AppColors.primary.withValues(alpha: 0.15)
+              : Colors.white.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isPrimary
                 ? AppColors.primary.withValues(alpha: 0.3)
-                : isDark
-                    ? Colors.white.withValues(alpha: 0.12)
-                    : Colors.black.withValues(alpha: 0.08),
+                : Colors.white.withValues(alpha: 0.12),
             width: isPrimary ? 1.5 : 1,
           ),
           boxShadow: isPrimary
@@ -336,7 +321,7 @@ class _ActionButton extends StatelessWidget {
                     style: AppTypography.h3.copyWith(
                       color: isPrimary
                           ? AppColors.primary
-                          : AppColors.textPrimaryFor(brightness),
+                          : Colors.white,
                       fontWeight: FontWeight.w600,
                       fontSize: 18,
                     ),
@@ -345,7 +330,7 @@ class _ActionButton extends StatelessWidget {
                   Text(
                     subtitle,
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textMutedFor(brightness),
+                      color: Colors.white38,
                     ),
                   ),
                 ],
@@ -356,7 +341,7 @@ class _ActionButton extends StatelessWidget {
               size: 16,
               color: isPrimary
                   ? AppColors.primary
-                  : AppColors.textMutedFor(brightness),
+                  : Colors.white38,
             ),
           ],
         ),

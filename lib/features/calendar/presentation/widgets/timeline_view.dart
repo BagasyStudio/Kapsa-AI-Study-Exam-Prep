@@ -14,7 +14,6 @@ class TimelineView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return Column(
       children: List.generate(entries.length, (index) {
         final entry = entries[index];
@@ -34,7 +33,7 @@ class TimelineView extends StatelessWidget {
                     entry.time,
                     style: AppTypography.caption.copyWith(
                       fontWeight: FontWeight.w500,
-                      color: AppColors.textMutedFor(brightness),
+                      color: Colors.white38,
                     ),
                   ),
                 ),
@@ -50,7 +49,7 @@ class TimelineView extends StatelessWidget {
                       Container(
                         width: 2,
                         height: 8,
-                        color: AppColors.textMutedFor(brightness).withValues(alpha: 0.2),
+                        color: Colors.white.withValues(alpha: 0.12),
                       ),
                     // Dot
                     Container(
@@ -73,7 +72,7 @@ class TimelineView extends StatelessWidget {
                       Expanded(
                         child: Container(
                           width: 2,
-                          color: AppColors.textMutedFor(brightness).withValues(alpha: 0.2),
+                          color: Colors.white.withValues(alpha: 0.12),
                         ),
                       ),
                   ],

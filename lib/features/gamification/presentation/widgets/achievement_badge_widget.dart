@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../data/models/achievement_model.dart';
 
 /// A single achievement badge icon with title.
 ///
 /// Appears locked (greyed out) when [isUnlocked] is false.
+/// Forced immersive dark styling.
 class AchievementBadgeWidget extends StatelessWidget {
   final BadgeDefinition badge;
   final bool isUnlocked;
@@ -21,9 +23,6 @@ class AchievementBadgeWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-
     return GestureDetector(
       onTap: onTap ?? () => _showDetail(context),
       child: Column(
@@ -45,9 +44,7 @@ class AchievementBadgeWidget extends StatelessWidget {
                   : null,
               color: isUnlocked
                   ? null
-                  : (isDark
-                      ? Colors.white.withValues(alpha: 0.06)
-                      : Colors.grey.withValues(alpha: 0.12)),
+                  : Colors.white.withValues(alpha: 0.06),
               boxShadow: isUnlocked
                   ? [
                       BoxShadow(
@@ -63,9 +60,7 @@ class AchievementBadgeWidget extends StatelessWidget {
               size: 26,
               color: isUnlocked
                   ? Colors.white
-                  : (isDark
-                      ? Colors.white.withValues(alpha: 0.18)
-                      : Colors.grey.withValues(alpha: 0.35)),
+                  : Colors.white.withValues(alpha: 0.18),
             ),
           ),
           const SizedBox(height: 6),
@@ -78,10 +73,8 @@ class AchievementBadgeWidget extends StatelessWidget {
                 fontSize: 10,
                 fontWeight: isUnlocked ? FontWeight.w600 : FontWeight.w400,
                 color: isUnlocked
-                    ? (isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87)
-                    : (isDark
-                        ? Colors.white.withValues(alpha: 0.25)
-                        : Colors.grey.withValues(alpha: 0.5)),
+                    ? Colors.white.withValues(alpha: 0.9)
+                    : Colors.white.withValues(alpha: 0.25),
               ),
               textAlign: TextAlign.center,
               maxLines: 2,
@@ -94,13 +87,10 @@ class AchievementBadgeWidget extends StatelessWidget {
   }
 
   void _showDetail(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+        backgroundColor: AppColors.immersiveCard,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
@@ -122,7 +112,7 @@ class AchievementBadgeWidget extends StatelessWidget {
                     : null,
                 color: isUnlocked
                     ? null
-                    : Colors.grey.withValues(alpha: isDark ? 0.15 : 0.12),
+                    : Colors.white.withValues(alpha: 0.08),
                 boxShadow: isUnlocked
                     ? [
                         BoxShadow(
@@ -139,23 +129,21 @@ class AchievementBadgeWidget extends StatelessWidget {
                 size: 38,
                 color: isUnlocked
                     ? Colors.white
-                    : Colors.grey.withValues(alpha: 0.4),
+                    : Colors.white.withValues(alpha: 0.25),
               ),
             ),
             const SizedBox(height: 16),
             Text(
               badge.title,
               style: AppTypography.h3.copyWith(
-                color: isDark ? Colors.white : Colors.black87,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               badge.description,
               style: AppTypography.bodySmall.copyWith(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.6)
-                    : Colors.black54,
+                color: Colors.white60,
               ),
               textAlign: TextAlign.center,
             ),
@@ -175,15 +163,13 @@ class AchievementBadgeWidget extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: isDark ? 0.15 : 0.1),
+                  color: Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(100),
                 ),
                 child: Text(
                   'Locked',
                   style: AppTypography.caption.copyWith(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.35)
-                        : Colors.grey,
+                    color: Colors.white.withValues(alpha: 0.35),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -194,7 +180,10 @@ class AchievementBadgeWidget extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Close'),
+            child: Text(
+              'Close',
+              style: TextStyle(color: AppColors.primary),
+            ),
           ),
         ],
       ),

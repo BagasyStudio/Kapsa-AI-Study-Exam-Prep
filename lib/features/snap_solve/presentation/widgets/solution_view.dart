@@ -19,8 +19,6 @@ class SolutionView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
     final data = solution.solution;
 
     return SingleChildScrollView(
@@ -41,7 +39,7 @@ class SolutionView extends StatelessWidget {
             Text(
               'Problem',
               style: AppTypography.labelSmall.copyWith(
-                color: AppColors.textMutedFor(brightness),
+                color: Colors.white38,
                 letterSpacing: 1.2,
                 fontSize: 10,
               ),
@@ -51,20 +49,16 @@ class SolutionView extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.06)
-                    : Colors.white.withValues(alpha: 0.5),
+                color: Colors.white.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.1)
-                      : Colors.black.withValues(alpha: 0.06),
+                  color: Colors.white.withValues(alpha: 0.1),
                 ),
               ),
               child: MathText(
                 text: data.problem,
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textPrimaryFor(brightness),
+                  color: Colors.white,
                   height: 1.5,
                 ),
               ),
@@ -76,7 +70,7 @@ class SolutionView extends StatelessWidget {
           Text(
             'SOLUTION',
             style: AppTypography.labelSmall.copyWith(
-              color: AppColors.textMutedFor(brightness),
+              color: Colors.white38,
               letterSpacing: 1.5,
               fontSize: 10,
             ),
@@ -98,14 +92,10 @@ class SolutionView extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.04)
-                    : Colors.white.withValues(alpha: 0.4),
+                color: Colors.white.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Colors.black.withValues(alpha: 0.04),
+                  color: Colors.white.withValues(alpha: 0.08),
                 ),
               ),
               child: Row(
@@ -121,7 +111,7 @@ class SolutionView extends StatelessWidget {
                     child: MathText(
                       text: data.explanation,
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondaryFor(brightness),
+                        color: Colors.white60,
                         height: 1.5,
                       ),
                     ),
@@ -259,9 +249,6 @@ class _StepCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Row(
@@ -300,7 +287,7 @@ class _StepCard extends StatelessWidget {
                 Text(
                   step.title,
                   style: AppTypography.labelLarge.copyWith(
-                    color: AppColors.textPrimaryFor(brightness),
+                    color: Colors.white,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -308,7 +295,7 @@ class _StepCard extends StatelessWidget {
                 MathText(
                   text: step.content,
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondaryFor(brightness),
+                    color: Colors.white60,
                     height: 1.6,
                   ),
                 ),
@@ -323,14 +310,10 @@ class _StepCard extends StatelessWidget {
                       vertical: AppSpacing.sm,
                     ),
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.06)
-                          : const Color(0xFFF8FAFC),
+                      color: Colors.white.withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.1)
-                            : const Color(0xFFE2E8F0),
+                        color: Colors.white.withValues(alpha: 0.1),
                       ),
                     ),
                     child: MathText(
@@ -407,7 +390,7 @@ class _FinalAnswerCard extends StatelessWidget {
           MathText(
             text: answer,
             style: AppTypography.h3.copyWith(
-              color: AppColors.textPrimaryFor(Theme.of(context).brightness),
+              color: Colors.white,
               fontWeight: FontWeight.w700,
             ),
           ),

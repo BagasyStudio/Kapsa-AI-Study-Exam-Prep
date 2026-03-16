@@ -79,11 +79,12 @@ class _ImportDeckScreenState extends ConsumerState<ImportDeckScreen> {
           .importDeck(code, widget.courseId);
       if (!mounted) return;
 
-      // Invalidate deck list
+      // Invalidate deck lists
       ref.invalidate(flashcardDecksProvider(widget.courseId));
+      ref.invalidate(parentDecksProvider(widget.courseId));
 
-      // Navigate to the new deck
-      context.pushReplacement(Routes.flashcardSessionPath(deck.id));
+      // Navigate to the new deck detail
+      context.pushReplacement(Routes.deckDetailPath(deck.id));
     } catch (e) {
       if (!mounted) return;
       setState(() {

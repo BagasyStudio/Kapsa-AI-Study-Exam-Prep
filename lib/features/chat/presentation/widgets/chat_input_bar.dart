@@ -28,23 +28,16 @@ class ChatInputBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    final backgroundColor = brightness == Brightness.light
-        ? Colors.white
-        : AppColors.cardDark;
+    final backgroundColor = AppColors.cardDark;
 
-    final topBorderColor = brightness == Brightness.light
-        ? const Color(0xFFE5E7EB)
-        : Colors.white.withValues(alpha: 0.08);
+    final topBorderColor = Colors.white.withValues(alpha: 0.08);
 
-    final fieldBackground = brightness == Brightness.light
-        ? const Color(0xFFF3F4F6)
-        : Colors.white.withValues(alpha: 0.06);
+    final fieldBackground = Colors.white.withValues(alpha: 0.06);
 
-    final hintColor = AppColors.textMutedFor(brightness);
-    final textColor = AppColors.textPrimaryFor(brightness);
+    final hintColor = Colors.white38;
+    final textColor = Colors.white;
 
     // Determine action button properties based on loading state.
     final actionColor = isLoading ? AppColors.error : AppColors.primary;

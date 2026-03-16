@@ -44,9 +44,7 @@ class MathText extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectiveStyle = style ??
         DefaultTextStyle.of(context).style.copyWith(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.black,
+              color: Colors.white,
             );
 
     // Fast path: no dollar signs at all → plain text.

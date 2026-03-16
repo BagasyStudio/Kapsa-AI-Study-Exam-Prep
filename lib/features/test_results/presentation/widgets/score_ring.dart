@@ -90,8 +90,6 @@ class _ScoreRingState extends State<ScoreRing>
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
@@ -107,9 +105,7 @@ class _ScoreRingState extends State<ScoreRing>
               size: 180,
               strokeWidth: 14,
               progressColor: _scoreColor,
-              trackColor: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.white,
+              trackColor: Colors.white.withValues(alpha: 0.1),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -121,7 +117,7 @@ class _ScoreRingState extends State<ScoreRing>
                       style: AppTypography.h1.copyWith(
                         fontSize: 44,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimaryFor(brightness),
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -159,7 +155,7 @@ class _ScoreRingState extends State<ScoreRing>
               child: Text(
                 '${widget.correctCount} of ${widget.totalCount} correct',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textMutedFor(brightness),
+                  color: Colors.white38,
                 ),
               ),
             ),

@@ -13,11 +13,13 @@ import '../widgets/suggestion_chips_row.dart';
 import '../widgets/chat_input_bar.dart';
 import '../widgets/action_card_parser.dart';
 import '../widgets/animated_orb_avatar.dart';
+import '../widgets/inline_quiz_widget.dart';
 import '../../../../core/widgets/staggered_list.dart';
 import '../../../../core/widgets/typing_indicator.dart';
 import '../../../../core/widgets/message_bubble_entrance.dart';
 import '../../../../core/widgets/floating_orbs.dart';
 import '../providers/chat_provider.dart';
+import '../providers/inline_quiz_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
 
 const _defaultSuggestions = [
@@ -86,7 +88,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         context.push(Routes.srsReviewPath(widget.courseId));
         break;
       case ActionType.practice:
-        context.push(Routes.practiceExam);
+        ref
+            .read(inlineQuizProvider(widget.courseId).notifier)
+            .startQuiz();
+        _scrollToBottom();
         break;
       case ActionType.upload:
         context.push(Routes.courseDetailPath(widget.courseId));
@@ -99,9 +104,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     final chatState = ref.watch(chatMessagesProvider(widget.courseId));
     final messages = chatState.messages;
+    final quizState = ref.watch(inlineQuizProvider(widget.courseId));
+    final quizActive = quizState.phase != InlineQuizPhase.idle;
 
     // Auto-scroll when new messages arrive
     if (messages.isNotEmpty) {
@@ -109,7 +115,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       body: Stack(
         children: [
           // Animated ambient orbs
@@ -152,7 +158,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               ),
                               itemCount: messages.length +
                                   1 +
-                                  (chatState.isLoading ? 1 : 0),
+                                  (chatState.isLoading ? 1 : 0) +
+                                  (quizActive ? 1 : 0),
                               itemBuilder: (context, index) {
                                 // Date separator first
                                 if (index == 0) {
@@ -169,13 +176,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                           vertical: 6,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: AppColors.surfaceFor(brightness)
-                                              .withValues(alpha: 0.6),
+                                          color: AppColors.immersiveSurface,
                                           borderRadius:
                                               BorderRadius.circular(100),
                                           border: Border.all(
-                                            color: AppColors.surfaceFor(brightness)
-                                                .withValues(alpha: 0.2),
+                                            color: AppColors.immersiveBorder,
                                           ),
                                         ),
                                         child: Text(
@@ -184,7 +189,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                               AppTypography.caption.copyWith(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w500,
-                                            color: AppColors.textMutedFor(brightness),
+                                            color: Colors.white38,
                                           ),
                                         ),
                                       ),
@@ -192,12 +197,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   );
                                 }
 
-                                // Typing indicator at the end
-                                if (chatState.isLoading &&
-                                    index == messages.length + 1) {
-                                  return _TypingIndicator(
-                                    brightness: brightness,
+                                // Inline quiz widget after messages
+                                final quizSlotIndex = messages.length + 1;
+                                if (quizActive && index == quizSlotIndex) {
+                                  return InlineQuizWidget(
+                                    courseId: widget.courseId,
+                                    onScrollToBottom: _scrollToBottom,
                                   );
+                                }
+
+                                // Typing indicator at the end
+                                final typingIndex = quizSlotIndex +
+                                    (quizActive ? 1 : 0);
+                                if (chatState.isLoading &&
+                                    index == typingIndex) {
+                                  return const _TypingIndicator();
                                 }
 
                                 // Message grouping logic
@@ -296,14 +310,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
                 const SizedBox(height: AppSpacing.xs),
 
-                // Input bar
+                // Input bar (disabled during active quiz)
                 ChatInputBar(
                   controller: _textController,
-                  onSend: _sendMessage,
-                  isLoading: chatState.isLoading,
-                  onStop: () {
-                    // For now, no-op -- future: cancel streaming
-                  },
+                  onSend: quizActive ? null : _sendMessage,
+                  isLoading: chatState.isLoading || quizActive,
+                  onStop: quizActive
+                      ? () => ref
+                          .read(inlineQuizProvider(widget.courseId).notifier)
+                          .reset()
+                      : () {
+                          // For now, no-op -- future: cancel streaming
+                        },
                 ),
               ],
             ),
@@ -323,7 +341,6 @@ class _EmptyChatState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),
@@ -335,7 +352,7 @@ class _EmptyChatState extends StatelessWidget {
             Text(
               'Your AI study companion',
               style: AppTypography.h3.copyWith(
-                color: AppColors.textSecondaryFor(brightness),
+                color: Colors.white60,
               ),
               textAlign: TextAlign.center,
             ),
@@ -343,7 +360,7 @@ class _EmptyChatState extends StatelessWidget {
             Text(
               'Ask questions, get explanations, and ace your exams.',
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textMutedFor(brightness),
+                color: Colors.white38,
               ),
               textAlign: TextAlign.center,
             ),
@@ -362,11 +379,9 @@ class _EmptyChatState extends StatelessWidget {
   }
 }
 
-/// Typing indicator bubble with theme-aware styling.
+/// Typing indicator bubble with forced dark styling.
 class _TypingIndicator extends StatelessWidget {
-  final Brightness brightness;
-
-  const _TypingIndicator({required this.brightness});
+  const _TypingIndicator();
 
   @override
   Widget build(BuildContext context) {
@@ -382,7 +397,7 @@ class _TypingIndicator extends StatelessWidget {
               vertical: AppSpacing.md,
             ),
             decoration: BoxDecoration(
-              color: AppColors.cardFor(brightness),
+              color: AppColors.immersiveCard,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/providers/theme_provider.dart';
 import '../../data/models/group_member_model.dart';
 
 /// Row widget for leaderboard showing rank, name, and XP.
@@ -27,9 +26,6 @@ class LeaderboardRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.isDark;
-    final brightness = Theme.of(context).brightness;
-
     return Container(
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md, vertical: AppSpacing.sm),
@@ -37,9 +33,7 @@ class LeaderboardRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: isCurrentUser
             ? AppColors.primary.withValues(alpha: 0.08)
-            : isDark
-                ? Colors.white.withValues(alpha: 0.04)
-                : Colors.white.withValues(alpha: 0.3),
+            : Colors.white.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(14),
         border: isCurrentUser
             ? Border.all(color: AppColors.primary.withValues(alpha: 0.2))
@@ -55,7 +49,7 @@ class LeaderboardRow extends StatelessWidget {
                 : Text(
                     '$rank',
                     style: AppTypography.labelLarge.copyWith(
-                      color: AppColors.textMutedFor(brightness),
+                      color: Colors.white38,
                       fontWeight: FontWeight.w700,
                     ),
                     textAlign: TextAlign.center,
@@ -83,7 +77,7 @@ class LeaderboardRow extends StatelessWidget {
             child: Text(
               member.fullName ?? 'Member',
               style: AppTypography.labelLarge.copyWith(
-                color: AppColors.textPrimaryFor(brightness),
+                color: Colors.white,
                 fontWeight: isCurrentUser ? FontWeight.w700 : FontWeight.w500,
                 fontSize: 14,
               ),

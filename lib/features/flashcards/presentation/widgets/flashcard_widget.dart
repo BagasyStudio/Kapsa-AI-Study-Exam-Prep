@@ -39,18 +39,16 @@ class FlashcardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1B2E) : const Color(0xFFFBFBFB),
+          color: AppColors.immersiveCard,
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.12),
+              color: Colors.black.withValues(alpha: 0.35),
               blurRadius: 32,
               offset: const Offset(0, 16),
             ),
@@ -68,7 +66,7 @@ class FlashcardWidget extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(28),
                 child: CustomPaint(
-                  painter: _PaperGrainPainter(isDark: isDark),
+                  painter: _PaperGrainPainter(isDark: true),
                 ),
               ),
             ),
@@ -136,7 +134,7 @@ class FlashcardWidget extends StatelessWidget {
                                     key: ValueKey(isSpeaking),
                                     color: isSpeaking
                                         ? AppColors.primary
-                                        : AppColors.textMutedFor(brightness),
+                                        : Colors.white38,
                                     size: 22,
                                   ),
                                 ),
@@ -153,7 +151,7 @@ class FlashcardWidget extends StatelessWidget {
                                     : Icons.bookmark_border,
                                 color: isBookmarked
                                     ? AppColors.primary
-                                    : AppColors.textMutedFor(brightness),
+                                    : Colors.white38,
                                 size: 24,
                               ),
                             ),
@@ -187,7 +185,7 @@ class FlashcardWidget extends StatelessWidget {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.08),
+                        color: AppColors.immersiveSurface,
                         borderRadius: BorderRadius.circular(100),
                       ),
                       child: Row(
@@ -195,8 +193,8 @@ class FlashcardWidget extends StatelessWidget {
                         children: [
                           Icon(
                             Icons.touch_app_rounded,
-                            size: 15,
-                            color: AppColors.textSecondaryFor(brightness),
+                            size: 18,
+                            color: Colors.white70,
                           ),
                           const SizedBox(width: 6),
                           Text(
@@ -204,7 +202,7 @@ class FlashcardWidget extends StatelessWidget {
                             style: AppTypography.labelSmall.copyWith(
                               letterSpacing: 1.5,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.textSecondaryFor(brightness),
+                              color: Colors.white70,
                             ),
                           ),
                         ],
@@ -244,7 +242,6 @@ class _QuestionContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final fullQuestion = '$before$keyword$after';
 
     return Column(
@@ -257,7 +254,7 @@ class _QuestionContent extends StatelessWidget {
             style: AppTypography.h2.copyWith(
               fontSize: 26,
               fontWeight: FontWeight.w700,
-              color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF111827),
+              color: Colors.white,
               height: 1.35,
             ),
           )
@@ -268,7 +265,7 @@ class _QuestionContent extends StatelessWidget {
               style: AppTypography.h2.copyWith(
                 fontSize: 26,
                 fontWeight: FontWeight.w700,
-                color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF111827),
+                color: Colors.white,
                 height: 1.35,
               ),
               children: [
@@ -294,7 +291,7 @@ class _QuestionContent extends StatelessWidget {
           width: 48,
           height: 4,
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE5E7EB),
+            color: Colors.white.withValues(alpha: 0.15),
             borderRadius: AppRadius.borderRadiusPill,
           ),
         ),
@@ -311,14 +308,13 @@ class _AnswerContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return MathText(
       text: answer,
       textAlign: TextAlign.center,
       style: AppTypography.bodyLarge.copyWith(
         fontSize: 18,
         height: 1.6,
-        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF374151),
+        color: const Color(0xFFCBD5E1),
       ),
     );
   }

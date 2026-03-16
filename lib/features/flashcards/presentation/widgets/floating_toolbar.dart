@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/tap_scale.dart';
@@ -24,26 +23,17 @@ class FloatingToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(100),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
+    return Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.1)
-                : Colors.white.withValues(alpha: 0.45),
+            color: Colors.white.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(100),
             border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.15)
-                  : Colors.white.withValues(alpha: 0.6),
+              color: Colors.white.withValues(alpha: 0.12),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+                color: Colors.black.withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -65,8 +55,6 @@ class FloatingToolbar extends StatelessWidget {
               _ToolbarButton(icon: Icons.share, onTap: onShare),
             ],
           ),
-        ),
-      ),
     );
   }
 }
@@ -80,7 +68,6 @@ class _ToolbarButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return TapScale(
       onTap: onTap,
       scaleDown: 0.85,
@@ -91,7 +78,7 @@ class _ToolbarButton extends StatelessWidget {
           size: 22,
           color: isActive
               ? AppColors.primary
-              : AppColors.textSecondaryFor(brightness),
+              : Colors.white60,
         ),
       ),
     );
@@ -101,14 +88,11 @@ class _ToolbarButton extends StatelessWidget {
 class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: 1,
       height: 16,
       margin: const EdgeInsets.symmetric(horizontal: 12),
-      color: isDark
-          ? Colors.white.withValues(alpha: 0.2)
-          : Colors.black.withValues(alpha: 0.1),
+      color: Colors.white.withValues(alpha: 0.15),
     );
   }
 }

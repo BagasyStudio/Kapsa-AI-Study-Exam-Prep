@@ -34,8 +34,7 @@ class GlassPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final config = _configFor(tier, isDark);
+    final config = _configFor(tier);
     final radius = borderRadius ?? AppRadius.borderRadiusXl;
 
     final baseTint = tintColor ?? Colors.white;
@@ -52,9 +51,7 @@ class GlassPanel extends StatelessWidget {
             ),
         boxShadow: [
           BoxShadow(
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.15)
-                : Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -64,35 +61,19 @@ class GlassPanel extends StatelessWidget {
     );
   }
 
-  _GlassConfig _configFor(GlassTier tier, bool isDark) {
-    if (isDark) {
-      return switch (tier) {
-        GlassTier.subtle => (
-            fillOpacity: 0.10,
-            borderOpacity: 0.08
-          ),
-        GlassTier.medium => (
-            fillOpacity: 0.12,
-            borderOpacity: 0.10
-          ),
-        GlassTier.strong => (
-            fillOpacity: 0.18,
-            borderOpacity: 0.14
-          ),
-      };
-    }
+  _GlassConfig _configFor(GlassTier tier) {
     return switch (tier) {
       GlassTier.subtle => (
-          fillOpacity: 0.55,
-          borderOpacity: 0.12
+          fillOpacity: 0.10,
+          borderOpacity: 0.08
         ),
       GlassTier.medium => (
-          fillOpacity: 0.78,
-          borderOpacity: 0.18
+          fillOpacity: 0.12,
+          borderOpacity: 0.10
         ),
       GlassTier.strong => (
-          fillOpacity: 0.88,
-          borderOpacity: 0.25
+          fillOpacity: 0.18,
+          borderOpacity: 0.14
         ),
     };
   }

@@ -224,10 +224,9 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
     final dueCardsAsync = widget.courseId != null
         ? ref.watch(dueCardsProvider(widget.courseId!))
         : ref.watch(allDueCardsProvider);
-    final brightness = Theme.of(context).brightness;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       body: dueCardsAsync.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
@@ -238,20 +237,20 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.error_outline,
-                    size: 48, color: AppColors.textMutedFor(brightness)),
+                const Icon(Icons.error_outline,
+                    size: 48, color: Colors.white38),
                 const SizedBox(height: AppSpacing.md),
                 Text(
                   'Could not load due cards',
                   style: AppTypography.h3.copyWith(
-                    color: AppColors.textPrimaryFor(brightness),
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   AppErrorHandler.friendlyMessage(e),
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textMutedFor(brightness),
+                    color: Colors.white60,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -279,7 +278,6 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
   }
 
   Widget _buildEmptyState() {
-    final brightness = Theme.of(context).brightness;
     return SafeArea(
       child: Center(
         child: Padding(
@@ -293,14 +291,14 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
               Text(
                 'All caught up!',
                 style: AppTypography.h2.copyWith(
-                  color: AppColors.textPrimaryFor(brightness),
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'No cards due for review right now.\nCheck back later!',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textMutedFor(brightness),
+                  color: Colors.white60,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -417,16 +415,13 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
           if (!_isRevealed)
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-              child: Builder(builder: (context) {
-                final brightness = Theme.of(context).brightness;
-                return Text(
-                  'Tap card to reveal answer',
-                  style: AppTypography.caption.copyWith(
-                    color: AppColors.textSecondaryFor(brightness),
-                    fontWeight: FontWeight.w500,
-                  ),
-                );
-              }),
+              child: Text(
+                'Tap card to reveal answer',
+                style: AppTypography.caption.copyWith(
+                  color: Colors.white60,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
         ],
       ),

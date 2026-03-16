@@ -46,7 +46,6 @@ class _FocusFlowCarouselState extends ConsumerState<FocusFlowCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     final coursesAsync = ref.watch(coursesProvider);
 
     return Column(
@@ -80,7 +79,7 @@ class _FocusFlowCarouselState extends ConsumerState<FocusFlowCarousel> {
 
         // Card carousel
         SizedBox(
-          height: 280,
+          height: 310,
           child: coursesAsync.when(
             loading: () => const Center(
               child: SizedBox(
@@ -93,7 +92,12 @@ class _FocusFlowCarouselState extends ConsumerState<FocusFlowCarousel> {
               ),
             ),
             error: (e, _) => Center(
-              child: Text(AppErrorHandler.friendlyMessage(e), style: AppTypography.bodySmall),
+              child: Text(
+                AppErrorHandler.friendlyMessage(e),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondaryDark,
+                ),
+              ),
             ),
             data: (courses) {
               if (courses.isEmpty) {
@@ -111,14 +115,14 @@ class _FocusFlowCarouselState extends ConsumerState<FocusFlowCarousel> {
                         Text(
                           'No courses yet',
                           style: AppTypography.h3.copyWith(
-                            color: AppColors.textSecondaryFor(brightness),
+                            color: AppColors.textSecondaryDark,
                           ),
                         ),
                         const SizedBox(height: AppSpacing.sm),
                         Text(
                           'Create your first course to get started!',
                           style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textMutedFor(brightness),
+                            color: AppColors.textMutedDark,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -144,17 +148,20 @@ class _FocusFlowCarouselState extends ConsumerState<FocusFlowCarousel> {
                   final hasExam = course.examDate != null;
                   final tag = hasExam ? 'Exam Coming' : 'In Progress';
                   final tagColor = hasExam
-                      ? const Color(0xFFFEF3C7).withValues(alpha: 0.5)
-                      : Colors.white.withValues(alpha: 0.5);
+                      ? const Color(0xFFFEF3C7).withValues(alpha: 0.12)
+                      : Colors.white.withValues(alpha: 0.08);
                   final tagTextColor = hasExam
-                      ? const Color(0xFFEA580C)
-                      : AppColors.primary;
+                      ? const Color(0xFFFBBF24)
+                      : AppColors.primaryLight;
 
                   return Consumer(
                     builder: (context, cRef, _) {
                       final dueCount = cRef
                           .watch(dueCardsCountProvider(course.id))
                           .whenOrNull(data: (c) => c) ?? 0;
+                      final parentDecks = cRef
+                          .watch(parentDecksProvider(course.id))
+                          .whenOrNull(data: (d) => d);
                       return Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.xs,
@@ -171,14 +178,19 @@ class _FocusFlowCarouselState extends ConsumerState<FocusFlowCarousel> {
                               tag: tag,
                               tagColor: tagColor,
                               tagTextColor: tagTextColor,
-                              title: course.title,
+                              title: course.displayTitle,
                               subtitle: course.subtitle ?? '',
                               progress: course.progress,
                               ctaLabel: 'Continue',
                               isSecondary: index > 0,
                               dueCount: dueCount,
-                              onCtaTap: () => context
-                                  .push(Routes.courseDetailPath(course.id)),
+                              onCtaTap: () {
+                                if (parentDecks != null && parentDecks.isNotEmpty) {
+                                  context.push(Routes.deckDetailPath(parentDecks.first.id));
+                                } else {
+                                  context.push(Routes.courseDetailPath(course.id));
+                                }
+                              },
                               onDueTap: dueCount > 0
                                   ? () => context.push(
                                       Routes.srsReviewPath(course.id))

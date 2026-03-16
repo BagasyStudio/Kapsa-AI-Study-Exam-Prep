@@ -182,7 +182,9 @@ class FlashcardRepository {
     return (response as List).length;
   }
 
-  /// Fetch all decks across all courses with their course name (for home quick access).
+  /// Fetch all root-level decks across all courses with course name (for home).
+  ///
+  /// Excludes child subdecks — only parent and legacy flat decks.
   Future<List<Map<String, dynamic>>> getAllDecksWithCourseName({
     int limit = 10,
   }) async {
@@ -192,9 +194,122 @@ class FlashcardRepository {
         .from('flashcard_decks')
         .select('*, courses!inner(title)')
         .eq('user_id', userId)
+        .isFilter('parent_deck_id', null)
         .order('created_at', ascending: false)
         .limit(limit);
     return List<Map<String, dynamic>>.from(data as List);
+  }
+
+  // ── Subdeck (parent/child) operations ─────────────────────────────
+
+  /// Fetch child subdecks of a parent deck, ordered by creation date.
+  Future<List<DeckModel>> getChildDecks(String parentDeckId) async {
+    final data = await _client
+        .from('flashcard_decks')
+        .select()
+        .eq('parent_deck_id', parentDeckId)
+        .order('created_at', ascending: true);
+    return (data as List).map((e) => DeckModel.fromJson(e)).toList();
+  }
+
+  /// Fetch only root-level (parent) decks for a course.
+  ///
+  /// Excludes child subdecks — returns parent decks and legacy flat decks.
+  Future<List<DeckModel>> getParentDecks(String courseId) async {
+    final data = await _client
+        .from('flashcard_decks')
+        .select()
+        .eq('course_id', courseId)
+        .isFilter('parent_deck_id', null)
+        .order('created_at', ascending: false)
+        .limit(30);
+    return (data as List).map((e) => DeckModel.fromJson(e)).toList();
+  }
+
+  /// Fetch a single deck by ID.
+  Future<DeckModel?> getDeck(String deckId) async {
+    final data = await _client
+        .from('flashcard_decks')
+        .select()
+        .eq('id', deckId)
+        .maybeSingle();
+    if (data == null) return null;
+    return DeckModel.fromJson(data);
+  }
+
+  /// Count due cards for a parent deck (aggregated across all children).
+  Future<int> getDueCardsCountForParentDeck(String parentDeckId) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    final childDecks = await _client
+        .from('flashcard_decks')
+        .select('id')
+        .eq('parent_deck_id', parentDeckId);
+
+    if ((childDecks as List).isEmpty) {
+      // Legacy flat deck — check the deck itself
+      final response = await _client
+          .from('flashcards')
+          .select('id')
+          .eq('deck_id', parentDeckId)
+          .lte('due', now);
+      return (response as List).length;
+    }
+
+    final childIds = childDecks.map((d) => d['id'] as String).toList();
+    final response = await _client
+        .from('flashcards')
+        .select('id')
+        .inFilter('deck_id', childIds)
+        .lte('due', now);
+    return (response as List).length;
+  }
+
+  /// Get the recommended subdeck to study next.
+  ///
+  /// Priority: most due cards → most new cards → most recently created.
+  Future<DeckModel?> getRecommendedSubdeck(String parentDeckId) async {
+    final children = await getChildDecks(parentDeckId);
+    if (children.isEmpty) return null;
+
+    final now = DateTime.now().toUtc().toIso8601String();
+    DeckModel? bestDue;
+    int bestDueCount = 0;
+    DeckModel? bestNew;
+    int bestNewCount = 0;
+
+    for (final child in children) {
+      // Count due cards
+      final dueResponse = await _client
+          .from('flashcards')
+          .select('id')
+          .eq('deck_id', child.id)
+          .lte('due', now);
+      final dueCount = (dueResponse as List).length;
+
+      if (dueCount > bestDueCount) {
+        bestDueCount = dueCount;
+        bestDue = child;
+      }
+
+      // Count new (never reviewed) cards
+      final newResponse = await _client
+          .from('flashcards')
+          .select('id')
+          .eq('deck_id', child.id)
+          .eq('srs_state', 0);
+      final newCount = (newResponse as List).length;
+
+      if (newCount > bestNewCount) {
+        bestNewCount = newCount;
+        bestNew = child;
+      }
+    }
+
+    // Priority: due cards first, then new cards, then first child
+    if (bestDueCount > 0) return bestDue;
+    if (bestNewCount > 0) return bestNew;
+    return children.first;
   }
 
   /// Get the course ID for a deck.

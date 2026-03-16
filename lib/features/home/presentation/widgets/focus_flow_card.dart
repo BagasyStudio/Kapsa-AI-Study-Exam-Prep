@@ -4,7 +4,6 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/circular_progress_ring.dart';
-import '../../../../core/widgets/primary_button.dart';
 
 /// A single Focus Flow card (Biology 101 Exam, History Essay, etc.)
 ///
@@ -44,28 +43,22 @@ class FocusFlowCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final brightness = Theme.of(context).brightness;
     return Container(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.xl,
             vertical: AppSpacing.lg,
           ),
           decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.white.withValues(alpha: 0.55),
+            color: AppColors.immersiveCard,
             borderRadius: AppRadius.borderRadiusXxl,
             border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.white.withValues(alpha: 0.6),
+              color: AppColors.immersiveBorder,
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                blurRadius: 32,
-                offset: const Offset(0, 8),
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -92,7 +85,7 @@ class FocusFlowCard extends StatelessWidget {
                             color: tagColor,
                             borderRadius: AppRadius.borderRadiusPill,
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.4),
+                              color: Colors.white.withValues(alpha: 0.1),
                             ),
                           ),
                           child: Text(
@@ -108,14 +101,14 @@ class FocusFlowCard extends StatelessWidget {
                           title,
                           style: AppTypography.h2.copyWith(
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimaryFor(brightness),
+                            color: Colors.white,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           subtitle,
                           style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textMutedFor(brightness),
+                            color: Colors.white60,
                           ),
                         ),
                         // Due cards badge
@@ -129,29 +122,25 @@ class FocusFlowCard extends StatelessWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFEF3C7).withValues(alpha: isDark ? 0.15 : 0.6),
+                                color: AppColors.warning.withValues(alpha: 0.12),
                                 borderRadius: AppRadius.borderRadiusPill,
                                 border: Border.all(
-                                  color: const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.3 : 0.4),
+                                  color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
                                 ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.schedule,
                                     size: 12,
-                                    color: isDark
-                                        ? const Color(0xFFFBBF24)
-                                        : const Color(0xFFD97706),
+                                    color: Color(0xFFFBBF24),
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     '$dueCount card${dueCount == 1 ? '' : 's'} due',
                                     style: AppTypography.caption.copyWith(
-                                      color: isDark
-                                          ? const Color(0xFFFBBF24)
-                                          : const Color(0xFFD97706),
+                                      color: const Color(0xFFFBBF24),
                                       fontWeight: FontWeight.w600,
                                       fontSize: 11,
                                     ),
@@ -172,13 +161,11 @@ class FocusFlowCard extends StatelessWidget {
                         height: 40,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: isDark
-                            ? Colors.white.withValues(alpha: 0.12)
-                            : Colors.white.withValues(alpha: 0.5),
+                          color: Colors.white.withValues(alpha: 0.08),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.more_horiz,
-                          color: AppColors.textMutedFor(brightness),
+                          color: Colors.white60,
                           size: 20,
                         ),
                       ),
@@ -186,70 +173,55 @@ class FocusFlowCard extends StatelessWidget {
                 ],
               ),
 
-              // Center: progress ring or placeholder icon
-              Expanded(
-                child: Center(
-                  child: progress != null
-                      ? CircularProgressRing(
-                          progress: progress!,
-                          size: 100,
-                          strokeWidth: 9,
-                          child: progress! > 0
-                              ? Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      '${(progress! * 100).round()}%',
-                                      style: AppTypography.h1.copyWith(
-                                        fontSize: 28,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Mastery',
-                                      style: AppTypography.caption.copyWith(
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.play_arrow_rounded,
-                                        size: 24,
-                                        color: AppColors.primary),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'Start',
-                                      textAlign: TextAlign.center,
-                                      style: AppTypography.caption.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.primary,
-                                        fontSize: 10,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        )
-                      : Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              placeholderIcon ?? Icons.edit_note,
-                              size: 44,
-                              color: AppColors.textMutedFor(brightness).withValues(alpha: 0.5),
+              // Center: compact inline progress row
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                child: progress != null
+                    ? Row(
+                        children: [
+                          // Small progress circle
+                          SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: CircularProgressRing(
+                              progress: progress!,
+                              size: 40,
+                              strokeWidth: 4,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Not started',
-                              style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.textMutedFor(brightness),
-                              ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Text(
+                            '${(progress! * 100).round()}%',
+                            style: AppTypography.h3.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
                             ),
-                          ],
-                        ),
-                ),
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Text(
+                            'Mastery',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: Colors.white38,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Icon(
+                            placeholderIcon ?? Icons.edit_note,
+                            size: 28,
+                            color: Colors.white38,
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Text(
+                            'Not started',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: Colors.white60,
+                            ),
+                          ),
+                        ],
+                      ),
               ),
 
               // CTA Button
@@ -260,26 +232,48 @@ class FocusFlowCard extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.12)
-                          : Colors.white.withValues(alpha: 0.5),
+                      color: AppColors.immersiveSurface,
                       borderRadius: AppRadius.borderRadiusPill,
                     ),
                     child: Center(
                       child: Text(
                         ctaLabel,
                         style: AppTypography.button.copyWith(
-                          color: AppColors.primary,
+                          color: Colors.white70,
                         ),
                       ),
                     ),
                   ),
                 )
               else
-                PrimaryButton(
-                  label: ctaLabel,
-                  trailingIcon: Icons.arrow_forward,
-                  onPressed: onCtaTap,
+                GestureDetector(
+                  onTap: onCtaTap,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.ctaLime,
+                      borderRadius: AppRadius.borderRadiusPill,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          ctaLabel,
+                          style: AppTypography.button.copyWith(
+                            color: AppColors.ctaLimeText,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.arrow_forward,
+                          size: 18,
+                          color: AppColors.ctaLimeText,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
             ],
           ),

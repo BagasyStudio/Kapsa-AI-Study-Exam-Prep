@@ -55,7 +55,6 @@ class SuggestionChipsRow extends StatelessWidget {
   // ── Grid mode (empty state) ──────────────────────────────────────────
 
   Widget _buildGrid(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     final effectiveItems = _effectiveItems;
 
     return Padding(
@@ -72,7 +71,6 @@ class SuggestionChipsRow extends StatelessWidget {
                 icon: item.icon,
                 label: item.label,
                 width: cardWidth,
-                brightness: brightness,
                 onTap: () => onTap?.call(item.label),
               );
             }).toList(),
@@ -85,7 +83,6 @@ class SuggestionChipsRow extends StatelessWidget {
   // ── Inline mode (with messages) ──────────────────────────────────────
 
   Widget _buildInlineRow(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     final effectiveItems = _effectiveItems;
 
     return SizedBox(
@@ -100,7 +97,6 @@ class SuggestionChipsRow extends StatelessWidget {
           return _InlineChip(
             icon: item.icon,
             label: item.label,
-            brightness: brightness,
             onTap: () => onTap?.call(item.label),
           );
         },
@@ -117,24 +113,17 @@ class _GridChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final double width;
-  final Brightness brightness;
   final VoidCallback? onTap;
 
   const _GridChip({
     required this.icon,
     required this.label,
     required this.width,
-    required this.brightness,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = brightness == Brightness.dark
-        ? AppColors.primary.withValues(alpha: 0.10)
-        : AppColors.primary.withValues(alpha: 0.06);
-    final borderColor = AppColors.primary.withValues(alpha: 0.12);
-
     return TapScale(
       onTap: onTap,
       child: Container(
@@ -144,9 +133,9 @@ class _GridChip extends StatelessWidget {
           horizontal: AppSpacing.md,
         ),
         decoration: BoxDecoration(
-          color: bgColor,
+          color: AppColors.immersiveCard,
           borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: borderColor),
+          border: Border.all(color: AppColors.immersiveBorder),
         ),
         child: Row(
           children: [
@@ -161,7 +150,7 @@ class _GridChip extends StatelessWidget {
                 label,
                 style: AppTypography.labelMedium.copyWith(
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimaryFor(brightness),
+                  color: Colors.white,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -181,23 +170,16 @@ class _GridChip extends StatelessWidget {
 class _InlineChip extends StatelessWidget {
   final IconData icon;
   final String label;
-  final Brightness brightness;
   final VoidCallback? onTap;
 
   const _InlineChip({
     required this.icon,
     required this.label,
-    required this.brightness,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = brightness == Brightness.dark
-        ? AppColors.primary.withValues(alpha: 0.10)
-        : const Color(0xFFF1F2FD);
-    final borderColor = AppColors.primary.withValues(alpha: 0.15);
-
     return TapScale(
       onTap: onTap,
       child: Container(
@@ -206,9 +188,9 @@ class _InlineChip extends StatelessWidget {
           vertical: AppSpacing.xs,
         ),
         decoration: BoxDecoration(
-          color: bgColor,
+          color: AppColors.immersiveCard,
           borderRadius: BorderRadius.circular(AppRadius.pill),
-          border: Border.all(color: borderColor),
+          border: Border.all(color: AppColors.immersiveBorder),
         ),
         child: Center(
           child: Row(
@@ -225,7 +207,7 @@ class _InlineChip extends StatelessWidget {
                 style: AppTypography.caption.copyWith(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimaryFor(brightness),
+                  color: Colors.white,
                 ),
               ),
             ],

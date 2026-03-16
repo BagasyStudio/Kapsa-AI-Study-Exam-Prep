@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/title_utils.dart';
+
 /// Types of AI generation the user can trigger.
 enum GenerationType { flashcards, quiz, summary, glossary }
 
@@ -53,6 +55,9 @@ class GenerationTask {
   bool get isRunning => status == GenerationStatus.running;
   bool get isCompleted => status == GenerationStatus.completed;
   bool get isError => status == GenerationStatus.error;
+
+  /// Clean display name for UI (strip prefix, humanize).
+  String get displayCourseName => cleanDisplayTitle(courseName);
 
   /// Human-readable label for each type.
   String get typeLabel {

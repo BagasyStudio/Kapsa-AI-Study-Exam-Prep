@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/title_utils.dart';
+
 /// Model representing a course from the `courses` table.
 class CourseModel {
   final String id;
@@ -80,6 +82,9 @@ class CourseModel {
       updatedAt: updatedAt,
     );
   }
+
+  /// Clean display title: strip numeric prefix, replace underscores, title-case.
+  String get displayTitle => cleanDisplayTitle(title);
 
   /// Parse the hex color string into a Flutter Color.
   Color get color {

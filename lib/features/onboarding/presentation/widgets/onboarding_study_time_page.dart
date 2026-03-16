@@ -73,7 +73,6 @@ class _OnboardingStudyTimePageState extends State<OnboardingStudyTimePage>
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     final timeOptions = _timeOptions(l);
-    final brightness = Theme.of(context).brightness;
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
@@ -119,7 +118,7 @@ class _OnboardingStudyTimePageState extends State<OnboardingStudyTimePage>
                         fontWeight: FontWeight.w700,
                         height: 1.2,
                         letterSpacing: -0.5,
-                        color: AppColors.textPrimaryFor(brightness),
+                        color: Colors.white,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -156,7 +155,7 @@ class _OnboardingStudyTimePageState extends State<OnboardingStudyTimePage>
                             l.studyTimeSubtitle,
                             key: const ValueKey('subtitle'),
                             style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.textSecondaryFor(brightness),
+                              color: Colors.white60,
                               height: 1.55,
                             ),
                           ),
@@ -202,7 +201,7 @@ class _OnboardingStudyTimePageState extends State<OnboardingStudyTimePage>
               child: Transform.scale(
                 scale: 0.7 + 0.3 * progress,
                 child: Opacity(
-                  opacity: progress,
+                  opacity: progress.clamp(0.0, 1.0),
                   child: StudyTimeCard(
                     emoji: opt.emoji,
                     label: opt.label,

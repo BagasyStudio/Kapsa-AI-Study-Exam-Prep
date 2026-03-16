@@ -53,16 +53,14 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
           'Delete Account',
-          style: AppTypography.h3.copyWith(color: AppColors.textPrimaryFor(brightness)),
+          style: AppTypography.h3.copyWith(color: Colors.white),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, size: 20),
@@ -104,7 +102,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
               Text(
                 'Deleting your account will permanently remove:',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondaryFor(brightness),
+                  color: Colors.white60,
                   height: 1.6,
                 ),
               ),
@@ -123,7 +121,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
               Text(
                 'This cannot be undone. Type DELETE to confirm.',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textPrimaryFor(brightness),
+                  color: Colors.white,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -137,16 +135,16 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                 decoration: InputDecoration(
                   hintText: 'Type DELETE to confirm',
                   hintStyle: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textMutedFor(brightness),
+                    color: Colors.white38,
                   ),
                   filled: true,
-                  fillColor: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.5),
+                  fillColor: Colors.white.withValues(alpha: 0.08),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
                       color: _canDelete
                           ? const Color(0xFFEF4444)
-                          : isDark ? Colors.white.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.6),
+                          : Colors.white.withValues(alpha: 0.12),
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
@@ -154,7 +152,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                     borderSide: BorderSide(
                       color: _canDelete
                           ? const Color(0xFFEF4444).withValues(alpha: 0.5)
-                          : isDark ? Colors.white.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.6),
+                          : Colors.white.withValues(alpha: 0.12),
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
@@ -165,7 +163,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                   ),
                 ),
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textPrimaryFor(brightness),
+                  color: Colors.white,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 2,
                 ),
@@ -232,7 +230,6 @@ class _BulletPoint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
@@ -253,7 +250,7 @@ class _BulletPoint extends StatelessWidget {
             child: Text(
               text,
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondaryFor(brightness),
+                color: Colors.white60,
                 height: 1.4,
               ),
             ),

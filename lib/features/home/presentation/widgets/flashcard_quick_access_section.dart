@@ -16,11 +16,9 @@ class FlashcardQuickAccessSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final decksAsync = ref.watch(flashcardQuickAccessProvider);
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
 
     return decksAsync.when(
-      loading: () => _buildShimmer(isDark),
+      loading: () => _buildShimmer(),
       error: (_, __) => const SizedBox.shrink(),
       data: (decks) {
         if (decks.isEmpty) return const SizedBox.shrink();
@@ -68,30 +66,26 @@ class FlashcardQuickAccessSection extends ConsumerWidget {
                       ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFEF3C7)
-                            .withValues(alpha: isDark ? 0.15 : 0.6),
+                            .withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: const Color(0xFFF59E0B)
-                              .withValues(alpha: isDark ? 0.3 : 0.4),
+                              .withValues(alpha: 0.3),
                         ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.schedule,
                             size: 12,
-                            color: isDark
-                                ? const Color(0xFFFBBF24)
-                                : const Color(0xFFD97706),
+                            color: Color(0xFFFBBF24),
                           ),
                           const SizedBox(width: 4),
                           Text(
                             '$totalDue due',
-                            style: TextStyle(
-                              color: isDark
-                                  ? const Color(0xFFFBBF24)
-                                  : const Color(0xFFD97706),
+                            style: const TextStyle(
+                              color: Color(0xFFFBBF24),
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
@@ -107,7 +101,7 @@ class FlashcardQuickAccessSection extends ConsumerWidget {
 
             // Horizontal deck list
             SizedBox(
-              height: 180,
+              height: 195,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
@@ -138,7 +132,7 @@ class FlashcardQuickAccessSection extends ConsumerWidget {
   }
 
   /// Loading shimmer placeholder.
-  Widget _buildShimmer(bool isDark) {
+  Widget _buildShimmer() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -148,9 +142,7 @@ class FlashcardQuickAccessSection extends ConsumerWidget {
             width: 120,
             height: 16,
             decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.06)
-                  : Colors.black.withValues(alpha: 0.06),
+              color: Colors.white.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(8),
             ),
           ),
@@ -169,9 +161,7 @@ class FlashcardQuickAccessSection extends ConsumerWidget {
                 child: Container(
                   width: 160,
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.05)
-                        : Colors.black.withValues(alpha: 0.04),
+                    color: Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),

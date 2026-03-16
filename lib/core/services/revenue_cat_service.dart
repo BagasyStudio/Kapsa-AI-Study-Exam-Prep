@@ -50,16 +50,26 @@ class RevenueCatService {
   /// Log in to RevenueCat with the Supabase user ID.
   ///
   /// Call this after Supabase auth sign-in.
+  /// Silently fails on platforms without RevenueCat support (e.g. web).
   Future<void> login(String userId) async {
-    await Purchases.logIn(userId);
-    await _syncProStatus();
+    try {
+      await Purchases.logIn(userId);
+      await _syncProStatus();
+    } on MissingPluginException catch (_) {
+      // RevenueCat not available on this platform (web)
+    }
   }
 
   /// Log out from RevenueCat.
   ///
   /// Call this when the user signs out of Supabase.
+  /// Silently fails on platforms without RevenueCat support (e.g. web).
   Future<void> logout() async {
-    await Purchases.logOut();
+    try {
+      await Purchases.logOut();
+    } on MissingPluginException catch (_) {
+      // RevenueCat not available on this platform (web)
+    }
   }
 
   /// Check if the user currently has an active "pro" entitlement.

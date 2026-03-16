@@ -3,19 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/providers/theme_provider.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../gamification/presentation/providers/heatmap_provider.dart';
 
 /// Compact weekly stats card showing study activity this week vs last week.
+/// Forced immersive dark styling.
 class WeeklyStatsCard extends ConsumerWidget {
   const WeeklyStatsCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final heatmapAsync = ref.watch(heatmapDataProvider);
-    final brightness = Theme.of(context).brightness;
-    final isDark = context.isDark;
 
     return heatmapAsync.when(
       loading: () => ShimmerCard(height: 110, borderRadius: BorderRadius.circular(20)),
@@ -54,14 +52,10 @@ class WeeklyStatsCard extends ConsumerWidget {
         return Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.white.withValues(alpha: 0.75),
+            color: AppColors.immersiveCard,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.black.withValues(alpha: 0.06),
+              color: AppColors.immersiveBorder,
             ),
           ),
           child: Column(
@@ -76,7 +70,7 @@ class WeeklyStatsCard extends ConsumerWidget {
                   Text(
                     'This Week',
                     style: AppTypography.h4.copyWith(
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                       fontSize: 16,
                     ),
                   ),
@@ -185,7 +179,6 @@ class _StatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return Row(
       children: [
         Icon(icon, size: 16, color: color),
@@ -193,7 +186,7 @@ class _StatItem extends StatelessWidget {
         Text(
           value,
           style: AppTypography.h4.copyWith(
-            color: AppColors.textPrimaryFor(brightness),
+            color: Colors.white,
             fontWeight: FontWeight.w800,
             fontSize: 18,
           ),
@@ -202,7 +195,7 @@ class _StatItem extends StatelessWidget {
         Text(
           label,
           style: AppTypography.caption.copyWith(
-            color: AppColors.textMutedFor(brightness),
+            color: Colors.white38,
             fontSize: 12,
           ),
         ),

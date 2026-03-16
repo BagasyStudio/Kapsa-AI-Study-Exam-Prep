@@ -210,10 +210,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget build(BuildContext context) {
     final isRatePage = _currentPage == _pageRateUs;
     final hideBottomBar = isRatePage;
-    final brightness = Theme.of(context).brightness;
-
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       body: Stack(
         children: [
           // Background orbs

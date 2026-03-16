@@ -3,17 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/theme/app_gradients.dart';
 import '../widgets/week_calendar_strip.dart';
 import '../widgets/timeline_view.dart';
 import '../widgets/exam_event_card.dart';
 import '../widgets/task_item.dart';
 import '../providers/calendar_provider.dart';
 import '../../data/models/calendar_event_model.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../assistant/presentation/providers/assistant_provider.dart';
 import '../../../../core/utils/error_handler.dart';
-import '../../../../core/providers/theme_provider.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
@@ -46,8 +43,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             backgroundColor: AppColors.primary,
           ),
         );
-        // Refresh events
+        // Refresh events and event dots
         ref.invalidate(calendarEventsProvider(_selectedDate));
+        ref.invalidate(calendarEventDatesProvider(_twoWeekRange));
       }
     } catch (e) {
       if (mounted) {
@@ -63,89 +61,102 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     }
   }
 
-  int get _selectedDayIndex {
-    // Get the weekday (1=Mon, 7=Sun) and convert to 0-based index for the strip
-    final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1)); // Monday
-    return _selectedDate.difference(startOfWeek).inDays.clamp(0, 6);
-  }
-
-  void _onDayTap(int index) {
-    final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+  void _onDayTap(DateTime date) {
     setState(() {
-      _selectedDate = startOfWeek.add(Duration(days: index));
+      _selectedDate = date;
     });
   }
 
-  String get _dayLabel {
-    const weekdays = [
-      'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY',
-      'FRIDAY', 'SATURDAY', 'SUNDAY'
-    ];
-    return weekdays[_selectedDate.weekday - 1];
+  // ── Date label helpers ──
+
+  static const _weekdayNames = [
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday',
+    'Friday', 'Saturday', 'Sunday',
+  ];
+
+  static const _monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  /// Primary header: "Sunday, March 15"
+  String get _fullDateLabel {
+    final weekday = _weekdayNames[_selectedDate.weekday - 1];
+    final month = _monthNames[_selectedDate.month - 1];
+    return '$weekday, $month ${_selectedDate.day}';
   }
 
-  String get _monthYearLabel {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return '${months[_selectedDate.month - 1]} ${_selectedDate.year}';
+  /// Secondary: "March 2026"
+  String get _monthYearLabel =>
+      '${_monthNames[_selectedDate.month - 1]} ${_selectedDate.year}';
+
+  /// Whether selectedDate is today (date-only comparison).
+  bool get _isToday {
+    final now = DateTime.now();
+    return _selectedDate.year == now.year &&
+        _selectedDate.month == now.month &&
+        _selectedDate.day == now.day;
+  }
+
+  /// Short reference for empty state: "Sunday, March 15"
+  String get _emptyStateDateRef => _fullDateLabel;
+
+  /// Compute the 2-week range for event dot lookup.
+  (DateTime, DateTime) get _twoWeekRange {
+    final d = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final weekStart = d.subtract(Duration(days: d.weekday - 1));
+    final rangeEnd = weekStart.add(const Duration(days: 13)); // 2 weeks
+    return (weekStart, rangeEnd);
   }
 
   @override
   Widget build(BuildContext context) {
     final eventsAsync = ref.watch(calendarEventsProvider(_selectedDate));
-    final user = ref.watch(currentUserProvider);
-    final fullName = user?.userMetadata?['full_name'];
-    final userInitial = (fullName is String && fullName.isNotEmpty)
-        ? fullName.substring(0, 1).toUpperCase()
-        : 'U';
+    final range = _twoWeekRange;
+    final eventDatesAsync = ref.watch(calendarEventDatesProvider(range));
 
-    final brightness = Theme.of(context).brightness;
-    final isDark = context.isDark;
+    // Determine if we have events for conditional FAB
+    final hasEvents = eventsAsync.whenOrNull(
+          data: (events) => events.isNotEmpty,
+        ) ??
+        false;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 100),
-        child: FloatingActionButton.extended(
-          onPressed: _isGeneratingSuggestions ? null : _generateAISuggestions,
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          icon: _isGeneratingSuggestions
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : const Icon(Icons.auto_awesome, size: 18),
-          label: Text(
-            _isGeneratingSuggestions ? 'Generating...' : 'AI Suggest',
-            style: AppTypography.labelMedium.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
+      backgroundColor: AppColors.immersiveBg,
+      // FAB only when there ARE events (to add more suggestions to a busy day)
+      floatingActionButton: hasEvents
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 100),
+              child: FloatingActionButton.small(
+                onPressed:
+                    _isGeneratingSuggestions ? null : _generateAISuggestions,
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                child: _isGeneratingSuggestions
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.auto_awesome, size: 18),
+              ),
+            )
+          : null,
       body: Stack(
         children: [
           // Ethereal mesh background radial gradients
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: AppColors.backgroundFor(brightness),
+                color: AppColors.immersiveBg,
                 gradient: RadialGradient(
                   center: const Alignment(-1.0, -1.0),
                   radius: 1.2,
                   colors: [
-                    (isDark ? const Color(0xFF1A1533) : const Color(0xFFE4E0ED))
-                        .withValues(alpha: isDark ? 0.5 : 0.8),
+                    const Color(0xFF1A1533).withValues(alpha: 0.5),
                     Colors.transparent,
                   ],
                 ),
@@ -159,8 +170,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   center: const Alignment(0.0, -1.0),
                   radius: 1.0,
                   colors: [
-                    (isDark ? const Color(0xFF131A2B) : const Color(0xFFCED6EA))
-                        .withValues(alpha: isDark ? 0.4 : 0.6),
+                    const Color(0xFF131A2B).withValues(alpha: 0.4),
                     Colors.transparent,
                   ],
                 ),
@@ -174,8 +184,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   center: const Alignment(1.0, -1.0),
                   radius: 1.0,
                   colors: [
-                    (isDark ? const Color(0xFF1A1228) : const Color(0xFFEDD6DD))
-                        .withValues(alpha: isDark ? 0.3 : 0.5),
+                    const Color(0xFF1A1228).withValues(alpha: 0.3),
                     Colors.transparent,
                   ],
                 ),
@@ -189,7 +198,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header: day label + month/year + profile avatar
+                // ── Header ──
                 Padding(
                   padding: const EdgeInsets.fromLTRB(
                     AppSpacing.xl,
@@ -197,22 +206,22 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     AppSpacing.xl,
                     0,
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      // Primary: full date
+                      Text(
+                        _fullDateLabel,
+                        style: AppTypography.h2.copyWith(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Secondary: month year + "Today" pill
+                      Row(
                         children: [
-                          Text(
-                            _dayLabel,
-                            style: AppTypography.caption.copyWith(
-                              color: AppColors.primary.withValues(alpha: 0.6),
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 1.2,
-                              fontSize: 11,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
                           GestureDetector(
                             onTap: () {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -222,54 +231,59 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                               );
                             },
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   _monthYearLabel,
-                                  style: AppTypography.h2.copyWith(
-                                    color: AppColors.textPrimaryFor(brightness),
-                                    fontSize: 24,
+                                  style: AppTypography.bodyMedium.copyWith(
+                                    color: Colors.white38,
+                                    fontSize: 14,
                                   ),
                                 ),
                                 const SizedBox(width: 4),
-                                Icon(
+                                const Icon(
                                   Icons.expand_more,
-                                  color: AppColors.primary,
-                                  size: 22,
+                                  color: Colors.white38,
+                                  size: 18,
                                 ),
                               ],
                             ),
                           ),
-                        ],
-                      ),
-                      // Profile avatar
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white,
-                            width: 2,
-                          ),
-                          gradient: AppGradients.primaryToIndigo,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.08),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
+                          // "Today" pill — only visible when navigated away
+                          if (!_isToday) ...[
+                            const SizedBox(width: AppSpacing.sm),
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedDate = DateTime.now();
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary
+                                      .withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(100),
+                                  border: Border.all(
+                                    color: AppColors.primary
+                                        .withValues(alpha: 0.2),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Today',
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
                             ),
                           ],
-                        ),
-                        child: Center(
-                          child: Text(
-                            userInitial,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
@@ -283,7 +297,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     horizontal: AppSpacing.xl,
                   ),
                   child: WeekCalendarStrip(
-                    selectedDayIndex: _selectedDayIndex,
+                    focusedDate: _selectedDate,
+                    selectedDate: _selectedDate,
+                    eventDates: eventDatesAsync.valueOrNull ?? {},
                     onDayTap: _onDayTap,
                   ),
                 ),
@@ -295,68 +311,42 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   child: RefreshIndicator(
                     color: AppColors.primary,
                     onRefresh: () async {
-                      ref.invalidate(calendarEventsProvider(_selectedDate));
+                      ref.invalidate(
+                          calendarEventsProvider(_selectedDate));
                     },
                     child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(
-                      parent: BouncingScrollPhysics(),
-                    ),
-                    padding: EdgeInsets.fromLTRB(
-                      AppSpacing.xl,
-                      0,
-                      AppSpacing.xl,
-                      120,
-                    ),
-                    child: eventsAsync.when(
-                      loading: () => const Padding(
-                        padding: EdgeInsets.only(top: 20),
-                        child: ShimmerList(count: 3, itemHeight: 72),
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
                       ),
-                      error: (e, _) => Padding(
-                        padding: const EdgeInsets.only(top: 60),
-                        child: Center(
-                          child: Text(
-                            AppErrorHandler.friendlyMessage(e),
-                            style: AppTypography.bodySmall,
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.xl,
+                        0,
+                        AppSpacing.xl,
+                        120,
+                      ),
+                      child: eventsAsync.when(
+                        loading: () => const Padding(
+                          padding: EdgeInsets.only(top: 20),
+                          child:
+                              ShimmerList(count: 3, itemHeight: 72),
+                        ),
+                        error: (e, _) => Padding(
+                          padding: const EdgeInsets.only(top: 60),
+                          child: Center(
+                            child: Text(
+                              AppErrorHandler.friendlyMessage(e),
+                              style: AppTypography.bodySmall,
+                            ),
                           ),
                         ),
+                        data: (events) {
+                          if (events.isEmpty) {
+                            return _buildEmptyState();
+                          }
+                          return _buildTimeline(events);
+                        },
                       ),
-                      data: (events) {
-                        if (events.isEmpty) {
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 60),
-                            child: Center(
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.event_available,
-                                    size: 48,
-                                    color: AppColors.primary
-                                        .withValues(alpha: 0.3),
-                                  ),
-                                  const SizedBox(height: AppSpacing.md),
-                                  Text(
-                                    'No events for this day',
-                                    style: AppTypography.h3.copyWith(
-                                      color: AppColors.textSecondaryFor(brightness),
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppSpacing.sm),
-                                  Text(
-                                    'Your schedule is clear!',
-                                    style: AppTypography.bodySmall.copyWith(
-                                      color: AppColors.textMutedFor(brightness),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }
-                        return _buildTimeline(events, isDark: isDark);
-                      },
                     ),
-                  ),
                   ),
                 ),
               ],
@@ -367,12 +357,111 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _buildTimeline(List<CalendarEventModel> events, {required bool isDark}) {
+  /// Empty state with contextual copy and inline AI Suggest CTA.
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 60),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(
+              Icons.event_available,
+              size: 48,
+              color: AppColors.primary.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'No sessions for $_emptyStateDateRef',
+              style: AppTypography.h3.copyWith(
+                color: Colors.white60,
+                fontSize: 16,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Your schedule is clear',
+              style: AppTypography.bodySmall.copyWith(
+                color: Colors.white38,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Inline AI Suggest CTA
+            GestureDetector(
+              onTap:
+                  _isGeneratingSuggestions ? null : _generateAISuggestions,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(100),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.25),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _isGeneratingSuggestions
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.auto_awesome,
+                            size: 16, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Text(
+                      _isGeneratingSuggestions
+                          ? 'Generating...'
+                          : 'AI Suggest',
+                      style: AppTypography.labelMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeline(List<CalendarEventModel> events) {
     // Sort events by start time
     final sorted = [...events]
       ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
-    final entries = sorted.map((event) {
+    final entries = <Widget>[
+      // Schedule label
+      Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.md, bottom: AppSpacing.md),
+        child: Text(
+          'SCHEDULE',
+          style: AppTypography.caption.copyWith(
+            color: Colors.white38,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 1.2,
+            fontSize: 11,
+          ),
+        ),
+      ),
+    ];
+
+    final timelineEntries = sorted.map((event) {
       if (event.isExam) {
         return TimelineEntry(
           time: event.timeLabel,
@@ -437,9 +526,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             time: event.description ?? '',
             subtitle: '',
             icon: Icons.assignment,
-            iconBgColor: isDark
-                ? const Color(0xFF6366F1).withValues(alpha: 0.15)
-                : const Color(0xFFE0E7FF),
+            iconBgColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
             iconColor: const Color(0xFF6366F1),
             trailingText: event.endTime != null
                 ? '${event.endTime!.difference(event.startTime).inMinutes}m'
@@ -454,6 +541,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       }
     }).toList();
 
-    return TimelineView(entries: entries);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ...entries,
+        TimelineView(entries: timelineEntries),
+      ],
+    );
   }
 }

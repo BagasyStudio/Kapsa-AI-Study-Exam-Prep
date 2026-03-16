@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -48,8 +47,7 @@ class SessionProgressBar extends StatelessWidget {
                   Text(
                     courseLabel.toUpperCase(),
                     style: AppTypography.labelSmall.copyWith(
-                      color: AppColors.textMutedFor(
-                          Theme.of(context).brightness),
+                      color: Colors.white38,
                       letterSpacing: 1.5,
                       fontSize: 9,
                     ),
@@ -57,8 +55,7 @@ class SessionProgressBar extends StatelessWidget {
                   Text(
                     '$current / $total',
                     style: AppTypography.labelSmall.copyWith(
-                      color: AppColors.textMutedFor(
-                          Theme.of(context).brightness),
+                      color: Colors.white38,
                       letterSpacing: 1.5,
                       fontSize: 9,
                     ),
@@ -69,15 +66,11 @@ class SessionProgressBar extends StatelessWidget {
               // Progress bar (animated fill)
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final isDark =
-                      Theme.of(context).brightness == Brightness.dark;
                   return Container(
                     height: 4,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.1)
-                          : Colors.black.withValues(alpha: 0.08),
+                      color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: AppRadius.borderRadiusPill,
                     ),
                     child: Align(
@@ -126,35 +119,24 @@ class _GlassCircleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final brightness = Theme.of(context).brightness;
     return GestureDetector(
       onTap: onTap,
-      child: ClipOval(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Container(
+      child: Container(
             width: 40,
             height: 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.white.withValues(alpha: 0.45),
+              color: Colors.white.withValues(alpha: 0.1),
               border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.15)
-                    : Colors.white.withValues(alpha: 0.6),
+                color: Colors.white.withValues(alpha: 0.15),
               ),
             ),
             child: Icon(
               icon,
               size: 20,
-              color: AppColors.textSecondaryFor(brightness),
+              color: Colors.white60,
             ),
           ),
-        ),
-      ),
     );
   }
 }

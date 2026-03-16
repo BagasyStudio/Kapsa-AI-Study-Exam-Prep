@@ -28,16 +28,15 @@ class LegalScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: AppColors.immersiveBg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
           title,
           style: AppTypography.h3.copyWith(
-            color: AppColors.textPrimaryFor(brightness),
+            color: Colors.white,
           ),
         ),
         leading: IconButton(
@@ -73,7 +72,7 @@ class LegalScreen extends StatelessWidget {
               Text(
                 title,
                 style: AppTypography.h2.copyWith(
-                  color: AppColors.textPrimaryFor(brightness),
+                  color: Colors.white,
                 ),
               ),
 
@@ -84,7 +83,7 @@ class LegalScreen extends StatelessWidget {
                     ? 'Your privacy is important to us. Read our full privacy policy to understand how we collect, use, and protect your data.'
                     : 'By using Kapsa, you agree to our terms of service. Read the full terms below.',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondaryFor(brightness),
+                  color: Colors.white60,
                   height: 1.6,
                 ),
               ),
@@ -122,7 +121,7 @@ class LegalScreen extends StatelessWidget {
                 child: Text(
                   url,
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.textMutedFor(brightness),
+                    color: Colors.white38,
                   ),
                   textAlign: TextAlign.center,
                 ),

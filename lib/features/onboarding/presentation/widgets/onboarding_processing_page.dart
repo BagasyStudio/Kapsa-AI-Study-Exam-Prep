@@ -160,8 +160,6 @@ class _OnboardingProcessingPageState extends State<OnboardingProcessingPage>
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
     final screenH = MediaQuery.of(context).size.height;
 
     return SingleChildScrollView(
@@ -185,24 +183,24 @@ class _OnboardingProcessingPageState extends State<OnboardingProcessingPage>
                 fontWeight: FontWeight.w700,
                 height: 1.2,
                 letterSpacing: -0.5,
-                color: AppColors.textPrimaryFor(brightness),
+                color: Colors.white,
               ),
             ),
 
             SizedBox(height: screenH * 0.03),
 
             // Neural orb multi-layer
-            _buildOrb(isDark),
+            _buildOrb(),
 
             const SizedBox(height: AppSpacing.lg),
 
             // Shimmer progress bar
-            _buildShimmerProgressBar(isDark),
+            _buildShimmerProgressBar(),
 
             SizedBox(height: screenH * 0.03),
 
             // Processing steps
-            ..._buildSteps(brightness, isDark, l),
+            ..._buildSteps(l),
 
             const SizedBox(height: AppSpacing.xl),
 
@@ -256,7 +254,7 @@ class _OnboardingProcessingPageState extends State<OnboardingProcessingPage>
 
   // ── Neural Orb ──
 
-  Widget _buildOrb(bool isDark) {
+  Widget _buildOrb() {
     return AnimatedBuilder(
       animation: Listenable.merge([_pulseController, _ringController, _progressController]),
       builder: (context, _) {
@@ -388,7 +386,7 @@ class _OnboardingProcessingPageState extends State<OnboardingProcessingPage>
 
   // ── Shimmer Progress Bar ──
 
-  Widget _buildShimmerProgressBar(bool isDark) {
+  Widget _buildShimmerProgressBar() {
     return AnimatedBuilder(
       animation: _progressController,
       builder: (context, _) {
@@ -401,9 +399,7 @@ class _OnboardingProcessingPageState extends State<OnboardingProcessingPage>
               height: 6,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(100),
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : Colors.black.withValues(alpha: 0.06),
+                color: Colors.white.withValues(alpha: 0.08),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(100),
@@ -473,7 +469,7 @@ class _OnboardingProcessingPageState extends State<OnboardingProcessingPage>
 
   // ── Step Cards ──
 
-  List<Widget> _buildSteps(Brightness brightness, bool isDark, AppLocalizations l) {
+  List<Widget> _buildSteps(AppLocalizations l) {
     final steps = [
       (
         icon: Icons.description_outlined,
@@ -521,26 +517,22 @@ class _OnboardingProcessingPageState extends State<OnboardingProcessingPage>
               decoration: BoxDecoration(
                 gradient: isCompleted
                     ? LinearGradient(colors: [
-                        AppColors.success.withValues(alpha: isDark ? 0.10 : 0.06),
-                        AppColors.success.withValues(alpha: isDark ? 0.04 : 0.02),
+                        AppColors.success.withValues(alpha: 0.10),
+                        AppColors.success.withValues(alpha: 0.04),
                       ])
                     : null,
                 color: isCompleted
                     ? null
                     : isCurrent
-                        ? AppColors.primary.withValues(alpha: isDark ? 0.10 : 0.05)
-                        : isDark
-                            ? Colors.white.withValues(alpha: 0.04)
-                            : Colors.white.withValues(alpha: 0.35),
+                        ? AppColors.primary.withValues(alpha: 0.10)
+                        : Colors.white.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: isCompleted
                       ? AppColors.success.withValues(alpha: 0.3)
                       : isCurrent
                           ? AppColors.primary.withValues(alpha: borderAlpha.clamp(0.0, 1.0))
-                          : isDark
-                              ? Colors.white.withValues(alpha: 0.06)
-                              : Colors.black.withValues(alpha: 0.05),
+                          : Colors.white.withValues(alpha: 0.06),
                 ),
               ),
               child: Row(
@@ -579,7 +571,7 @@ class _OnboardingProcessingPageState extends State<OnboardingProcessingPage>
                                   step.icon,
                                   key: ValueKey('pending_$i'),
                                   size: 20,
-                                  color: AppColors.textMutedFor(brightness)
+                                  color: Colors.white38
                                       .withValues(alpha: 0.5),
                                 ),
                     ),
@@ -595,8 +587,8 @@ class _OnboardingProcessingPageState extends State<OnboardingProcessingPage>
                           color: isCompleted
                               ? AppColors.success
                               : isCurrent
-                                  ? AppColors.textPrimaryFor(brightness)
-                                  : AppColors.textMutedFor(brightness),
+                                  ? Colors.white
+                                  : Colors.white38,
                           fontWeight:
                               isCompleted || isCurrent ? FontWeight.w600 : FontWeight.w400,
                         ),

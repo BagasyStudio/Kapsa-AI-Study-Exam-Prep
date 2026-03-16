@@ -75,10 +75,8 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
   Widget build(BuildContext context) {
     final materialsAsync = ref.watch(courseMaterialsProvider(widget.courseId));
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final brightness = Theme.of(context).brightness;
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       body: Stack(
         children: [
           // Ethereal background gradients
@@ -90,7 +88,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
               height: 280,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: isDark ? 0.06 : 0.12),
+                color: AppColors.primary.withValues(alpha: 0.06),
               ),
             ),
           ),
@@ -102,7 +100,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
               height: 200,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFEC4899).withValues(alpha: isDark ? 0.04 : 0.08),
+                color: const Color(0xFFEC4899).withValues(alpha: 0.04),
               ),
             ),
           ),
@@ -114,7 +112,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
               height: 240,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: isDark ? 0.03 : 0.06),
+                color: AppColors.primary.withValues(alpha: 0.03),
               ),
             ),
           ),
@@ -128,7 +126,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.error_outline,
-                            size: 48, color: AppColors.textMutedFor(brightness)),
+                            size: 48, color: Colors.white38),
                         const SizedBox(height: AppSpacing.md),
                         Text('Invalid material link',
                             style: AppTypography.bodyMedium),
@@ -150,7 +148,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.error_outline,
-                            size: 48, color: AppColors.textMutedFor(brightness)),
+                            size: 48, color: Colors.white38),
                         const SizedBox(height: AppSpacing.md),
                         Text('Material not found',
                             style: AppTypography.bodyMedium),
@@ -172,8 +170,6 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
   }
 
   Widget _buildContent(BuildContext context, MaterialModel material) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final brightness = Theme.of(context).brightness;
     final hasContent =
         material.content != null && material.content!.trim().isNotEmpty;
     final kind = _kindFromType(material.type);
@@ -199,7 +195,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.arrow_back, color: AppColors.textSecondaryFor(brightness)),
+                  child: Icon(Icons.arrow_back, color: Colors.white60),
                 ),
               ),
               const Spacer(),
@@ -216,16 +212,12 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
                     decoration: BoxDecoration(
                       color: _showCopied
                           ? AppColors.success.withValues(alpha: 0.1)
-                          : isDark
-                              ? Colors.white.withValues(alpha: 0.10)
-                              : Colors.white.withValues(alpha: 0.82),
+                          : Colors.white.withValues(alpha: 0.10),
                       borderRadius: AppRadius.borderRadiusPill,
                       border: Border.all(
                         color: _showCopied
                             ? AppColors.success.withValues(alpha: 0.3)
-                            : isDark
-                                ? Colors.white.withValues(alpha: 0.08)
-                                : Colors.white.withValues(alpha: 0.5),
+                            : Colors.white.withValues(alpha: 0.08),
                       ),
                     ),
                     child: Row(
@@ -238,7 +230,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
                           size: 16,
                           color: _showCopied
                               ? AppColors.success
-                              : AppColors.textSecondaryFor(brightness),
+                              : Colors.white60,
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -247,7 +239,7 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
                             fontWeight: FontWeight.w600,
                             color: _showCopied
                                 ? AppColors.success
-                                : AppColors.textSecondaryFor(brightness),
+                                : Colors.white60,
                           ),
                         ),
                       ],
@@ -321,9 +313,9 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         GradientText(
-                          material.title,
+                          material.displayTitle,
                           style: AppTypography.h2.copyWith(fontSize: 22),
-                          gradient: AppGradients.textFor(brightness),
+                          gradient: AppGradients.textLight,
                         ),
                         const SizedBox(height: 4),
                         Row(
@@ -465,8 +457,6 @@ class _ContentReader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final brightness = Theme.of(context).brightness;
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.fromLTRB(
@@ -483,14 +473,10 @@ class _ContentReader extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(AppSpacing.xl),
             decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.10)
-                  : Colors.white.withValues(alpha: 0.82),
+              color: Colors.white.withValues(alpha: 0.10),
               borderRadius: AppRadius.borderRadiusXxl,
               border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : Colors.white.withValues(alpha: 0.5),
+                color: Colors.white.withValues(alpha: 0.08),
               ),
               boxShadow: [
                 BoxShadow(
@@ -504,7 +490,7 @@ class _ContentReader extends StatelessWidget {
               text: content,
               style: AppTypography.bodyMedium.copyWith(
                 height: 1.75,
-                color: AppColors.textPrimaryFor(brightness),
+                color: Colors.white,
               ),
             ),
           ),
@@ -523,7 +509,6 @@ class _EmptyContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -535,18 +520,18 @@ class _EmptyContent extends StatelessWidget {
               height: 80,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.textMutedFor(brightness).withValues(alpha: 0.08),
+                color: Colors.white38.withValues(alpha: 0.08),
               ),
               child: Icon(
                 Icons.text_snippet_outlined,
                 size: 36,
-                color: AppColors.textMutedFor(brightness).withValues(alpha: 0.5),
+                color: Colors.white38.withValues(alpha: 0.5),
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
               'No text content available',
-              style: AppTypography.h4.copyWith(color: AppColors.textSecondaryFor(brightness)),
+              style: AppTypography.h4.copyWith(color: Colors.white60),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -557,7 +542,7 @@ class _EmptyContent extends StatelessWidget {
                       ? 'The audio transcription may still be processing.'
                       : 'This material has no text content yet.',
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textMutedFor(brightness),
+                color: Colors.white38,
               ),
               textAlign: TextAlign.center,
             ),

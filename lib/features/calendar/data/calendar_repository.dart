@@ -72,6 +72,28 @@ class CalendarRepository {
     await _client.from('calendar_events').update(updates).eq('id', eventId);
   }
 
+  /// Fetch dates that have at least one event within a date range.
+  /// Returns a Set of local-date-only DateTimes (year/month/day, no time).
+  Future<Set<DateTime>> getEventDatesInRange(
+      String userId, DateTime from, DateTime to) async {
+    final startOfFrom = DateTime(from.year, from.month, from.day);
+    final endOfTo = DateTime(to.year, to.month, to.day).add(const Duration(days: 1));
+
+    final data = await _client
+        .from('calendar_events')
+        .select('start_time')
+        .eq('user_id', userId)
+        .gte('start_time', startOfFrom.toIso8601String())
+        .lt('start_time', endOfTo.toIso8601String());
+
+    final dates = <DateTime>{};
+    for (final row in (data as List)) {
+      final dt = DateTime.parse(row['start_time'] as String);
+      dates.add(DateTime(dt.year, dt.month, dt.day));
+    }
+    return dates;
+  }
+
   /// Toggle event completion.
   Future<void> toggleComplete(String eventId, bool isCompleted) async {
     await _client

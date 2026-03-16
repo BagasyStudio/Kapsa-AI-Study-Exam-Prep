@@ -22,12 +22,11 @@ class UserMessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return Align(
       alignment: Alignment.centerRight,
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
+          maxWidth: MediaQuery.of(context).size.width * 0.80,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -81,7 +80,7 @@ class UserMessageBubble extends StatelessWidget {
                 child: Text(
                   timestamp!,
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.textMutedFor(brightness),
+                    color: Colors.white38,
                     fontSize: 10,
                   ),
                 ),

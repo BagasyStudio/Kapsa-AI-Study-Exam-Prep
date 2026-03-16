@@ -95,6 +95,13 @@ abstract final class AppGradients {
     stops: [0.0, 0.3, 0.7, 1.0],
   );
 
+  // ── Immersive wizard/deck-detail background ──
+  static const immersiveDark = RadialGradient(
+    center: Alignment(0.0, -0.5),
+    radius: 1.5,
+    colors: [Color(0xFF1A1B36), Color(0xFF0D0E1A)],
+  );
+
   /// Returns the ethereal gradient for the given brightness.
   static LinearGradient etherealFor(Brightness b) =>
       b == Brightness.dark ? etherealDark : ethereal;

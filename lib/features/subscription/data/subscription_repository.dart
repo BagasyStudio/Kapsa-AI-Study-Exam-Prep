@@ -18,10 +18,10 @@ class SubscriptionRepository {
     try {
       final data = await _client
           .from('profiles')
-          .select('is_pro')
+          .select('is_pro, pro_override')
           .eq('id', userId)
           .single();
-      return data['is_pro'] == true;
+      return data['is_pro'] == true || data['pro_override'] == true;
     } catch (_) {
       return false;
     }

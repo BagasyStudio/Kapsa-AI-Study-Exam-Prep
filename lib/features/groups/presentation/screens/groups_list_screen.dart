@@ -21,22 +21,21 @@ class GroupsListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final groupsAsync = ref.watch(myGroupsProvider);
-    final brightness = Theme.of(context).brightness;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back,
-              color: AppColors.textPrimaryFor(brightness)),
+              color: Colors.white),
           onPressed: () => context.pop(),
         ),
         title: Text(
           'Study Groups',
           style: AppTypography.h2.copyWith(
-            color: AppColors.textPrimaryFor(brightness),
+            color: Colors.white,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -111,7 +110,7 @@ class GroupsListScreen extends ConsumerWidget {
         ),
         data: (groups) {
           if (groups.isEmpty) {
-            return _GroupsEmptyState(brightness: brightness);
+            return const _GroupsEmptyState();
           }
           return ListView.separated(
             padding: const EdgeInsets.all(AppSpacing.xl),
@@ -141,9 +140,7 @@ class GroupsListScreen extends ConsumerWidget {
 /// Features a gradient icon container, descriptive copy, and two
 /// full-width CTA buttons (create + join).
 class _GroupsEmptyState extends StatefulWidget {
-  final Brightness brightness;
-
-  const _GroupsEmptyState({required this.brightness});
+  const _GroupsEmptyState();
 
   @override
   State<_GroupsEmptyState> createState() => _GroupsEmptyStateState();
@@ -175,8 +172,6 @@ class _GroupsEmptyStateState extends State<_GroupsEmptyState>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = widget.brightness == Brightness.dark;
-
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(
@@ -203,15 +198,10 @@ class _GroupsEmptyStateState extends State<_GroupsEmptyState>
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: isDark
-                        ? [
-                            AppColors.primary.withValues(alpha: 0.35),
-                            const Color(0xFF8B5CF6).withValues(alpha: 0.25),
-                          ]
-                        : [
-                            AppColors.primary.withValues(alpha: 0.15),
-                            const Color(0xFF8B5CF6).withValues(alpha: 0.10),
-                          ],
+                    colors: [
+                      AppColors.primary.withValues(alpha: 0.35),
+                      const Color(0xFF8B5CF6).withValues(alpha: 0.25),
+                    ],
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -236,7 +226,7 @@ class _GroupsEmptyStateState extends State<_GroupsEmptyState>
               'Study better together',
               textAlign: TextAlign.center,
               style: AppTypography.h2.copyWith(
-                color: AppColors.textPrimaryFor(widget.brightness),
+                color: Colors.white,
                 fontWeight: FontWeight.w800,
                 fontSize: 24,
               ),
@@ -252,7 +242,7 @@ class _GroupsEmptyStateState extends State<_GroupsEmptyState>
                 'to share progress and compete with classmates',
                 textAlign: TextAlign.center,
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondaryFor(widget.brightness),
+                  color: Colors.white60,
                   height: 1.5,
                 ),
               ),
@@ -267,14 +257,13 @@ class _GroupsEmptyStateState extends State<_GroupsEmptyState>
                 Icon(
                   Icons.people_outline,
                   size: 14,
-                  color: AppColors.textSecondaryFor(widget.brightness)
-                      .withValues(alpha: 0.6),
+                  color: Colors.white38,
                 ),
                 const SizedBox(width: 6),
                 Text(
                   '2,400+ students in study groups',
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.textSecondaryFor(widget.brightness)
+                    color: Colors.white60
                         .withValues(alpha: 0.6),
                     fontSize: 11.5,
                     fontWeight: FontWeight.w500,
@@ -296,7 +285,7 @@ class _GroupsEmptyStateState extends State<_GroupsEmptyState>
                 Text(
                   'Groups study 40% more effectively',
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.textSecondaryFor(widget.brightness)
+                    color: Colors.white60
                         .withValues(alpha: 0.6),
                     fontSize: 11.5,
                     fontWeight: FontWeight.w500,
@@ -336,14 +325,10 @@ class _GroupsEmptyStateState extends State<_GroupsEmptyState>
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(100),
                     border: Border.all(
-                      color: isDark
-                          ? AppColors.primary.withValues(alpha: 0.5)
-                          : AppColors.primary.withValues(alpha: 0.35),
+                      color: AppColors.primary.withValues(alpha: 0.5),
                       width: 1.5,
                     ),
-                    color: isDark
-                        ? AppColors.primary.withValues(alpha: 0.08)
-                        : AppColors.primary.withValues(alpha: 0.04),
+                    color: AppColors.primary.withValues(alpha: 0.08),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,

@@ -32,8 +32,6 @@ class UsageLimitBanner extends ConsumerWidget {
           loading: () => const SizedBox.shrink(),
           error: (_, __) => const SizedBox.shrink(),
           data: (remaining) {
-            final brightness = Theme.of(context).brightness;
-            final isDark = brightness == Brightness.dark;
             final total = AppLimits.freeCreditsPerDay;
             final progress = remaining / total;
             final isLow = remaining < 10;
@@ -51,12 +49,10 @@ class UsageLimitBanner extends ConsumerWidget {
               child: Container(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.06)
-                      : Colors.white.withValues(alpha: 0.7),
+                  color: AppColors.immersiveCard,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: accentColor.withValues(alpha: isDark ? 0.2 : 0.15),
+                    color: AppColors.immersiveBorder,
                   ),
                 ),
                 child: Row(
@@ -66,7 +62,6 @@ class UsageLimitBanner extends ConsumerWidget {
                       remaining: remaining,
                       total: total,
                       accentColor: accentColor,
-                      isDark: isDark,
                     ),
                     const SizedBox(width: AppSpacing.md),
 
@@ -80,7 +75,7 @@ class UsageLimitBanner extends ConsumerWidget {
                                 ? 'Running low!'
                                 : '$remaining credits remaining',
                             style: AppTypography.caption.copyWith(
-                              color: AppColors.textPrimaryFor(brightness),
+                              color: Colors.white,
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
                             ),
@@ -102,7 +97,7 @@ class UsageLimitBanner extends ConsumerWidget {
                           Text(
                             hint,
                             style: AppTypography.caption.copyWith(
-                              color: AppColors.textMutedFor(brightness),
+                              color: Colors.white38,
                               fontSize: 10,
                             ),
                           ),
@@ -166,13 +161,11 @@ class _CreditCounter extends StatelessWidget {
   final int remaining;
   final int total;
   final Color accentColor;
-  final bool isDark;
 
   const _CreditCounter({
     required this.remaining,
     required this.total,
     required this.accentColor,
-    required this.isDark,
   });
 
   @override
@@ -212,9 +205,7 @@ class _CreditCounter extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 8,
                   fontWeight: FontWeight.w500,
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.4)
-                      : Colors.black38,
+                  color: Colors.white38,
                   height: 1.2,
                 ),
               ),

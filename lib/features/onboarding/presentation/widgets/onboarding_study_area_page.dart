@@ -77,7 +77,6 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     final areas = _areas(l);
-    final brightness = Theme.of(context).brightness;
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
@@ -124,7 +123,7 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
                         fontWeight: FontWeight.w700,
                         height: 1.2,
                         letterSpacing: -0.5,
-                        color: AppColors.textPrimaryFor(brightness),
+                        color: Colors.white,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -138,7 +137,7 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
                   child: Text(
                     l.studyAreaSubtitle,
                     style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textSecondaryFor(brightness),
+                      color: Colors.white60,
                       height: 1.55,
                     ),
                     textAlign: TextAlign.center,
@@ -152,7 +151,7 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
                   spacing: AppSpacing.xs,
                   runSpacing: AppSpacing.xs,
                   alignment: WrapAlignment.center,
-                  children: List.generate(areas.length, (i) => _buildChip(i, areas, brightness)),
+                  children: List.generate(areas.length, (i) => _buildChip(i, areas)),
                 ),
 
                 const SizedBox(height: AppSpacing.lg),
@@ -164,7 +163,7 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
     );
   }
 
-  Widget _buildChip(int i, List<String> areas, Brightness brightness) {
+  Widget _buildChip(int i, List<String> areas) {
     final interval = _chipInterval(i);
     final end = _chipEnd(i);
     final progress = CurvedAnimation(
@@ -177,7 +176,7 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
     final isSelected = widget.selectedArea == i;
 
     return Opacity(
-      opacity: progress,
+      opacity: progress.clamp(0.0, 1.0),
       child: Transform.translate(
         offset: Offset(slideX, 0),
         child: TapScale(
@@ -198,16 +197,12 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
               decoration: BoxDecoration(
                 color: isSelected
                     ? AppColors.primary.withValues(alpha: 0.12)
-                    : brightness == Brightness.dark
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : Colors.white,
+                    : Colors.white.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(100),
                 border: Border.all(
                   color: isSelected
                       ? AppColors.primary
-                      : brightness == Brightness.dark
-                          ? Colors.white.withValues(alpha: 0.12)
-                          : AppColors.primary.withValues(alpha: 0.15),
+                      : Colors.white.withValues(alpha: 0.12),
                   width: isSelected ? 2 : 1,
                 ),
                 boxShadow: isSelected
@@ -224,7 +219,7 @@ class _OnboardingStudyAreaPageState extends State<OnboardingStudyAreaPage>
                 areas[i],
                 style: AppTypography.labelMedium.copyWith(
                   color:
-                      isSelected ? AppColors.primary : AppColors.textSecondaryFor(brightness),
+                      isSelected ? AppColors.primary : Colors.white60,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 ),
               ),

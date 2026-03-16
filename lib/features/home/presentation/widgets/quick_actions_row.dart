@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -33,8 +32,6 @@ class _QuickActionsRowState extends State<QuickActionsRow>
     with TickerProviderStateMixin {
   late List<AnimationController> _entranceControllers;
   late List<Animation<double>> _scaleAnims;
-  late AnimationController _glowController;
-  late Animation<double> _glowAnim;
 
   static final _actions = [
     _ActionData(
@@ -75,7 +72,7 @@ class _QuickActionsRowState extends State<QuickActionsRow>
       );
     });
     _scaleAnims = _entranceControllers.map((c) {
-      return CurvedAnimation(parent: c, curve: Curves.elasticOut);
+      return CurvedAnimation(parent: c, curve: Curves.easeOut);
     }).toList();
 
     for (int i = 0; i < 4; i++) {
@@ -83,16 +80,6 @@ class _QuickActionsRowState extends State<QuickActionsRow>
         if (mounted) _entranceControllers[i].forward();
       });
     }
-
-    // Shared glow pulse controller
-    _glowController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat(reverse: true);
-
-    _glowAnim = Tween<double>(begin: 0.20, end: 0.40).animate(
-      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
-    );
   }
 
   @override
@@ -100,7 +87,6 @@ class _QuickActionsRowState extends State<QuickActionsRow>
     for (final c in _entranceControllers) {
       c.dispose();
     }
-    _glowController.dispose();
     super.dispose();
   }
 
@@ -128,10 +114,9 @@ class _QuickActionsRowState extends State<QuickActionsRow>
           final badgeCount = widget.badges?[i];
           return ScaleTransition(
             scale: _scaleAnims[i],
-            child: _GradientAction(
+            child: _DarkAction(
               data: _actions[i],
               onTap: () => _onTap(i, context),
-              glowAnim: _glowAnim,
               badgeCount: badgeCount != null && badgeCount > 0
                   ? badgeCount
                   : null,
@@ -162,26 +147,22 @@ class _ActionData {
 }
 
 // ---------------------------------------------------------------------------
-// Gradient Action Button
+// Dark Action Button
 // ---------------------------------------------------------------------------
 
-class _GradientAction extends AnimatedWidget {
+class _DarkAction extends StatelessWidget {
   final _ActionData data;
   final VoidCallback onTap;
   final int? badgeCount;
 
-  const _GradientAction({
+  const _DarkAction({
     required this.data,
     required this.onTap,
-    required Animation<double> glowAnim,
     this.badgeCount,
-  }) : super(listenable: glowAnim);
+  });
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final glowAlpha = (listenable as Animation<double>).value;
-
     return TapScale(
       onTap: onTap,
       child: Column(
@@ -190,57 +171,24 @@ class _GradientAction extends AnimatedWidget {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              // Main circle
+              // Main circle — dark immersive style
               Container(
-                width: 58,
-                height: 58,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      Color.lerp(data.colors[1], Colors.white, 0.15)!,
-                      data.colors[0],
-                      Color.lerp(data.colors[0], Colors.black, 0.10)!,
-                    ],
-                    stops: const [0.0, 0.55, 1.0],
-                    center: const Alignment(-0.3, -0.3),
-                    radius: 0.9,
-                  ),
+                  color: AppColors.immersiveCard,
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    width: 1.5,
+                    color: data.colors[0].withValues(alpha: 0.15),
                   ),
-                  boxShadow: [
-                    // Soft ambient glow
-                    BoxShadow(
-                      color: data.shadowColor.withValues(alpha: glowAlpha * 0.6),
-                      blurRadius: 20,
-                      spreadRadius: 0,
-                      offset: const Offset(0, 2),
-                    ),
-                    // Focused directional shadow for elevation
-                    BoxShadow(
-                      color: data.shadowColor.withValues(alpha: 0.30),
-                      blurRadius: 8,
-                      spreadRadius: -2,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
                 ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Glass shine crescent overlay
-                    CustomPaint(
-                      size: const Size(58, 58),
-                      painter: _GlassShinePainter(),
+                child: Center(
+                  child: CustomPaint(
+                    size: const Size(20, 20),
+                    painter: data.painterBuilder(
+                      data.colors[0].withValues(alpha: 0.7),
                     ),
-                    // Custom icon
-                    CustomPaint(
-                      size: const Size(26, 26),
-                      painter: data.painterBuilder(Colors.white),
-                    ),
-                  ],
+                  ),
                 ),
               ),
               // Badge
@@ -256,7 +204,7 @@ class _GradientAction extends AnimatedWidget {
           Text(
             data.label,
             style: AppTypography.caption.copyWith(
-              color: AppColors.textSecondaryFor(brightness),
+              color: Colors.white60,
               fontWeight: FontWeight.w600,
               fontSize: 11,
             ),
@@ -265,42 +213,6 @@ class _GradientAction extends AnimatedWidget {
       ),
     );
   }
-}
-
-// ---------------------------------------------------------------------------
-// Glass Shine Overlay
-// ---------------------------------------------------------------------------
-
-/// Paints a subtle crescent highlight at the top of the circle
-/// to simulate a glassy, 3D-reflective surface.
-class _GlassShinePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-
-    // Crescent highlight: arc clipped to upper-left quadrant
-    final shinePath = Path()
-      ..addOval(Rect.fromCircle(center: center, radius: radius));
-    canvas.save();
-    canvas.clipPath(shinePath);
-
-    final shineRect = Rect.fromLTWH(0, 0, size.width, size.height * 0.55);
-    final shinePaint = Paint()
-      ..shader = ui.Gradient.linear(
-        Offset(size.width * 0.3, 0),
-        Offset(size.width * 0.3, size.height * 0.55),
-        [
-          Colors.white.withValues(alpha: 0.22),
-          Colors.white.withValues(alpha: 0.0),
-        ],
-      );
-    canvas.drawOval(shineRect, shinePaint);
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(_GlassShinePainter oldDelegate) => false;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../l10n/generated/app_localizations.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -106,7 +105,6 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
-    final brightness = Theme.of(context).brightness;
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
@@ -154,7 +152,7 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
                 const SizedBox(height: AppSpacing.xl),
 
                 // Title — staggered words
-                _buildTitle(brightness, l),
+                _buildTitle(l),
 
                 const SizedBox(height: AppSpacing.sm),
 
@@ -166,7 +164,7 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
                     child: Text(
                       l.welcomeSubtitle,
                       style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textSecondaryFor(brightness),
+                        color: Colors.white60,
                         height: 1.55,
                       ),
                       textAlign: TextAlign.center,
@@ -183,12 +181,12 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
     );
   }
 
-  Widget _buildTitle(Brightness brightness, AppLocalizations l) {
+  Widget _buildTitle(AppLocalizations l) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _animatedWord(l.welcomeTo, _word0, brightness),
-        _animatedWord(l.welcomeToWord, _word1, brightness),
+        _animatedWord(l.welcomeTo, _word0),
+        _animatedWord(l.welcomeToWord, _word1),
         // "Kapsa" uses gradient text
         Opacity(
           opacity: _word2.value,
@@ -210,7 +208,7 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
     );
   }
 
-  Widget _animatedWord(String word, Animation<double> anim, Brightness brightness) {
+  Widget _animatedWord(String word, Animation<double> anim) {
     return Opacity(
       opacity: anim.value,
       child: Transform.translate(
@@ -222,7 +220,7 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
             fontWeight: FontWeight.w700,
             height: 1.2,
             letterSpacing: -0.5,
-            color: AppColors.textPrimaryFor(brightness),
+            color: Colors.white,
           ),
         ),
       ),

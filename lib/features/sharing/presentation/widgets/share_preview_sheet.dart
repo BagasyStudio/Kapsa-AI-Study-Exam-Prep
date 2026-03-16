@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/share_card_service.dart';
 import '../../../../core/constants/xp_config.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
@@ -85,12 +84,9 @@ class _SharePreviewSheetState extends ConsumerState<SharePreviewSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final brightness = Theme.of(context).brightness;
-
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1B2E) : Colors.white,
+        color: const Color(0xFF1A1B2E),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.fromLTRB(
@@ -117,7 +113,7 @@ class _SharePreviewSheetState extends ConsumerState<SharePreviewSheet> {
           Text(
             'Share Your Results',
             style: AppTypography.h3.copyWith(
-              color: AppColors.textPrimaryFor(brightness),
+              color: Colors.white,
               fontWeight: FontWeight.w700,
             ),
           ),

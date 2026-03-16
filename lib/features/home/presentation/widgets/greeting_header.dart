@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -27,23 +26,18 @@ class GreetingHeader extends StatelessWidget {
   }
 
   void _showStreakModal(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => _StreakDetailSheet(
         streakDays: streakDays,
-        isDark: isDark,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -55,7 +49,7 @@ class GreetingHeader extends StatelessWidget {
               fontWeight: FontWeight.w600,
               fontSize: 26,
               height: 1.2,
-              color: AppColors.textPrimaryFor(brightness),
+              color: AppColors.textPrimaryDark,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -81,11 +75,9 @@ class GreetingHeader extends StatelessWidget {
 /// Glass-morphism bottom sheet showing streak details.
 class _StreakDetailSheet extends StatelessWidget {
   final int streakDays;
-  final bool isDark;
 
   const _StreakDetailSheet({
     required this.streakDays,
-    required this.isDark,
   });
 
   /// Next milestone and how many days remain.
@@ -124,23 +116,14 @@ class _StreakDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = isDark ? Brightness.dark : Brightness.light;
     final ms = _nextMilestone;
 
-    return ClipRRect(
-      borderRadius: AppRadius.borderRadiusSheet,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
+    return Container(
           decoration: BoxDecoration(
-            color: isDark
-                ? AppColors.cardDark.withValues(alpha: 0.85)
-                : AppColors.cardLight.withValues(alpha: 0.85),
+            color: AppColors.immersiveSurface.withValues(alpha: 0.95),
             borderRadius: AppRadius.borderRadiusSheet,
             border: Border.all(
-              color: isDark
-                  ? AppColors.glassDarkBorder
-                  : AppColors.glassBorder,
+              color: AppColors.immersiveBorder,
             ),
           ),
           padding: const EdgeInsets.fromLTRB(
@@ -159,8 +142,7 @@ class _StreakDetailSheet extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.textMutedFor(brightness)
-                        .withValues(alpha: 0.3),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: AppRadius.borderRadiusPill,
                   ),
                 ),
@@ -216,7 +198,7 @@ class _StreakDetailSheet extends StatelessWidget {
                     Text(
                       '${streakDays == 1 ? '1 Day' : '$streakDays Days'} Streak',
                       style: AppTypography.h3.copyWith(
-                        color: AppColors.textPrimaryFor(brightness),
+                        color: AppColors.textPrimaryDark,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -230,7 +212,6 @@ class _StreakDetailSheet extends StatelessWidget {
                   icon: Icons.emoji_events_rounded,
                   iconColor: const Color(0xFFF59E0B),
                   text: 'Longest streak: $streakDays days',
-                  brightness: brightness,
                 ),
 
                 const SizedBox(height: AppSpacing.sm),
@@ -242,7 +223,6 @@ class _StreakDetailSheet extends StatelessWidget {
                   text: streakDays == 0
                       ? 'Start studying today to begin your streak!'
                       : 'Keep going! ${ms.remaining} more ${ms.remaining == 1 ? 'day' : 'days'} to your $_milestoneLabel badge!',
-                  brightness: brightness,
                 ),
 
                 const SizedBox(height: AppSpacing.sm),
@@ -252,7 +232,6 @@ class _StreakDetailSheet extends StatelessWidget {
                   icon: Icons.grid_view_rounded,
                   iconColor: const Color(0xFF10B981),
                   text: 'Check your Study Heatmap on the home screen',
-                  brightness: brightness,
                 ),
 
                 const SizedBox(height: AppSpacing.xl),
@@ -282,8 +261,6 @@ class _StreakDetailSheet extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
     );
   }
 }
@@ -293,13 +270,11 @@ class _InfoRow extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final String text;
-  final Brightness brightness;
 
   const _InfoRow({
     required this.icon,
     required this.iconColor,
     required this.text,
-    required this.brightness,
   });
 
   @override
@@ -320,7 +295,7 @@ class _InfoRow extends StatelessWidget {
           child: Text(
             text,
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textSecondaryFor(brightness),
+              color: AppColors.textSecondaryDark,
               fontWeight: FontWeight.w500,
             ),
           ),

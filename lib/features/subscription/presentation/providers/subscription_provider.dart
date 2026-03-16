@@ -18,16 +18,16 @@ final subscriptionRepositoryProvider = Provider<SubscriptionRepository>((ref) {
 /// Uses RevenueCat as source of truth. Falls back to Supabase
 /// if RevenueCat is unavailable (e.g. no network).
 final isProProvider = FutureProvider.autoDispose<bool>((ref) async {
-  // Try RevenueCat first (source of truth)
+  // RevenueCat: source of truth for paid subscribers
   try {
     final rcPro = await ref.watch(revenueCatProProvider.future);
-    return rcPro;
-  } catch (_) {
-    // Fallback to Supabase
-    final user = ref.watch(currentUserProvider);
-    if (user == null) return false;
-    return ref.read(subscriptionRepositoryProvider).getIsPro(user.id);
-  }
+    if (rcPro) return true;
+  } catch (_) {}
+
+  // Supabase: admin override (pro_override) or cached is_pro
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return false;
+  return ref.read(subscriptionRepositoryProvider).getIsPro(user.id);
 });
 
 /// Remaining uses for a specific feature.

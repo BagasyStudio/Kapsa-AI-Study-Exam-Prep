@@ -48,6 +48,42 @@ final allDueCardsProvider =
   return ref.watch(flashcardRepositoryProvider).getAllDueCards(limit: 20);
 });
 
+// ── Subdeck (parent/child) providers ──────────────────────────────
+
+/// Fetches child subdecks of a parent deck.
+final childDecksProvider = FutureProvider.autoDispose
+    .family<List<DeckModel>, String>((ref, parentDeckId) async {
+  return ref.watch(flashcardRepositoryProvider).getChildDecks(parentDeckId);
+});
+
+/// Fetches only parent (root-level) decks for a course.
+final parentDecksProvider = FutureProvider.autoDispose
+    .family<List<DeckModel>, String>((ref, courseId) async {
+  return ref.watch(flashcardRepositoryProvider).getParentDecks(courseId);
+});
+
+/// Fetches a single deck by ID.
+final deckProvider = FutureProvider.autoDispose
+    .family<DeckModel?, String>((ref, deckId) async {
+  return ref.watch(flashcardRepositoryProvider).getDeck(deckId);
+});
+
+/// Due cards count for a parent deck (aggregated from children).
+final dueCardsCountForParentDeckProvider = FutureProvider.autoDispose
+    .family<int, String>((ref, parentDeckId) async {
+  return ref
+      .watch(flashcardRepositoryProvider)
+      .getDueCardsCountForParentDeck(parentDeckId);
+});
+
+/// Recommended next subdeck to study for a parent deck.
+final recommendedSubdeckProvider = FutureProvider.autoDispose
+    .family<DeckModel?, String>((ref, parentDeckId) async {
+  return ref
+      .watch(flashcardRepositoryProvider)
+      .getRecommendedSubdeck(parentDeckId);
+});
+
 /// Total due cards across ALL user courses (for home screen badge).
 final totalDueCardsProvider = FutureProvider.autoDispose<int>((ref) async {
   final client = ref.watch(supabaseClientProvider);

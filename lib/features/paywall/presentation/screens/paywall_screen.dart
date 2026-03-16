@@ -7,16 +7,14 @@ import '../../../../core/navigation/app_router.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/providers/revenue_cat_provider.dart';
 import '../../../../core/services/revenue_cat_service.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_typography.dart';
-import '../widgets/feature_row.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../widgets/pricing_card.dart';
 import '../../../../core/widgets/tap_scale.dart';
 
 /// Paywall / Subscription screen.
 ///
-/// Premium dark immersive background with animated gradient orbs,
-/// feature list, pricing cards, and pulsing CTA.
+/// Single-viewport decision screen with immersive dark background,
+/// 3 benefit rows, pricing cards, and a strong lime CTA.
 /// Integrates with RevenueCat for real in-app purchases.
 class PaywallScreen extends ConsumerStatefulWidget {
   const PaywallScreen({super.key});
@@ -25,37 +23,8 @@ class PaywallScreen extends ConsumerStatefulWidget {
   ConsumerState<PaywallScreen> createState() => _PaywallScreenState();
 }
 
-class _PaywallScreenState extends ConsumerState<PaywallScreen>
-    with TickerProviderStateMixin {
+class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   bool _isYearlySelected = true;
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
-  late AnimationController _orbController;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2500),
-    )..repeat(reverse: true);
-
-    _pulseAnimation = Tween<double>(begin: 0.25, end: 0.55).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-
-    _orbController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 8),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _pulseController.dispose();
-    _orbController.dispose();
-    super.dispose();
-  }
 
   /// Whether the user is currently logged in.
   bool get _isLoggedIn =>
@@ -168,736 +137,264 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen>
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0D1E),
-      body: Stack(
-        children: [
-          // Deep gradient base
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF0B0D1E),
-                    Color(0xFF111338),
-                    Color(0xFF0F1029),
-                    Color(0xFF0B0D1E),
-                  ],
-                  stops: [0.0, 0.3, 0.7, 1.0],
-                ),
-              ),
-            ),
-          ),
+      backgroundColor: AppColors.immersiveBg,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 12),
 
-          // Animated ambient orbs
-          AnimatedBuilder(
-            animation: _orbController,
-            builder: (context, _) {
-              final t = _orbController.value;
-              return Stack(
+              // 1. TOP BAR — Close button + KAPSA PRO pill
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Top-left indigo orb
-                  Positioned(
-                    top: -80 + (t * 30),
-                    left: -60 + (t * 20),
+                  TapScale(
+                    onTap: _dismiss,
                     child: Container(
-                      width: 320,
-                      height: 320,
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
+                        color: AppColors.immersiveCard,
                         shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            const Color(0xFF4338CA).withValues(alpha: 0.4),
-                            const Color(0xFF4338CA).withValues(alpha: 0.0),
-                          ],
-                        ),
+                        border: Border.all(color: AppColors.immersiveBorder),
                       ),
+                      child: const Icon(Icons.close, color: Colors.white70, size: 20),
                     ),
                   ),
-                  // Center-right purple orb
-                  Positioned(
-                    top: 200 - (t * 40),
-                    right: -100 + (t * 30),
-                    child: Container(
-                      width: 280,
-                      height: 280,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            const Color(0xFF7C3AED).withValues(alpha: 0.3),
-                            const Color(0xFF7C3AED).withValues(alpha: 0.0),
-                          ],
-                        ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFBBF24).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(100),
+                      border: Border.all(
+                        color: const Color(0xFFFBBF24).withValues(alpha: 0.2),
                       ),
                     ),
-                  ),
-                  // Bottom blue orb
-                  Positioned(
-                    bottom: -60 - (t * 20),
-                    left: 40 + (t * 40),
-                    child: Container(
-                      width: 350,
-                      height: 350,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            const Color(0xFF1E40AF).withValues(alpha: 0.25),
-                            const Color(0xFF1E40AF).withValues(alpha: 0.0),
-                          ],
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.auto_awesome, size: 14, color: Color(0xFFFBBF24)),
+                        SizedBox(width: 6),
+                        Text(
+                          'KAPSA PRO',
+                          style: TextStyle(
+                            color: Color(0xFFFBBF24),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ],
-              );
-            },
-          ),
+              ),
 
-          // Noise texture
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Opacity(
-                opacity: 0.04,
-                child: CustomPaint(
-                  painter: _NoisePainter(),
+              // Spacer pushes content down; Expanded below distributes space
+              const Spacer(flex: 2),
+
+              // 2. HEADLINE
+              const Text(
+                'Unlock Your\nFull Potential',
+                style: TextStyle(
+                  fontFamily: 'Outfit',
+                  fontSize: 30,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  height: 1.15,
                 ),
               ),
-            ),
-          ),
 
-          // Content
-          SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 28),
+
+              // 3. BENEFITS — 3 compact rows
+              const _BenefitRow(
+                icon: Icons.chat_bubble_outline,
+                text: 'Unlimited AI Chat & Snap Solve',
+              ),
+              const SizedBox(height: 14),
+              const _BenefitRow(
+                icon: Icons.style_outlined,
+                text: 'Unlimited Quizzes, Summaries & Flashcards',
+              ),
+              const SizedBox(height: 14),
+              const _BenefitRow(
+                icon: Icons.insights_outlined,
+                text: 'Smart Study Plans & Analytics',
+              ),
+
+              const Spacer(flex: 2),
+
+              // 4. PRICING CARDS
+              Row(
                 children: [
-                  const SizedBox(height: AppSpacing.md),
-
-                  // Close button
-                  _GlassCloseButton(
-                    onTap: _dismiss,
-                  ),
-
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // Sparkle + label
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(100),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.12),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.auto_awesome,
-                          size: 14,
-                          color: const Color(0xFFFBBF24), // amber-400
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'KAPSA PRO',
-                          style: AppTypography.caption.copyWith(
-                            color: const Color(0xFFFBBF24),
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1.5,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
+                  Expanded(
+                    child: PricingCard(
+                      planName: 'Yearly',
+                      price: yearlyPrice,
+                      period: '/year',
+                      subtitle: yearlyMonthly,
+                      badgeText: 'BEST VALUE',
+                      isSelected: _isYearlySelected,
+                      onTap: () => setState(() => _isYearlySelected = true),
                     ),
                   ),
-
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Title
-                  Text(
-                    'Unlock Your\nFull Potential',
-                    style: AppTypography.h1.copyWith(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w700,
-                      height: 1.15,
-                      letterSpacing: -0.5,
-                      color: Colors.white,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: PricingCard(
+                      planName: 'Weekly',
+                      price: weeklyPrice,
+                      period: '/week',
+                      isSelected: !_isYearlySelected,
+                      onTap: () => setState(() => _isYearlySelected = false),
                     ),
                   ),
+                ],
+              ),
 
-                  const SizedBox(height: AppSpacing.md),
+              const Spacer(flex: 2),
 
-                  // Subtitle
-                  Text(
-                    'Join 50,000+ students achieving peak academic performance.',
-                    style: AppTypography.bodyLarge.copyWith(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      fontWeight: FontWeight.w400,
-                      fontSize: 16,
-                      height: 1.5,
-                    ),
-                  ),
-
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // Social proof stats bar
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 14,
-                      horizontal: 20,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.08),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _SocialStat(value: '50K+', label: 'Students'),
-                        Container(
-                          width: 1,
-                          height: 28,
-                          color: Colors.white.withValues(alpha: 0.1),
-                        ),
-                        _SocialStat(value: '4.8', label: 'App Rating'),
-                        Container(
-                          width: 1,
-                          height: 28,
-                          color: Colors.white.withValues(alpha: 0.1),
-                        ),
-                        _SocialStat(value: '2x', label: 'Faster Learning'),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // Features list
-                  const FeatureRow(
-                    icon: Icons.psychology_alt,
-                    label: 'Unlimited AI Oracle Chat',
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  const FeatureRow(
-                    icon: Icons.settings_suggest,
-                    label: 'Instant Test Generation',
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  const FeatureRow(
-                    icon: Icons.auto_graph,
-                    label: 'Smart Study Plans',
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  const FeatureRow(
-                    icon: Icons.insights,
-                    label: 'Advanced Analytics & Insights',
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  const FeatureRow(
-                    icon: Icons.headset,
-                    label: 'Audio Summaries & Image Occlusion',
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  const FeatureRow(
-                    icon: Icons.groups_rounded,
-                    label: 'Unlimited Study Groups',
-                  ),
-
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // Testimonial card
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withValues(alpha: 0.08),
-                          Colors.white.withValues(alpha: 0.03),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.1),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: List.generate(
-                            5,
-                            (_) => const Icon(
-                              Icons.star_rounded,
-                              size: 16,
-                              color: Color(0xFFFBBF24),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          '"Kapsa Pro helped me raise my GPA from 3.2 to 3.8 in one semester. The AI quiz generation is a game changer."',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: Colors.white.withValues(alpha: 0.75),
-                            fontStyle: FontStyle.italic,
-                            height: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF6467F2),
-                                    Color(0xFF4338CA),
-                                  ],
-                                ),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  'S',
-                                  style: AppTypography.labelLarge.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Sarah M.',
-                                  style: AppTypography.labelLarge.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.9),
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Text(
-                                  'Pre-Med Student',
-                                  style: AppTypography.caption.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.45),
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: AppSpacing.xxxl),
-
-                  // Pricing cards
-                  Row(
-                    children: [
-                      Expanded(
-                        child: PricingCard(
-                          planName: 'Yearly',
-                          price: yearlyPrice,
-                          period: '/yr',
-                          subtitle: yearlyMonthly,
-                          badgeText: 'BEST VALUE — SAVE 77%',
-                          isSelected: _isYearlySelected,
-                          onTap: () =>
-                              setState(() => _isYearlySelected = true),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: PricingCard(
-                            planName: 'Weekly',
-                            price: weeklyPrice,
-                            period: '/wk',
-                            isSelected: !_isYearlySelected,
-                            onTap: () =>
-                                setState(() => _isYearlySelected = false),
-                          ),
-                        ),
+              // 5. CTA — Lime button, strongest visual element
+              TapScale(
+                scaleDown: 0.96,
+                onTap: purchaseState.isLoading ? null : _onPurchaseTap,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  decoration: BoxDecoration(
+                    color: AppColors.ctaLime,
+                    borderRadius: BorderRadius.circular(100),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.ctaLime.withValues(alpha: 0.35),
+                        blurRadius: 20,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  // CTA Button with pulsing glow
-                  ListenableBuilder(
-                    listenable: _pulseAnimation,
-                    builder: (context, _) {
-                      return Stack(
-                        children: [
-                          // Pulsing glow
-                          Positioned.fill(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(100),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF6467F2)
-                                        .withValues(alpha: _pulseAnimation.value),
-                                    blurRadius: 40,
-                                    spreadRadius: 4,
-                                  ),
-                                ],
-                              ),
+                  child: Center(
+                    child: purchaseState.isLoading
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.ctaLimeText,
+                            ),
+                          )
+                        : Text(
+                            _isYearlySelected ? 'Start 3-Day Free Trial' : 'Get Kapsa Pro',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.ctaLimeText,
                             ),
                           ),
-                          // Button
-                          SizedBox(
-                            width: double.infinity,
-                            child: TapScale(
-                              scaleDown: 0.96,
-                              onTap: purchaseState.isLoading ? null : _onPurchaseTap,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 18),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      Color(0xFF6467F2),
-                                      Color(0xFF4338CA),
-                                      Color(0xFF3730A3),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(100),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.2),
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.4),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 8),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    if (purchaseState.isLoading)
-                                      const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    else ...[
-                                      Text(
-                                        _isYearlySelected
-                                            ? 'Start 3-Day Free Trial'
-                                            : 'Get Kapsa Pro',
-                                        style: AppTypography.button.copyWith(
-                                          fontSize: 17,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 0.3,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Icon(
-                                        Icons.arrow_forward_rounded,
-                                        color: Colors.white.withValues(alpha: 0.8),
-                                        size: 20,
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
                   ),
-
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Restore purchases link
-                  Center(
-                    child: TapScale(
-                      onTap: purchaseState.isLoading ? null : _onRestoreTap,
-                      child: Text(
-                        'Restore Purchases',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: Colors.white.withValues(alpha: 0.5),
-                          fontWeight: FontWeight.w500,
-                          fontSize: 13,
-                          decoration: TextDecoration.underline,
-                          decorationColor: Colors.white.withValues(alpha: 0.3),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Money-back guarantee
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(100),
-                        border: Border.all(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.verified_user_rounded,
-                            size: 16,
-                            color: const Color(0xFF10B981).withValues(alpha: 0.8),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '3-Day Free Trial — Cancel Anytime',
-                            style: AppTypography.caption.copyWith(
-                              color: const Color(0xFF10B981),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Footer
-                  Center(
-                    child: Column(
-                      children: [
-                        Text(
-                          'Cancel anytime. No questions asked.',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: Colors.white.withValues(alpha: 0.45),
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _TrustBadge(icon: Icons.shield_outlined, label: 'Secure'),
-                            const SizedBox(width: AppSpacing.lg),
-                            _TrustBadge(icon: Icons.lock_outline, label: 'Encrypted'),
-                            const SizedBox(width: AppSpacing.lg),
-                            _TrustBadge(icon: Icons.verified_outlined, label: 'Trusted'),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-
-                        // ToS & Privacy Policy links (required by Apple)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            GestureDetector(
-                              onTap: () => context.push(Routes.terms),
-                              child: Text(
-                                'Terms of Service',
-                                style: AppTypography.caption.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.35),
-                                  fontSize: 10,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: Colors.white.withValues(alpha: 0.25),
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                              child: Text(
-                                '\u00b7',
-                                style: AppTypography.caption.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.25),
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: () => context.push(Routes.privacy),
-                              child: Text(
-                                'Privacy Policy',
-                                style: AppTypography.caption.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.35),
-                                  fontSize: 10,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: Colors.white.withValues(alpha: 0.25),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          'USED BY STUDENTS AT STANFORD, MIT, AND OXFORD',
-                          style: AppTypography.caption.copyWith(
-                            color: Colors.white.withValues(alpha: 0.25),
-                            fontWeight: FontWeight.w500,
-                            fontSize: 9,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: AppSpacing.xxl),
-                ],
+                ),
               ),
-            ),
+
+              const SizedBox(height: 16),
+
+              // 6. MICRO FOOTER
+              Center(
+                child: GestureDetector(
+                  onTap: _onRestoreTap,
+                  child: const Text(
+                    'Restore Purchases',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      decoration: TextDecoration.underline,
+                      decorationColor: Colors.white38,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: Text(
+                  _isYearlySelected
+                      ? '3-day free trial \u00b7 Cancel anytime'
+                      : 'Cancel anytime \u00b7 No commitment',
+                  style: const TextStyle(color: Colors.white30, fontSize: 12),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: () => context.push(Routes.terms),
+                      child: const Text(
+                        'Terms',
+                        style: TextStyle(
+                          color: Colors.white24,
+                          fontSize: 11,
+                          decoration: TextDecoration.underline,
+                          decorationColor: Colors.white24,
+                        ),
+                      ),
+                    ),
+                    const Text(
+                      ' \u00b7 ',
+                      style: TextStyle(color: Colors.white24, fontSize: 11),
+                    ),
+                    GestureDetector(
+                      onTap: () => context.push(Routes.privacy),
+                      child: const Text(
+                        'Privacy',
+                        style: TextStyle(
+                          color: Colors.white24,
+                          fontSize: 11,
+                          decoration: TextDecoration.underline,
+                          decorationColor: Colors.white24,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-/// Trust badge for footer.
-class _TrustBadge extends StatelessWidget {
+/// Compact benefit row with lime icon, text, and checkmark.
+class _BenefitRow extends StatelessWidget {
   final IconData icon;
-  final String label;
-
-  const _TrustBadge({required this.icon, required this.label});
+  final String text;
+  const _BenefitRow({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          icon,
-          size: 14,
-          color: Colors.white.withValues(alpha: 0.3),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: AppTypography.caption.copyWith(
-            color: Colors.white.withValues(alpha: 0.3),
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
+        Icon(icon, color: AppColors.ctaLime.withValues(alpha: 0.8), size: 20),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              color: Colors.white.withValues(alpha: 0.85),
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              height: 1.4,
+            ),
           ),
         ),
+        Icon(Icons.check_circle, size: 18, color: AppColors.ctaLime.withValues(alpha: 0.7)),
       ],
     );
   }
-}
-
-/// Glass-styled close button.
-class _GlassCloseButton extends StatelessWidget {
-  final VoidCallback? onTap;
-
-  const _GlassCloseButton({this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return TapScale(
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white.withValues(alpha: 0.08),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.15),
-          ),
-        ),
-        child: Icon(
-          Icons.close,
-          color: Colors.white.withValues(alpha: 0.7),
-          size: 20,
-        ),
-      ),
-    );
-  }
-}
-
-/// Social proof stat (value + label).
-class _SocialStat extends StatelessWidget {
-  final String value;
-  final String label;
-
-  const _SocialStat({required this.value, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          value,
-          style: AppTypography.h4.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: AppTypography.caption.copyWith(
-            color: Colors.white.withValues(alpha: 0.45),
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Subtle noise texture painter.
-class _NoisePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.03)
-      ..strokeWidth = 0.5;
-
-    for (double x = 0; x < size.width; x += 3) {
-      for (double y = 0; y < size.height; y += 3) {
-        final hash = (x * 11 + y * 17).toInt() % 7;
-        if (hash == 0) {
-          canvas.drawCircle(Offset(x, y), 0.4, paint);
-        }
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

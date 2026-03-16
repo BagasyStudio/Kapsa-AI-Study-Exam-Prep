@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/navigation/routes.dart';
 import '../../../../core/services/sound_service.dart';
 import '../../../profile/data/models/profile_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/widgets/aurora_background.dart';
+import '../../../../core/theme/app_typography.dart';
+
 import '../../../../core/widgets/kapsa_refresh_indicator.dart';
 import '../../../../core/widgets/staggered_list.dart';
+import '../../../../core/widgets/tap_scale.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../gamification/presentation/providers/xp_provider.dart';
@@ -15,32 +18,19 @@ import '../../../gamification/presentation/widgets/xp_popup.dart';
 import '../../../../core/constants/xp_config.dart';
 import '../widgets/greeting_header.dart';
 import '../widgets/focus_flow_carousel.dart';
-import '../widgets/recent_materials_grid.dart';
-import '../../../assistant/presentation/widgets/oracle_smart_card.dart';
+import '../widgets/home_hero_card.dart';
+import '../widgets/home_empty_state.dart';
 import '../../../subscription/presentation/widgets/usage_limit_banner.dart';
-import '../../../snap_solve/presentation/widgets/snap_solve_card.dart';
-import '../../../snap_solve/presentation/widgets/snap_solve_banner.dart';
-import '../widgets/generation_banner.dart';
-import '../../../../core/navigation/routes.dart';
 import '../../../courses/presentation/providers/course_provider.dart';
-import '../widgets/study_activity_card.dart';
-import '../widgets/study_plan_card.dart';
 import '../providers/study_plan_provider.dart';
-import '../../../gamification/presentation/widgets/study_heatmap.dart';
-import '../../../gamification/presentation/providers/heatmap_provider.dart';
-import '../../../../core/theme/app_typography.dart';
-import '../../../../core/widgets/tap_scale.dart';
-import '../../../groups/presentation/providers/groups_provider.dart';
-import '../../../groups/presentation/widgets/group_card.dart';
-import '../widgets/weekly_stats_card.dart';
 import '../widgets/quick_actions_row.dart';
-import '../providers/study_activity_provider.dart';
-import '../providers/flashcard_quick_access_provider.dart';
 import '../providers/resume_quiz_provider.dart';
-import '../widgets/flashcard_quick_access_section.dart';
-import '../widgets/resume_quiz_banner.dart';
-import '../widgets/quick_review_card.dart';
+import '../../../../core/providers/generation_provider.dart';
 import '../../../flashcards/presentation/providers/flashcard_provider.dart';
+import '../providers/flashcard_quick_access_provider.dart';
+import '../widgets/flashcard_quick_access_section.dart';
+import '../widgets/journey_hero_widget.dart';
+import '../providers/journey_provider.dart';
 import '../../../gamification/data/models/achievement_model.dart';
 import '../../../gamification/presentation/providers/achievement_provider.dart';
 import '../../../gamification/presentation/widgets/achievement_popup.dart';
@@ -48,6 +38,8 @@ import '../../../sharing/data/milestone_service.dart';
 import '../../../sharing/presentation/widgets/share_preview_sheet.dart';
 import '../../../sharing/presentation/widgets/micro_cards/streak_milestone_card.dart';
 import '../../../sharing/presentation/widgets/micro_cards/exam_day_card.dart';
+import '../../../subscription/presentation/providers/subscription_provider.dart';
+import '../../../../core/constants/app_limits.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -65,13 +57,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Use ref.listen (not ref.watch) to trigger the streak update as a
-    // side-effect — running this inside build() caused rebuild loops.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.listen<AsyncValue<ProfileModel?>>(profileProvider, (prev, next) {
-        next.whenData((_) => _updateStreakOnce());
-      });
-    });
+    // Streak update is triggered via ref.listen in build() method
+    // (Riverpod requires ref.listen to be called inside build)
   }
 
   void _updateStreakOnce() {
@@ -81,7 +68,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (user != null) {
       ref.read(profileRepositoryProvider).updateStreak(user.id).then((_) {
         if (!mounted) return;
-        // Check if current streak is a milestone after update
         final days = ref.read(profileProvider).whenOrNull(
               data: (p) => p?.streakDays,
             ) ??
@@ -89,15 +75,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (_streakMilestones.contains(days)) {
           SoundService.playStreakMilestone();
         }
-        // Check if this streak is a shareable milestone
         _checkStreakMilestone(days);
-        // Check if today is an exam day for any course
         _checkExamDay();
-        // Award streak XP once per day
         _awardStreakXp();
-        // Check for new achievement badges
         _checkAchievements();
-        // Recalculate course progress in background
         _recalculateCourseProgress();
       });
     }
@@ -117,9 +98,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (mounted) {
         XpPopup.show(context, xp: XpConfig.streakDay, label: 'Daily Streak');
       }
-    } catch (_) {
-      // Best-effort — don't interrupt the user
-    }
+    } catch (_) {}
   }
 
   Future<void> _recalculateCourseProgress() async {
@@ -128,9 +107,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (user == null) return;
       await ref.read(courseRepositoryProvider).recalculateAllProgress(user.id);
       ref.invalidate(coursesProvider);
-    } catch (_) {
-      // Best-effort
-    }
+    } catch (_) {}
   }
 
   Future<void> _checkAchievements() async {
@@ -139,10 +116,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final newBadges = await repo.checkAndUnlock();
       if (newBadges.isEmpty || !mounted) return;
 
-      // Show popup for the first newly unlocked badge
       final badge = Badges.byKey[newBadges.first];
       if (badge != null) {
-        // Small delay so it doesn't overlap with streak/XP popups
         await Future.delayed(const Duration(milliseconds: 800));
         if (mounted) {
           AchievementPopup.show(context, badge: badge);
@@ -150,9 +125,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
 
       ref.invalidate(unlockedAchievementsProvider);
-    } catch (_) {
-      // Best-effort
-    }
+    } catch (_) {}
   }
 
   Future<void> _checkStreakMilestone(int days) async {
@@ -178,9 +151,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         shareType: 'streak_milestone',
       );
-    } catch (_) {
-      // Best-effort — don't interrupt the user
-    }
+    } catch (_) {}
   }
 
   Future<void> _checkExamDay() async {
@@ -207,18 +178,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ref.read(xpTotalProvider).whenOrNull(data: (v) => v) ?? 0;
           final xpLevel = XpConfig.levelFromXp(totalXp);
 
-          // Get prep stats
           int cardsReviewed = 0;
           double practiceScore = 0;
           try {
-            // Count flashcard decks for this course
             final decks = await Supabase.instance.client
                 .from('flashcard_decks')
                 .select('id')
                 .eq('course_id', course.id);
-            cardsReviewed = (decks as List).length * 10; // rough estimate
+            cardsReviewed = (decks as List).length * 10;
 
-            // Get latest test score
             final tests = await Supabase.instance.client
                 .from('tests')
                 .select('score')
@@ -236,7 +204,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           SharePreviewSheet.show(
             context,
             shareCard: ExamDayCard(
-              courseName: course.title,
+              courseName: course.displayTitle,
               cardsReviewed: cardsReviewed,
               practiceScore: practiceScore,
               userName: profile?.firstName ?? 'Student',
@@ -245,32 +213,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             shareType: 'exam_day',
             referenceId: course.id,
           );
-          return; // Only show one exam day card at a time
+          return;
         }
       }
-    } catch (_) {
-      // Best-effort — don't interrupt the user
-    }
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
-    // Selective watches: only rebuild when the specific field changes
-    final userName = ref.watch(profileProvider.select(
-          (async) => async.whenOrNull(data: (p) => p?.firstName),
-        )) ??
-        'Student';
-    final streakDays = ref.watch(profileProvider.select(
-          (async) => async.whenOrNull(data: (p) => p?.streakDays),
-        )) ??
-        0;
+    // Listen for profile changes to trigger streak update once
+    ref.listen<AsyncValue<ProfileModel?>>(profileProvider, (prev, next) {
+      next.whenData((_) => _updateStreakOnce());
+    });
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final coursesAsync = ref.watch(coursesProvider);
 
-    return AuroraBackground(
-      child: Stack(
+    return Scaffold(
+      backgroundColor: AppColors.immersiveBg,
+      body: Stack(
         children: [
-          // Ambient light glows
+          // Subtle dark radial glows
           Positioned(
             top: -60,
             left: -60,
@@ -279,7 +241,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               height: 256,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: isDark ? 0.1 : 0.2),
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.primary.withValues(alpha: 0.06),
+                    Colors.transparent,
+                  ],
+                  radius: 1.2,
+                ),
               ),
             ),
           ),
@@ -291,124 +259,245 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               height: 288,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF60A5FA).withValues(alpha: isDark ? 0.1 : 0.2),
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF1E40AF).withValues(alpha: 0.04),
+                    Colors.transparent,
+                  ],
+                  radius: 1.0,
+                ),
               ),
             ),
           ),
 
-          // Main content
+          // Main content — 4 data states
           SafeArea(
             bottom: false,
-            child: KapsaRefreshIndicator(
-              onRefresh: () async {
-                ref.invalidate(coursesProvider);
-                ref.invalidate(profileProvider);
-                ref.invalidate(studyPlanProvider);
-                ref.invalidate(heatmapDataProvider);
-                ref.invalidate(xpTotalProvider);
-                ref.invalidate(studyActivityProvider);
-                ref.invalidate(flashcardQuickAccessProvider);
-                ref.invalidate(inProgressQuizzesProvider);
-                ref.invalidate(totalDueCardsProvider);
+            child: coursesAsync.when(
+              loading: () => const _HomeShimmer(),
+              error: (e, _) => _HomeErrorRetry(
+                error: e,
+                onRetry: () => ref.invalidate(coursesProvider),
+              ),
+              data: (courses) {
+                if (courses.isEmpty) {
+                  return const HomeEmptyState();
+                }
+                return _buildNormalHome(context);
               },
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Simplified Home: 4 sections ────────────────────────────────────────────
+
+  Widget _buildNormalHome(BuildContext context) {
+    final userName = ref.watch(profileProvider.select(
+          (async) => async.whenOrNull(data: (p) => p?.firstName),
+        )) ??
+        'Student';
+    final streakDays = ref.watch(profileProvider.select(
+          (async) => async.whenOrNull(data: (p) => p?.streakDays),
+        )) ??
+        0;
+
+    final generationTasks = ref.watch(generationProvider);
+    final hasRunningGeneration = generationTasks.any((t) => t.isRunning);
+
+    return KapsaRefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(coursesProvider);
+        ref.invalidate(profileProvider);
+        ref.invalidate(studyPlanProvider);
+        ref.invalidate(inProgressQuizzesProvider);
+        ref.invalidate(totalDueCardsProvider);
+        ref.invalidate(flashcardQuickAccessProvider);
+        final activeCourse = ref.read(activeJourneyCourseProvider);
+        if (activeCourse != null) {
+          ref.invalidate(journeyNodesProvider(activeCourse));
+        }
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        padding: const EdgeInsets.only(bottom: 120),
+        child: StaggeredColumn(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. Greeting Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.md,
+                AppSpacing.xl,
+                AppSpacing.md,
+              ),
+              child: GreetingHeader(
+                userName: userName,
+                streakDays: streakDays,
+              ),
+            ),
+
+            // 2. Journey Hero — primary study continuation surface
+            const JourneyHeroWidget(),
+            const SizedBox(height: AppSpacing.lg),
+
+            // 3. Hero Card (contextual: generation/quiz/due cards)
+            const HomeHeroCard(),
+            const SizedBox(height: AppSpacing.lg),
+
+            // 4. Quick Actions Row (reduced opacity during generation)
+            Opacity(
+              opacity: hasRunningGeneration ? 0.6 : 1.0,
+              child: const QuickActionsRow(),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // 5. Focus Flow Carousel or compact link during generation
+            if (hasRunningGeneration)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                child: GestureDetector(
+                  onTap: () => context.go(Routes.courses),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Your Decks',
+                        style: AppTypography.labelLarge.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 20,
+                        color: Colors.white60,
+                      ),
+                    ],
+                  ),
                 ),
-                padding: const EdgeInsets.only(bottom: 120), // nav bar space
-              child: StaggeredColumn(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              )
+            else
+              const FocusFlowCarousel(),
+
+            const SizedBox(height: AppSpacing.lg),
+
+            // 6. Flashcard Quick Access (auto-hides if no decks)
+            const FlashcardQuickAccessSection(),
+
+            // Usage Limit Banner — only when credits < 20%
+            const SizedBox(height: AppSpacing.lg),
+            const _ConditionalUsageBanner(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Usage banner — only shows when remaining credits < 20% of daily limit
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _ConditionalUsageBanner extends ConsumerWidget {
+  const _ConditionalUsageBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final remaining = ref.watch(remainingCreditsProvider).whenOrNull(data: (r) => r);
+    if (remaining == null) return const SizedBox.shrink();
+
+    final total = AppLimits.freeCreditsPerDay;
+    final threshold = (total * 0.2).ceil();
+
+    // Only show when credits are below 20%
+    if (remaining > threshold) return const SizedBox.shrink();
+
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      child: UsageLimitBanner(),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Loading State — Shimmer skeleton
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _HomeShimmer extends StatelessWidget {
+  const _HomeShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    final shimmerBase = Colors.white.withValues(alpha: 0.06);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: AppSpacing.md),
+          // Greeting shimmer
+          _ShimmerBox(width: 180, height: 24, color: shimmerBase),
+          const SizedBox(height: 8),
+          _ShimmerBox(width: 120, height: 20, color: shimmerBase),
+          const SizedBox(height: AppSpacing.xl),
+          // Hero card shimmer
+          _ShimmerBox(
+            width: double.infinity,
+            height: 88,
+            color: shimmerBase,
+            borderRadius: 20,
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          // Quick actions shimmer
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(
+              4,
+              (_) => Column(
                 children: [
-                  // Header
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.xl,
-                      AppSpacing.md,
-                      AppSpacing.xl,
-                      AppSpacing.md,
-                    ),
-                    child: GreetingHeader(
-                      userName: userName,
-                      streakDays: streakDays,
-                    ),
+                  _ShimmerBox(
+                    width: 58,
+                    height: 58,
+                    color: shimmerBase,
+                    borderRadius: 29,
                   ),
-
-                  // Quick Actions Row
-                  const QuickActionsRow(),
-                  const SizedBox(height: AppSpacing.md),
-
-                  // Usage Limit Banner (freemium)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                    child: UsageLimitBanner(),
-                  ),
-
-                  // Snap & Solve background job banner
-                  const SnapSolveBanner(),
-
-                  // AI generation background banners
-                  const GenerationBanner(),
-
-                  // Resume in-progress quiz banner
-                  const ResumeQuizBanner(),
-
-                  // Quick Review — micro SRS session across all courses
-                  const QuickReviewCard(),
-
-                  // Flashcard Quick Access — one-tap deck access
-                  const SizedBox(height: AppSpacing.lg),
-                  const FlashcardQuickAccessSection(),
-
-                  // Snap & Solve — #1 acquisition hook
-                  const SizedBox(height: AppSpacing.md),
-                  SnapSolveCard(
-                    onTap: () => context.push(Routes.snapSolve),
-                  ),
-
-                  // Oracle AI Insight Card
-                  const SizedBox(height: AppSpacing.md),
-                  const OracleSmartCard(),
-
-                  // Today's Study Plan
-                  const SizedBox(height: AppSpacing.md),
-                  const StudyPlanCard(),
-
-                  // Study Heatmap
-                  const SizedBox(height: AppSpacing.lg),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                    child: StudyHeatmap(),
-                  ),
-
-                  // Weekly Stats
-                  const SizedBox(height: AppSpacing.md),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                    child: WeeklyStatsCard(),
-                  ),
-
-                  // Focus Flow Carousel
-                  const SizedBox(height: AppSpacing.lg),
-                  const FocusFlowCarousel(),
-
-                  // Study Activity (recent quizzes & flashcards)
-                  const SizedBox(height: AppSpacing.xxl),
-                  const StudyActivityCard(),
-
-                  // Recent Materials Grid
-                  const SizedBox(height: AppSpacing.xxl),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                    child: RecentMaterialsGrid(),
-                  ),
-
-                  // Your Groups
-                  const SizedBox(height: AppSpacing.xxl),
-                  _GroupsSection(),
+                  const SizedBox(height: 8),
+                  _ShimmerBox(width: 48, height: 10, color: shimmerBase),
                 ],
               ),
             ),
-            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          // Carousel shimmer
+          _ShimmerBox(width: 140, height: 16, color: shimmerBase),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: _ShimmerBox(
+                  width: double.infinity,
+                  height: 140,
+                  color: shimmerBase,
+                  borderRadius: 16,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: _ShimmerBox(
+                  width: double.infinity,
+                  height: 140,
+                  color: shimmerBase,
+                  borderRadius: 16,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -416,90 +505,140 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-/// Section showing user's study groups on the home screen.
-class _GroupsSection extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final groupsAsync = ref.watch(myGroupsProvider);
-    final brightness = Theme.of(context).brightness;
+class _ShimmerBox extends StatefulWidget {
+  final double width;
+  final double height;
+  final Color color;
+  final double borderRadius;
 
-    return groupsAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (groups) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+  const _ShimmerBox({
+    required this.width,
+    required this.height,
+    required this.color,
+    this.borderRadius = 8,
+  });
+
+  @override
+  State<_ShimmerBox> createState() => _ShimmerBoxState();
+}
+
+class _ShimmerBoxState extends State<_ShimmerBox>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _animation,
+      child: Container(
+        width: widget.width,
+        height: widget.height,
+        decoration: BoxDecoration(
+          color: widget.color,
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Error State — Compact retry card
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _HomeErrorRetry extends StatelessWidget {
+  final Object error;
+  final VoidCallback onRetry;
+
+  const _HomeErrorRetry({required this.error, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          decoration: BoxDecoration(
+            color: AppColors.immersiveCard,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.immersiveBorder),
+          ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Study Groups',
-                    style: AppTypography.h4.copyWith(
-                      color: AppColors.textPrimaryFor(brightness),
-                    ),
-                  ),
-                  TapScale(
-                    onTap: () => context.push(Routes.groupsList),
-                    child: Text(
-                      groups.isEmpty ? 'Create' : 'View All',
-                      style: AppTypography.caption.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.error.withValues(alpha: 0.12),
+                ),
+                child: Icon(
+                  Icons.wifi_off_rounded,
+                  color: AppColors.error,
+                  size: 28,
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
-              if (groups.isEmpty)
-                TapScale(
-                  onTap: () => context.push(Routes.groupsList),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.12),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.groups_rounded,
-                            color: AppColors.primary.withValues(alpha: 0.5)),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: Text(
-                            'Create or join a study group',
-                            style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.textSecondaryFor(brightness),
-                            ),
-                          ),
-                        ),
-                        Icon(Icons.arrow_forward_ios,
-                            size: 14,
-                            color: AppColors.textMutedFor(brightness)),
-                      ],
+              Text(
+                'Something went wrong',
+                style: AppTypography.h4.copyWith(
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Check your connection and try again',
+                style: AppTypography.bodySmall.copyWith(
+                  color: Colors.white60,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TapScale(
+                onTap: onRetry,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xl,
+                    vertical: AppSpacing.sm,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Retry',
+                    style: AppTypography.labelLarge.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                )
-              else
-                ...groups.take(2).map((group) => Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                      child: GroupCard(
-                        group: group,
-                        onTap: () =>
-                            context.push(Routes.groupDetailPath(group.id)),
-                      ),
-                    )),
+                ),
+              ),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

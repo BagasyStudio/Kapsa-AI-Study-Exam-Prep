@@ -19,16 +19,13 @@ class OracleHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white,
+        color: AppColors.cardDark,
         border: Border(
           bottom: BorderSide(
             color: AppColors.primary.withValues(alpha: 0.15),
@@ -67,7 +64,7 @@ class OracleHeader extends StatelessWidget {
                   child: Text(
                     courseLabel,
                     style: AppTypography.labelLarge.copyWith(
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                       fontWeight: FontWeight.w700,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -88,7 +85,7 @@ class OracleHeader extends StatelessWidget {
               child: Center(
                 child: Icon(
                   Icons.more_horiz,
-                  color: AppColors.textMutedFor(brightness),
+                  color: Colors.white38,
                   size: 22,
                 ),
               ),

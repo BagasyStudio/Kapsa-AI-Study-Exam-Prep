@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
@@ -105,7 +104,7 @@ class _RatingButton extends StatelessWidget {
             Text(
               interval,
               style: AppTypography.caption.copyWith(
-                color: AppColors.textMutedFor(Theme.of(context).brightness),
+                color: Colors.white38,
                 fontSize: 11,
               ),
             ),

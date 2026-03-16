@@ -35,6 +35,7 @@ abstract final class Routes {
   static const summary = '/summary/:summaryId';
   static const glossary = '/glossary/:courseId';
   static const studyPath = '/study-path';
+  static const journey = '/journey/:courseId';
   static const quickReview = '/quick-review';
 
   // ── Legal & Compliance ──
@@ -44,6 +45,12 @@ abstract final class Routes {
 
   // ── Onboarding ──
   static const onboarding = '/onboarding';
+
+  // ── First Deck Wizard ──
+  static const firstDeckWizard = '/first-deck-wizard';
+
+  // ── Deck Detail (parent deck with subdecks) ──
+  static const deckDetail = '/deck-detail/:deckId';
 
   // ── Helpers for path construction ──
   static String courseDetailPath(String courseId) => '/courses/$courseId';
@@ -65,4 +72,6 @@ abstract final class Routes {
   static String groupDetailPath(String groupId) => '/groups/$groupId';
   static String summaryPath(String summaryId) => '/summary/$summaryId';
   static String glossaryPath(String courseId) => '/glossary/$courseId';
+  static String deckDetailPath(String deckId) => '/deck-detail/$deckId';
+  static String journeyPath(String courseId) => '/journey/$courseId';
 }

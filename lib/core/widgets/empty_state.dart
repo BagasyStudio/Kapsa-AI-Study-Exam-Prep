@@ -25,9 +25,6 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-
     return Padding(
       padding: const EdgeInsets.symmetric(
         vertical: AppSpacing.xl,
@@ -41,7 +38,7 @@ class EmptyState extends StatelessWidget {
             height: iconSize + 24,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.primary.withValues(alpha: isDark ? 0.08 : 0.1),
+              color: AppColors.primary.withValues(alpha: 0.08),
             ),
             child: Icon(
               icon,
@@ -53,7 +50,7 @@ class EmptyState extends StatelessWidget {
           Text(
             title,
             style: AppTypography.labelLarge.copyWith(
-              color: AppColors.textSecondaryFor(brightness),
+              color: Colors.white60,
             ),
             textAlign: TextAlign.center,
           ),
@@ -61,7 +58,7 @@ class EmptyState extends StatelessWidget {
           Text(
             subtitle,
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textMutedFor(brightness),
+              color: Colors.white38,
             ),
             textAlign: TextAlign.center,
           ),

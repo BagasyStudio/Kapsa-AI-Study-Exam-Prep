@@ -11,7 +11,8 @@ const LLAMA_MODEL = "meta/meta-llama-3-8b-instruct";
 // ── Constants ─────────────────────────────────────────────────────
 const CARDS_PER_CHUNK = 15;       // reduced for faster generation
 const CHARS_PER_CARD = 200;       // ~1 card per 200 chars of source
-const MAX_TOTAL_CARDS = 80;       // cap to avoid too many batches
+const MAX_TOTAL_CARDS = 250;      // absolute max for paid plans
+const FREE_MAX_CARDS = 30;        // hard cap for free users (server-side enforcement)
 const MIN_TOTAL_CARDS = 5;
 const MAX_CONCURRENT = 4;         // parallel Replicate calls
 const CHUNK_SIZE = 5000;          // larger chunks = fewer batches
@@ -103,6 +104,49 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
   }
 
   return Array.isArray(result.output) ? result.output.join("") : String(result.output);
+}
+
+// ── Pexels banner image ──────────────────────────────────────────
+async function fetchPexelsBanner(query: string): Promise<string | null> {
+  const pexelsKey = Deno.env.get("PEXELS_API_KEY");
+  if (!pexelsKey) {
+    console.warn("PEXELS_API_KEY not set, skipping banner");
+    return null;
+  }
+
+  try {
+    const cleanQuery = query
+      .replace(/[^a-zA-Z0-9\u00C0-\u024F\s]/g, "")
+      .split(/\s+/)
+      .filter((w: string) => w.length > 2)
+      .slice(0, 3)
+      .join(" ")
+      .trim();
+
+    if (!cleanQuery) return null;
+
+    const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(cleanQuery)}&orientation=landscape&per_page=1`;
+    const res = await fetch(url, {
+      headers: { Authorization: pexelsKey },
+    });
+
+    if (!res.ok) {
+      console.warn(`Pexels HTTP ${res.status}`);
+      return null;
+    }
+
+    const data = await res.json();
+    const photo = data?.photos?.[0];
+    if (!photo) {
+      console.warn(`Pexels: no results for "${cleanQuery}"`);
+      return null;
+    }
+
+    return photo.src?.landscape || photo.src?.large || null;
+  } catch (e) {
+    console.warn("Pexels fetch failed:", e);
+    return null;
+  }
 }
 
 // ── JSON parsing with sanitization ────────────────────────────────
@@ -379,6 +423,20 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // ── Check subscription status (server-side enforcement) ───────
+    let isPro = false;
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_pro")
+        .eq("id", user.id)
+        .single();
+      isPro = profile?.is_pro === true;
+    } catch (_) {
+      // Default to free on error
+    }
+    const maxCards = isPro ? MAX_TOTAL_CARDS : FREE_MAX_CARDS;
+
     // ── Build full content and auto-calculate count ───────────────
     const fullContent = validMaterials
       .map((m: any) => `--- ${m.title} ---\n${m.content}`)
@@ -386,13 +444,13 @@ Deno.serve(async (req: Request) => {
 
     const totalContentLength = fullContent.length;
     const autoCount = Math.min(
-      MAX_TOTAL_CARDS,
+      maxCards,
       Math.max(MIN_TOTAL_CARDS, Math.round(totalContentLength / CHARS_PER_CARD)),
     );
 
-    // Use client count if provided, otherwise auto-calculate
+    // Use client count if provided, otherwise auto-calculate — always capped by subscription
     const totalCards = rawCount
-      ? Math.min(MAX_TOTAL_CARDS, Math.max(1, Math.floor(rawCount)))
+      ? Math.min(maxCards, Math.max(1, Math.floor(rawCount)))
       : autoCount;
 
     console.log(`Content: ${totalContentLength} chars → generating ${totalCards} flashcards (auto=${autoCount})`);
@@ -466,46 +524,179 @@ Deno.serve(async (req: Request) => {
       console.warn(`${failedBatches}/${chunkCards.length} batches failed, got ${allCards.length} cards`);
     }
 
-    // ── Create deck ───────────────────────────────────────────────
-    const { data: deck, error: deckError } = await supabase
-      .from("flashcard_decks")
-      .insert({
-        course_id: courseId,
-        user_id: user.id,
-        title: sanitizedTopic || course.title || "Study Deck",
-        card_count: allCards.length,
-      })
-      .select()
-      .single();
-
-    if (deckError || !deck) {
-      console.error("Failed to create deck:", deckError);
-      throw new Error("Failed to create flashcard deck. Please try again.");
-    }
-
-    // ── Insert cards (sanitize AI output) ─────────────────────────
-    const cardRows = allCards.map((c: any) => ({
-      deck_id: deck.id,
-      topic: typeof c.topic === "string" ? c.topic.substring(0, 200) : "General",
+    // ── Group cards by topic for subdeck creation ──────────────────
+    const sanitizedCards = allCards.map((c: any) => ({
+      topic: typeof c.topic === "string" ? c.topic.trim().substring(0, 200) : "General",
       question_before: typeof c.question_before === "string" ? c.question_before.substring(0, 500) : "",
       keyword: typeof c.keyword === "string" ? c.keyword.substring(0, 100) : "",
       question_after: typeof c.question_after === "string" ? c.question_after.substring(0, 500) : "",
       answer: typeof c.answer === "string" ? c.answer.substring(0, 2000) : "",
     }));
 
-    // Supabase insert in batches of 500 (API limit)
-    for (let i = 0; i < cardRows.length; i += 500) {
-      const batch = cardRows.slice(i, i + 500);
-      const { error: insertError } = await supabase.from("flashcards").insert(batch);
-      if (insertError) {
-        console.error(`Insert batch ${i / 500} failed:`, insertError);
+    // Group by topic (case-insensitive comparison, preserve original casing)
+    const topicGroups = new Map<string, { displayTitle: string; cards: typeof sanitizedCards }>();
+    for (const card of sanitizedCards) {
+      const key = card.topic.toLowerCase();
+      if (!topicGroups.has(key)) {
+        topicGroups.set(key, { displayTitle: card.topic, cards: [] });
+      }
+      topicGroups.get(key)!.cards.push(card);
+    }
+
+    // Merge tiny clusters (< 2 cards) into the largest group
+    const sortedGroups = [...topicGroups.entries()].sort((a, b) => b[1].cards.length - a[1].cards.length);
+    const largestKey = sortedGroups[0]?.[0];
+    if (largestKey) {
+      for (const [key, group] of sortedGroups) {
+        if (key !== largestKey && group.cards.length < 2) {
+          topicGroups.get(largestKey)!.cards.push(...group.cards);
+          topicGroups.delete(key);
+        }
       }
     }
 
-    const elapsed = ((Date.now() - globalStart) / 1000).toFixed(1);
-    console.log(`Done: ${allCards.length} flashcards in deck ${deck.id} (${elapsed}s)`);
+    const uniqueTopics = [...topicGroups.values()];
+    const shouldCreateSubdecks = uniqueTopics.length > 1 && sanitizedCards.length > 5;
 
-    return new Response(JSON.stringify({ ...deck, card_count: allCards.length }), {
+    // Simple hash for gradient index
+    const titleForGradient = sanitizedTopic || course.title || "Deck";
+    let gradientHash = 0;
+    for (let i = 0; i < titleForGradient.length; i++) {
+      gradientHash = ((gradientHash << 5) - gradientHash + titleForGradient.charCodeAt(i)) & 0x7FFFFFFF;
+    }
+    const parentGradientIndex = gradientHash % 12;
+
+    // ── Generate AI description + Pexels banner (parallel) ─────────
+    let deckDescription = `Study collection for ${course.title}`;
+    let bannerUrl: string | null = null;
+    const bannerQuery = sanitizedTopic || course.title || "studying";
+
+    if (!isDeadlineClose()) {
+      const promises: [Promise<string | null>, Promise<string | null>] = [
+        // AI description (only for subdecks)
+        shouldCreateSubdecks
+          ? (async () => {
+              try {
+                const topicNames = uniqueTopics.map(t => t.displayTitle).join(", ");
+                const descSystemPrompt = `Write a brief 1-sentence description for a flashcard deck about "${course.title}" covering these topics: ${topicNames}. Write in ${detectedLang}. Output ONLY the description, no quotes, nothing else.`;
+                const descResult = await callReplicate(replicateKey, "Generate description.", descSystemPrompt, 150);
+                const cleaned = descResult.trim().replace(/^["']|["']$/g, "");
+                return (cleaned.length > 10 && cleaned.length < 500) ? cleaned : null;
+              } catch (e) {
+                console.warn("Description generation failed:", e);
+                return null;
+              }
+            })()
+          : Promise.resolve(null),
+        // Pexels banner
+        fetchPexelsBanner(bannerQuery),
+      ];
+
+      const [descResult, pexelsResult] = await Promise.allSettled(promises);
+      if (descResult.status === "fulfilled" && descResult.value) {
+        deckDescription = descResult.value;
+      }
+      if (pexelsResult.status === "fulfilled" && pexelsResult.value) {
+        bannerUrl = pexelsResult.value;
+      }
+    }
+
+    if (!shouldCreateSubdecks) {
+      // ── Single flat deck (backward compatible) ────────────────
+      const { data: deck, error: deckError } = await supabase
+        .from("flashcard_decks")
+        .insert({
+          course_id: courseId,
+          user_id: user.id,
+          title: sanitizedTopic || course.title || "Study Deck",
+          card_count: sanitizedCards.length,
+          description: deckDescription,
+          cover_gradient_index: parentGradientIndex,
+          banner_url: bannerUrl,
+        })
+        .select()
+        .single();
+
+      if (deckError || !deck) {
+        console.error("Failed to create deck:", deckError);
+        throw new Error("Failed to create flashcard deck. Please try again.");
+      }
+
+      const cardRows = sanitizedCards.map(c => ({ deck_id: deck.id, ...c }));
+      for (let i = 0; i < cardRows.length; i += 500) {
+        const batch = cardRows.slice(i, i + 500);
+        const { error: insertError } = await supabase.from("flashcards").insert(batch);
+        if (insertError) console.error(`Insert batch ${i / 500} failed:`, insertError);
+      }
+
+      const elapsed = ((Date.now() - globalStart) / 1000).toFixed(1);
+      console.log(`Done (flat): ${sanitizedCards.length} flashcards in deck ${deck.id} (${elapsed}s)`);
+
+      return new Response(JSON.stringify({ ...deck, card_count: sanitizedCards.length }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Create parent deck + child subdecks ──────────────────────
+    const { data: parentDeck, error: parentError } = await supabase
+      .from("flashcard_decks")
+      .insert({
+        course_id: courseId,
+        user_id: user.id,
+        title: sanitizedTopic || course.title || "Study Deck",
+        card_count: sanitizedCards.length,
+        parent_deck_id: null,
+        description: deckDescription,
+        cover_gradient_index: parentGradientIndex,
+        banner_url: bannerUrl,
+      })
+      .select()
+      .single();
+
+    if (parentError || !parentDeck) {
+      console.error("Failed to create parent deck:", parentError);
+      throw new Error("Failed to create flashcard deck. Please try again.");
+    }
+
+    console.log(`Created parent deck ${parentDeck.id} with ${uniqueTopics.length} topics`);
+
+    // Create child decks and insert their cards
+    for (let i = 0; i < uniqueTopics.length; i++) {
+      const group = uniqueTopics[i];
+      const childGradientIndex = (parentGradientIndex + i + 1) % 12;
+
+      const { data: childDeck, error: childError } = await supabase
+        .from("flashcard_decks")
+        .insert({
+          course_id: courseId,
+          user_id: user.id,
+          title: group.displayTitle,
+          card_count: group.cards.length,
+          parent_deck_id: parentDeck.id,
+          cover_gradient_index: childGradientIndex,
+        })
+        .select()
+        .single();
+
+      if (childError || !childDeck) {
+        console.error(`Failed to create child deck "${group.displayTitle}":`, childError);
+        continue; // Skip this topic, don't fail the whole generation
+      }
+
+      const cardRows = group.cards.map(c => ({ deck_id: childDeck.id, ...c }));
+      for (let j = 0; j < cardRows.length; j += 500) {
+        const batch = cardRows.slice(j, j + 500);
+        const { error: insertError } = await supabase.from("flashcards").insert(batch);
+        if (insertError) console.error(`Insert batch for "${group.displayTitle}" failed:`, insertError);
+      }
+
+      console.log(`  Child "${group.displayTitle}": ${group.cards.length} cards`);
+    }
+
+    const elapsed = ((Date.now() - globalStart) / 1000).toFixed(1);
+    console.log(`Done (subdecks): ${sanitizedCards.length} flashcards across ${uniqueTopics.length} subdecks in ${elapsed}s`);
+
+    return new Response(JSON.stringify({ ...parentDeck, card_count: sanitizedCards.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

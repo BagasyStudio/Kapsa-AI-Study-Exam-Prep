@@ -3,7 +3,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
-import '../../../../core/providers/theme_provider.dart';
 import '../../data/models/group_model.dart';
 
 /// Card widget for displaying a study group in a list.
@@ -15,22 +14,15 @@ class GroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.isDark;
-    final brightness = Theme.of(context).brightness;
-
     return TapScale(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.10)
-              : Colors.white.withValues(alpha: 0.82),
+          color: Colors.white.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.white.withValues(alpha: 0.5),
+            color: Colors.white.withValues(alpha: 0.08),
           ),
         ),
         child: Row(
@@ -58,7 +50,7 @@ class GroupCard extends StatelessWidget {
                   Text(
                     group.name,
                     style: AppTypography.labelLarge.copyWith(
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
                     maxLines: 1,
@@ -70,7 +62,7 @@ class GroupCard extends StatelessWidget {
                     Text(
                       group.description!,
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.textMutedFor(brightness),
+                        color: Colors.white38,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -79,8 +71,8 @@ class GroupCard extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right,
-                color: AppColors.textMutedFor(brightness)),
+            const Icon(Icons.chevron_right,
+                color: Colors.white38),
           ],
         ),
       ),

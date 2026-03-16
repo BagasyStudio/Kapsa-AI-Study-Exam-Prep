@@ -16,3 +16,15 @@ final calendarEventsProvider = FutureProvider.autoDispose
   if (user == null) return [];
   return ref.watch(calendarRepositoryProvider).getEvents(user.id, date);
 });
+
+/// Fetches the set of dates that have events within a given date range.
+/// Key is an (from, to) record so Riverpod can cache per-range.
+final calendarEventDatesProvider = FutureProvider.autoDispose
+    .family<Set<DateTime>, (DateTime, DateTime)>((ref, range) async {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return {};
+  final (from, to) = range;
+  return ref
+      .watch(calendarRepositoryProvider)
+      .getEventDatesInRange(user.id, from, to);
+});

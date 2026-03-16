@@ -355,7 +355,6 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
   Widget build(BuildContext context) {
     final questionsAsync = ref.watch(quizQuestionsProvider(widget.testId));
 
-    final brightness = Theme.of(context).brightness;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
@@ -364,13 +363,11 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
         if (shouldLeave && context.mounted) Navigator.of(context).pop();
       },
       child: Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       resizeToAvoidBottomInset: true,
       body: Container(
-        decoration: BoxDecoration(
-          gradient: brightness == Brightness.dark
-              ? AppGradients.darkImmersive
-              : null,
+        decoration: const BoxDecoration(
+          gradient: AppGradients.darkImmersive,
         ),
         child: questionsAsync.when(
           loading: () => const Center(
@@ -402,18 +399,32 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Leave quiz?'),
-        content: const Text(
+        backgroundColor: AppColors.immersiveCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Text(
+          'Leave quiz?',
+          style: AppTypography.h3.copyWith(color: Colors.white),
+        ),
+        content: Text(
           'Your progress is saved! You can continue this quiz later from the home screen.',
+          style: AppTypography.bodyMedium.copyWith(color: Colors.white60),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Stay'),
+            child: Text(
+              'Stay',
+              style: AppTypography.labelLarge.copyWith(color: Colors.white70),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Leave for now'),
+            child: Text(
+              'Leave for now',
+              style: AppTypography.labelLarge.copyWith(color: Colors.white70),
+            ),
           ),
         ],
       ),
@@ -422,7 +433,6 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
   }
 
   Widget _buildError(Object error) {
-    final brightness = Theme.of(context).brightness;
     return SafeArea(
       child: Center(
         child: Padding(
@@ -431,22 +441,23 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.error_outline,
-                  size: 48, color: AppColors.textMutedFor(brightness)),
+                  size: 48, color: Colors.white.withValues(alpha: 0.5)),
               const SizedBox(height: AppSpacing.md),
               Text('Could not load quiz',
                   style: AppTypography.h3.copyWith(
-                    color: AppColors.textPrimaryFor(brightness),
+                    color: Colors.white,
                   )),
               const SizedBox(height: AppSpacing.sm),
               Text(AppErrorHandler.friendlyMessage(error),
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textMutedFor(brightness),
+                    color: Colors.white60,
                   ),
                   textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.xl),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Go Back'),
+                child: Text('Go Back',
+                    style: TextStyle(color: Colors.white70)),
               ),
             ],
           ),
@@ -633,7 +644,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                           text: question.question,
                           style: AppTypography.h2.copyWith(
                             color: Colors.white,
-                            fontSize: 22,
+                            fontSize: 24,
                             fontWeight: FontWeight.w600,
                             height: 1.4,
                           ),
@@ -644,10 +655,10 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                         // Answer input
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(20),
+                            color: Colors.white.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.12),
+                              color: Colors.white.withValues(alpha: 0.15),
                             ),
                           ),
                           child: TextField(
@@ -663,7 +674,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                             decoration: InputDecoration(
                               hintText: 'Type your answer here...',
                               hintStyle: AppTypography.bodyMedium.copyWith(
-                                color: Colors.white.withValues(alpha: 0.45),
+                                color: Colors.white.withValues(alpha: 0.50),
                               ),
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.all(AppSpacing.lg),
@@ -678,7 +689,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                         Text(
                           'Answer in your own words. The AI will evaluate your understanding.',
                           style: AppTypography.bodySmall.copyWith(
-                            color: Colors.white.withValues(alpha: 0.5),
+                            color: Colors.white.withValues(alpha: 0.55),
                             fontSize: 12,
                           ),
                         ),
@@ -789,8 +800,8 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                                       ? [
                                           BoxShadow(
                                             color: AppColors.primary
-                                                .withValues(alpha: 0.4),
-                                            blurRadius: 16,
+                                                .withValues(alpha: 0.3),
+                                            blurRadius: 12,
                                             offset: const Offset(0, 4),
                                           ),
                                         ]
@@ -811,7 +822,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                                           color: hasAnswer
                                               ? Colors.white
                                               : Colors.white
-                                                  .withValues(alpha: 0.5),
+                                                  .withValues(alpha: 0.6),
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
@@ -824,7 +835,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
                                         color: hasAnswer
                                             ? Colors.white
                                             : Colors.white
-                                                .withValues(alpha: 0.5),
+                                                .withValues(alpha: 0.6),
                                       ),
                                     ],
                                   ),
@@ -890,25 +901,23 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
       _autoSaveAnswer(questions, _currentIndex);
     }
 
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppColors.cardDark : const Color(0xFFF8FAFC),
+        backgroundColor: AppColors.immersiveCard,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
         title: Text(
           widget.isPracticeExam ? 'Leave Exam?' : 'Leave Quiz?',
           style: AppTypography.h3.copyWith(
-            color: AppColors.textPrimaryFor(brightness),
+            color: Colors.white,
           ),
         ),
         content: Text(
           'Your progress is saved! You can continue this quiz later from the home screen.',
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondaryFor(brightness),
+            color: Colors.white60,
           ),
         ),
         actions: [
@@ -929,7 +938,7 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
             child: Text(
               'Leave for now',
               style: AppTypography.labelLarge.copyWith(
-                color: AppColors.textSecondaryFor(brightness),
+                color: Colors.white70,
               ),
             ),
           ),

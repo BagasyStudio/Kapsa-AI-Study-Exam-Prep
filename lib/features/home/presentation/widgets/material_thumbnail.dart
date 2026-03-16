@@ -35,20 +35,14 @@ class MaterialThumbnail extends StatelessWidget {
       return _NewFolderCard(onTap: onTap);
     }
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final brightness = Theme.of(context).brightness;
     return GestureDetector(
       onTap: onTap,
       child: Container(
             decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.white.withValues(alpha: 0.55),
+              color: AppColors.immersiveCard,
               borderRadius: AppRadius.borderRadiusXxl,
               border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.1)
-                    : Colors.white.withValues(alpha: 0.6),
+                color: AppColors.immersiveBorder,
               ),
               boxShadow: [
                 BoxShadow(
@@ -71,7 +65,7 @@ class MaterialThumbnail extends StatelessWidget {
                     child: Stack(
                       children: [
                         // Content preview - full width
-                        Positioned.fill(child: _buildPreview(isDark)),
+                        Positioned.fill(child: _buildPreview()),
                         // Type icon badge (top right)
                         Positioned(
                           top: 8,
@@ -103,7 +97,7 @@ class MaterialThumbnail extends StatelessWidget {
                         title,
                         style: AppTypography.labelLarge.copyWith(
                           fontSize: 13,
-                          color: AppColors.textPrimaryFor(brightness),
+                          color: Colors.white,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -112,7 +106,7 @@ class MaterialThumbnail extends StatelessWidget {
                       Text(
                         subtitle,
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.textMutedFor(brightness),
+                          color: Colors.white38,
                         ),
                       ),
                     ],
@@ -131,11 +125,11 @@ class MaterialThumbnail extends StatelessWidget {
         StudyMaterialType.folder => Icons.folder,
       };
 
-  Widget _buildPreview(bool isDark) {
+  Widget _buildPreview() {
     return switch (type) {
-      StudyMaterialType.document => _DocumentPreview(isDark: isDark),
-      StudyMaterialType.audio => _AudioPreview(isDark: isDark),
-      StudyMaterialType.flashcard => _FlashcardPreview(isDark: isDark),
+      StudyMaterialType.document => const _DocumentPreview(),
+      StudyMaterialType.audio => const _AudioPreview(),
+      StudyMaterialType.flashcard => const _FlashcardPreview(),
       StudyMaterialType.folder => const SizedBox.shrink(),
     };
   }
@@ -144,27 +138,20 @@ class MaterialThumbnail extends StatelessWidget {
 /// Rich document preview — simulates a page with handwritten-style lines
 /// and a warm gradient background (like the mockup's biology notes image).
 class _DocumentPreview extends StatelessWidget {
-  final bool isDark;
-  const _DocumentPreview({required this.isDark});
+  const _DocumentPreview();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isDark
-              ? [
-                  const Color(0xFF1E1B2E), // dark indigo
-                  const Color(0xFF1A1833), // dark purple
-                  const Color(0xFF1E2235), // dark blue
-                ]
-              : [
-                  const Color(0xFFF1F5F9), // slate-100
-                  const Color(0xFFE2E8F0), // slate-200
-                  const Color(0xFFE0E7FF), // indigo-100
-                ],
+          colors: [
+            Color(0xFF1E1B2E), // dark indigo
+            Color(0xFF1A1833), // dark purple
+            Color(0xFF1E2235), // dark blue
+          ],
         ),
       ),
       child: Padding(
@@ -178,9 +165,7 @@ class _DocumentPreview extends StatelessWidget {
               width: double.infinity,
               height: 8,
               decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.2)
-                    : const Color(0xFF94A3B8).withValues(alpha: 0.4),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -190,21 +175,19 @@ class _DocumentPreview extends StatelessWidget {
               width: 80,
               height: 6,
               decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.12)
-                    : const Color(0xFF94A3B8).withValues(alpha: 0.25),
+                color: Colors.white.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
             const SizedBox(height: 14),
             // Body lines
-            _textLine(1.0, isDark ? 0.1 : 0.2),
+            _textLine(1.0, 0.1),
             const SizedBox(height: 5),
-            _textLine(0.9, isDark ? 0.08 : 0.15),
+            _textLine(0.9, 0.08),
             const SizedBox(height: 5),
-            _textLine(0.7, isDark ? 0.1 : 0.18),
+            _textLine(0.7, 0.1),
             const SizedBox(height: 5),
-            _textLine(0.85, isDark ? 0.06 : 0.12),
+            _textLine(0.85, 0.06),
           ],
         ),
       ),
@@ -217,9 +200,7 @@ class _DocumentPreview extends StatelessWidget {
       child: Container(
         height: 4,
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: opacity)
-              : Color(0xFF64748B).withValues(alpha: opacity),
+          color: Colors.white.withValues(alpha: opacity),
           borderRadius: BorderRadius.circular(2),
         ),
       ),
@@ -229,27 +210,20 @@ class _DocumentPreview extends StatelessWidget {
 
 /// Audio waveform preview — indigo background with animated-looking bars.
 class _AudioPreview extends StatelessWidget {
-  final bool isDark;
-  const _AudioPreview({required this.isDark});
+  const _AudioPreview();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isDark
-              ? [
-                  const Color(0xFF1A1833), // dark indigo
-                  const Color(0xFF1E1B3A), // dark purple
-                  const Color(0xFF1A1833),
-                ]
-              : [
-                  const Color(0xFFE0E7FF), // indigo-100
-                  const Color(0xFFC7D2FE), // indigo-200
-                  const Color(0xFFE0E7FF), // indigo-100
-                ],
+          colors: [
+            Color(0xFF1A1833), // dark indigo
+            Color(0xFF1E1B3A), // dark purple
+            Color(0xFF1A1833),
+          ],
         ),
       ),
       child: Center(
@@ -277,27 +251,20 @@ class _AudioPreview extends StatelessWidget {
 
 /// Flashcard preview — purple/blue geometric gradient with abstract shapes.
 class _FlashcardPreview extends StatelessWidget {
-  final bool isDark;
-  const _FlashcardPreview({required this.isDark});
+  const _FlashcardPreview();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isDark
-              ? [
-                  const Color(0xFF1E1535), // dark violet
-                  const Color(0xFF1A1240), // dark purple
-                  const Color(0xFF151A35), // dark blue
-                ]
-              : [
-                  const Color(0xFFDDD6FE), // violet-200
-                  const Color(0xFFC4B5FD), // violet-300
-                  const Color(0xFFBFDBFE), // blue-200
-                ],
+          colors: [
+            Color(0xFF1E1535), // dark violet
+            Color(0xFF1A1240), // dark purple
+            Color(0xFF151A35), // dark blue
+          ],
         ),
       ),
       child: CustomPaint(
@@ -375,20 +342,14 @@ class _NewFolderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final brightness = Theme.of(context).brightness;
     return GestureDetector(
       onTap: onTap,
       child: Container(
             decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.white.withValues(alpha: 0.55),
+              color: AppColors.immersiveCard,
               borderRadius: AppRadius.borderRadiusXxl,
               border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.1)
-                    : Colors.white.withValues(alpha: 0.6),
+                color: AppColors.immersiveBorder,
               ),
             ),
             child: Center(
@@ -412,7 +373,7 @@ class _NewFolderCard extends StatelessWidget {
                   Text(
                     'New Folder',
                     style: AppTypography.labelMedium.copyWith(
-                      color: AppColors.textSecondaryFor(brightness),
+                      color: Colors.white60,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

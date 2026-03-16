@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -24,185 +23,158 @@ class CourseStatsBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(courseStatsProvider(courseId));
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
 
-    return ClipRRect(
-      borderRadius: AppRadius.borderRadiusLg,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.10)
-                : Colors.white.withValues(alpha: 0.82),
-            borderRadius: AppRadius.borderRadiusLg,
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.white.withValues(alpha: 0.5),
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.immersiveCard,
+        borderRadius: AppRadius.borderRadiusLg,
+        border: Border.all(
+          color: AppColors.immersiveBorder,
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Decorative glow
+          Positioned(
+            top: -40,
+            right: -40,
+            child: Container(
+              width: 128,
+              height: 128,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primary.withValues(alpha: 0.06),
+              ),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                blurRadius: 32,
-                offset: const Offset(0, 8),
-              ),
-            ],
           ),
-          child: Stack(
+
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Decorative glow
-              Positioned(
-                top: -40,
-                right: -40,
-                child: Container(
-                  width: 128,
-                  height: 128,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.primary.withValues(alpha: isDark ? 0.06 : 0.1),
-                  ),
-                ),
-              ),
-
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // Header
+              Row(
                 children: [
-                  // Header
-                  Row(
-                    children: [
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF818CF8), Color(0xFFA78BFA)],
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.auto_awesome,
-                          size: 12,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'COURSE OVERVIEW',
-                        style: AppTypography.labelSmall.copyWith(
-                          color: AppColors.primary.withValues(alpha: 0.8),
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: AppSpacing.md),
-
-                  // Stats row
-                  statsAsync.when(
-                    loading: () => SizedBox(
-                      height: 48,
-                      child: Center(
-                        child: SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.textMutedFor(brightness),
-                          ),
-                        ),
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF818CF8), Color(0xFFA78BFA)],
                       ),
                     ),
-                    error: (_, __) => Text(
-                      'Upload materials to see course stats',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textMutedFor(brightness),
-                      ),
-                    ),
-                    data: (stats) => Row(
-                      children: [
-                        _StatChip(
-                          icon: Icons.description_outlined,
-                          value: '${stats.materialCount}',
-                          label: 'Materials',
-                          isDark: isDark,
-                        ),
-                        const SizedBox(width: 10),
-                        _StatChip(
-                          icon: Icons.style_outlined,
-                          value: '${stats.deckCount}',
-                          label: 'Decks',
-                          isDark: isDark,
-                        ),
-                        const SizedBox(width: 10),
-                        _StatChip(
-                          icon: Icons.layers_outlined,
-                          value: '${stats.totalCards}',
-                          label: 'Cards',
-                          isDark: isDark,
-                        ),
-                        if (stats.dueCards > 0) ...[
-                          const SizedBox(width: 10),
-                          _StatChip(
-                            icon: Icons.schedule,
-                            value: '${stats.dueCards}',
-                            label: 'Due',
-                            isDark: isDark,
-                            isHighlighted: true,
-                          ),
-                        ],
-                      ],
+                    child: const Icon(
+                      Icons.auto_awesome,
+                      size: 12,
+                      color: Colors.white,
                     ),
                   ),
-
-                  const SizedBox(height: AppSpacing.md),
-
-                  // CTA
-                  GestureDetector(
-                    onTap: onGenerateTap,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.10)
-                            : Colors.white.withValues(alpha: 0.82),
-                        borderRadius: AppRadius.borderRadiusMd,
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.08)
-                              : Colors.white.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Generate Flashcards',
-                            style: AppTypography.labelMedium.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.arrow_forward,
-                            size: 14,
-                            color: AppColors.primary,
-                          ),
-                        ],
-                      ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'COURSE OVERVIEW',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: Colors.white60,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.5,
                     ),
                   ),
                 ],
               ),
+
+              const SizedBox(height: AppSpacing.md),
+
+              // Stats row
+              statsAsync.when(
+                loading: () => const SizedBox(
+                  height: 48,
+                  child: Center(
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white38,
+                      ),
+                    ),
+                  ),
+                ),
+                error: (_, __) => Text(
+                  'Upload materials to see course stats',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: Colors.white38,
+                  ),
+                ),
+                data: (stats) => Row(
+                  children: [
+                    _StatChip(
+                      icon: Icons.description_outlined,
+                      value: '${stats.materialCount}',
+                      label: 'Materials',
+                    ),
+                    const SizedBox(width: 10),
+                    _StatChip(
+                      icon: Icons.style_outlined,
+                      value: '${stats.deckCount}',
+                      label: 'Decks',
+                    ),
+                    const SizedBox(width: 10),
+                    _StatChip(
+                      icon: Icons.layers_outlined,
+                      value: '${stats.totalCards}',
+                      label: 'Cards',
+                    ),
+                    if (stats.dueCards > 0) ...[
+                      const SizedBox(width: 10),
+                      _StatChip(
+                        icon: Icons.schedule,
+                        value: '${stats.dueCards}',
+                        label: 'Due',
+                        isHighlighted: true,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.md),
+
+              // CTA
+              GestureDetector(
+                onTap: onGenerateTap,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.immersiveSurface,
+                    borderRadius: AppRadius.borderRadiusMd,
+                    border: Border.all(
+                      color: AppColors.immersiveBorder,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Generate Flashcards',
+                        style: AppTypography.labelMedium.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.arrow_forward,
+                        size: 14,
+                        color: AppColors.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
@@ -212,14 +184,12 @@ class _StatChip extends StatefulWidget {
   final IconData icon;
   final String value;
   final String label;
-  final bool isDark;
   final bool isHighlighted;
 
   const _StatChip({
     required this.icon,
     required this.value,
     required this.label,
-    required this.isDark,
     this.isHighlighted = false,
   });
 
@@ -260,16 +230,14 @@ class _StatChipState extends State<_StatChip>
   Widget build(BuildContext context) {
     final color = widget.isHighlighted
         ? const Color(0xFFF59E0B)
-        : AppColors.textSecondaryFor(Theme.of(context).brightness);
+        : Colors.white60;
 
     final parsedValue = int.tryParse(widget.value) ?? 0;
 
     Widget chip = Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
       decoration: BoxDecoration(
-        color: widget.isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.white.withValues(alpha: 0.4),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(

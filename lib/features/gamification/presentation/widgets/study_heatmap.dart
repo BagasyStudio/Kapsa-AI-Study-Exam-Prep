@@ -6,26 +6,21 @@ import '../../../../core/theme/app_typography.dart';
 import '../providers/heatmap_provider.dart';
 
 /// GitHub-style study activity heatmap showing XP per day for 13 weeks.
+/// Forced immersive dark styling.
 class StudyHeatmap extends ConsumerWidget {
   const StudyHeatmap({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dataAsync = ref.watch(heatmapDataProvider);
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.06)
-            : Colors.white.withValues(alpha: 0.45),
+        color: AppColors.immersiveCard,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.white.withValues(alpha: 0.6),
+          color: AppColors.immersiveBorder,
         ),
       ),
       child: Column(
@@ -40,7 +35,7 @@ class StudyHeatmap extends ConsumerWidget {
               Text(
                 'Study Activity',
                 style: AppTypography.labelLarge.copyWith(
-                  color: AppColors.textPrimaryFor(brightness),
+                  color: Colors.white,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -58,7 +53,7 @@ class StudyHeatmap extends ConsumerWidget {
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: AppColors.textMutedFor(brightness),
+                    color: Colors.white38,
                   ),
                 ),
               ),
@@ -69,15 +64,13 @@ class StudyHeatmap extends ConsumerWidget {
                 child: Text(
                   'Could not load activity',
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.textMutedFor(brightness),
+                    color: Colors.white38,
                   ),
                 ),
               ),
             ),
             data: (dailyXp) => _HeatmapGrid(
               dailyXp: dailyXp,
-              isDark: isDark,
-              brightness: brightness,
             ),
           ),
 
@@ -90,12 +83,12 @@ class StudyHeatmap extends ConsumerWidget {
               Text(
                 'Less',
                 style: AppTypography.caption.copyWith(
-                  color: AppColors.textMutedFor(brightness),
+                  color: Colors.white38,
                   fontSize: 10,
                 ),
               ),
               const SizedBox(width: 4),
-              ..._legendColors(isDark).map((c) => Container(
+              ..._legendColors().map((c) => Container(
                     width: 10,
                     height: 10,
                     margin: const EdgeInsets.symmetric(horizontal: 1),
@@ -108,7 +101,7 @@ class StudyHeatmap extends ConsumerWidget {
               Text(
                 'More',
                 style: AppTypography.caption.copyWith(
-                  color: AppColors.textMutedFor(brightness),
+                  color: Colors.white38,
                   fontSize: 10,
                 ),
               ),
@@ -119,21 +112,12 @@ class StudyHeatmap extends ConsumerWidget {
     );
   }
 
-  List<Color> _legendColors(bool isDark) {
-    if (isDark) {
-      return [
-        Colors.white.withValues(alpha: 0.12),
-        const Color(0xFF6467F2).withValues(alpha: 0.30),
-        const Color(0xFF6467F2).withValues(alpha: 0.50),
-        const Color(0xFF6467F2).withValues(alpha: 0.75),
-        const Color(0xFF6467F2),
-      ];
-    }
+  List<Color> _legendColors() {
     return [
-      Colors.black.withValues(alpha: 0.05),
-      const Color(0xFF6467F2).withValues(alpha: 0.25),
-      const Color(0xFF6467F2).withValues(alpha: 0.40),
-      const Color(0xFF6467F2).withValues(alpha: 0.65),
+      AppColors.immersiveSurface,
+      const Color(0xFF6467F2).withValues(alpha: 0.30),
+      const Color(0xFF6467F2).withValues(alpha: 0.50),
+      const Color(0xFF6467F2).withValues(alpha: 0.75),
       const Color(0xFF6467F2),
     ];
   }
@@ -141,18 +125,14 @@ class StudyHeatmap extends ConsumerWidget {
 
 class _HeatmapGrid extends StatelessWidget {
   final Map<String, int> dailyXp;
-  final bool isDark;
-  final Brightness brightness;
 
   const _HeatmapGrid({
     required this.dailyXp,
-    required this.isDark,
-    required this.brightness,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Build 13 weeks × 7 days grid
+    // Build 13 weeks x 7 days grid
     final now = DateTime.now();
     // Start from the beginning of the week 12 weeks ago
     final today = DateTime(now.year, now.month, now.day);
@@ -178,7 +158,6 @@ class _HeatmapGrid extends StatelessWidget {
               maxXp: maxXp,
               cellSize: cellSize,
               cellGap: cellGap,
-              isDark: isDark,
             ),
           ),
         );
@@ -193,7 +172,6 @@ class _HeatmapPainter extends CustomPainter {
   final int maxXp;
   final double cellSize;
   final double cellGap;
-  final bool isDark;
 
   _HeatmapPainter({
     required this.startDate,
@@ -201,7 +179,6 @@ class _HeatmapPainter extends CustomPainter {
     required this.maxXp,
     required this.cellSize,
     required this.cellGap,
-    required this.isDark,
   });
 
   @override
@@ -230,8 +207,8 @@ class _HeatmapPainter extends CustomPainter {
         );
         canvas.drawRRect(rrect, paint);
 
-        // Subtle border on empty cells in dark mode for grid visibility
-        if (xp == 0 && isDark) {
+        // Subtle border on empty cells for grid visibility
+        if (xp == 0) {
           final borderPaint = Paint()
             ..color = Colors.white.withValues(alpha: 0.08)
             ..style = PaintingStyle.stroke
@@ -244,33 +221,25 @@ class _HeatmapPainter extends CustomPainter {
 
   Color _colorForIntensity(int xp) {
     if (xp == 0) {
-      return isDark
-          ? Colors.white.withValues(alpha: 0.12)
-          : Colors.black.withValues(alpha: 0.05);
+      return AppColors.immersiveSurface;
     }
 
     final effective = maxXp > 0 ? xp / maxXp : 0.0;
 
     if (effective < 0.25) {
-      return isDark
-          ? const Color(0xFF6467F2).withValues(alpha: 0.30)
-          : const Color(0xFF6467F2).withValues(alpha: 0.25);
+      return const Color(0xFF6467F2).withValues(alpha: 0.30);
     }
     if (effective < 0.50) {
-      return isDark
-          ? const Color(0xFF6467F2).withValues(alpha: 0.50)
-          : const Color(0xFF6467F2).withValues(alpha: 0.40);
+      return const Color(0xFF6467F2).withValues(alpha: 0.50);
     }
     if (effective < 0.75) {
-      return isDark
-          ? const Color(0xFF6467F2).withValues(alpha: 0.75)
-          : const Color(0xFF6467F2).withValues(alpha: 0.65);
+      return const Color(0xFF6467F2).withValues(alpha: 0.75);
     }
     return const Color(0xFF6467F2);
   }
 
   @override
   bool shouldRepaint(covariant _HeatmapPainter old) {
-    return old.dailyXp != dailyXp || old.isDark != isDark;
+    return old.dailyXp != dailyXp;
   }
 }

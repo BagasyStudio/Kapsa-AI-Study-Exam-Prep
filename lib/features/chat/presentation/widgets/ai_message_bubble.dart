@@ -32,9 +32,6 @@ class AiMessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final brightness = Theme.of(context).brightness;
-
     final bubbleBorderRadius = showAvatar
         ? const BorderRadius.only(
             topLeft: Radius.circular(4),
@@ -51,7 +48,7 @@ class AiMessageBubble extends StatelessWidget {
 
     final bubbleWidget = Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E2040) : const Color(0xFFF8F9FA),
+        color: const Color(0xFF1E2040),
         borderRadius: bubbleBorderRadius,
         border: Border(
           left: BorderSide(
@@ -75,46 +72,46 @@ class AiMessageBubble extends StatelessWidget {
             inlineSyntaxes: mathInlineSyntaxes(),
             builders: mathBuilders(
               textStyle: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textPrimaryFor(brightness),
+                color: Colors.white,
                 height: 1.6,
               ),
             ),
             styleSheet: MarkdownStyleSheet(
               p: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textPrimaryFor(brightness),
+                color: Colors.white,
                 height: 1.6,
               ),
               strong: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textPrimaryFor(brightness),
+                color: Colors.white,
                 fontWeight: FontWeight.w700,
                 height: 1.6,
               ),
               em: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textPrimaryFor(brightness),
+                color: Colors.white,
                 fontStyle: FontStyle.italic,
                 height: 1.6,
               ),
               h1: AppTypography.h3.copyWith(
-                color: AppColors.textPrimaryFor(brightness),
+                color: Colors.white,
               ),
               h2: AppTypography.labelLarge.copyWith(
-                color: AppColors.textPrimaryFor(brightness),
+                color: Colors.white,
                 fontWeight: FontWeight.w700,
               ),
               h3: AppTypography.labelLarge.copyWith(
-                color: AppColors.textSecondaryFor(brightness),
+                color: Colors.white60,
                 fontWeight: FontWeight.w600,
               ),
               listBullet: AppTypography.bodyMedium.copyWith(
                 color: AppColors.primary,
               ),
               code: AppTypography.bodySmall.copyWith(
-                color: isDark ? const Color(0xFFFB7185) : const Color(0xFFE11D48),
-                backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                color: const Color(0xFFFB7185),
+                backgroundColor: const Color(0xFF1E293B),
                 fontFamily: 'monospace',
               ),
               codeblockDecoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : const Color(0xFF1E293B),
+                color: const Color(0xFF0F172A),
                 borderRadius: BorderRadius.circular(8),
               ),
               codeblockPadding: const EdgeInsets.all(12),
@@ -190,7 +187,7 @@ class AiMessageBubble extends StatelessWidget {
                 child: Text(
                   timestamp!,
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.textMutedFor(brightness),
+                    color: Colors.white38,
                     fontSize: 10,
                   ),
                 ),

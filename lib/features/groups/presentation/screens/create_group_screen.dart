@@ -5,7 +5,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
-import '../../../../core/providers/theme_provider.dart';
 import '../providers/groups_provider.dart';
 
 /// Screen for creating a new study group.
@@ -56,22 +55,20 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.close,
-              color: AppColors.textPrimaryFor(brightness)),
+              color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           'Create Group',
           style: AppTypography.h3.copyWith(
-            color: AppColors.textPrimaryFor(brightness),
+            color: Colors.white,
           ),
         ),
       ),
@@ -83,18 +80,18 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
             Text(
               'Group Name',
               style: AppTypography.labelLarge.copyWith(
-                color: AppColors.textPrimaryFor(brightness),
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
             TextField(
               controller: _nameController,
               autofocus: true,
-              style: TextStyle(color: AppColors.textPrimaryFor(brightness)),
+              style: TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'e.g. Biology Study Group',
                 filled: true,
-                fillColor: context.isDark ? AppColors.cardDark : Colors.white,
+                fillColor: AppColors.immersiveSurface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
@@ -109,18 +106,18 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
             Text(
               'Description (optional)',
               style: AppTypography.labelLarge.copyWith(
-                color: AppColors.textPrimaryFor(brightness),
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
             TextField(
               controller: _descController,
               maxLines: 3,
-              style: TextStyle(color: AppColors.textPrimaryFor(brightness)),
+              style: TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'What is this group about?',
                 filled: true,
-                fillColor: context.isDark ? AppColors.cardDark : Colors.white,
+                fillColor: AppColors.immersiveSurface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,

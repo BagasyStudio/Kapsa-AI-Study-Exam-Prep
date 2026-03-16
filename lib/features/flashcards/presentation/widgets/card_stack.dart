@@ -157,8 +157,7 @@ class _CardStackState extends State<CardStack>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final ghostColor = isDark ? Colors.white : Colors.black;
+    final ghostColor = Colors.white;
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -167,7 +166,7 @@ class _CardStackState extends State<CardStack>
           alignment: Alignment.center,
           transform: Matrix4.identity()
             ..rotateZ(-0.05)
-            ..scale(0.90),
+            ..scaleByDouble(0.90, 0.90, 0.90, 1.0),
           child: Opacity(
             opacity: 0.3,
             child: Container(
@@ -189,7 +188,7 @@ class _CardStackState extends State<CardStack>
           alignment: Alignment.center,
           transform: Matrix4.identity()
             ..rotateZ(0.03)
-            ..scale(0.95),
+            ..scaleByDouble(0.95, 0.95, 0.95, 1.0),
           child: Opacity(
             opacity: 0.5,
             child: Container(
@@ -215,7 +214,7 @@ class _CardStackState extends State<CardStack>
           child: Transform(
             alignment: Alignment.center,
             transform: Matrix4.identity()
-              ..translate(_dragOffset.dx, _dragOffset.dy)
+              ..translateByDouble(_dragOffset.dx, _dragOffset.dy, 0.0, 0.0)
               ..rotateZ(_dragAngle),
             child: widget.frontCard,
           ),

@@ -48,12 +48,10 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
     final termsAsync = ref.watch(glossaryTermsProvider(widget.courseId));
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       appBar: AppBar(
         title: const Text('Glossary'),
         backgroundColor: Colors.transparent,
@@ -76,12 +74,12 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                 decoration: InputDecoration(
                   hintText: 'Search terms...',
                   hintStyle: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textMutedFor(brightness),
+                    color: Colors.white38,
                   ),
                   border: InputBorder.none,
                   icon: Icon(
                     Icons.search,
-                    color: AppColors.textMutedFor(brightness),
+                    color: Colors.white38,
                     size: 20,
                   ),
                   contentPadding: const EdgeInsets.symmetric(
@@ -89,7 +87,7 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                   ),
                 ),
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textPrimaryFor(brightness),
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -108,7 +106,7 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                   child: Text(
                     AppErrorHandler.friendlyMessage(e),
                     style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textSecondaryFor(brightness),
+                      color: Colors.white60,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -123,20 +121,20 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                         Icon(
                           Icons.menu_book_outlined,
                           size: 64,
-                          color: AppColors.textMutedFor(brightness),
+                          color: Colors.white38,
                         ),
                         const SizedBox(height: AppSpacing.md),
                         Text(
                           'No glossary terms yet',
                           style: AppTypography.h4.copyWith(
-                            color: AppColors.textSecondaryFor(brightness),
+                            color: Colors.white60,
                           ),
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
                           'Generate a glossary from your course materials',
                           style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textMutedFor(brightness),
+                            color: Colors.white38,
                           ),
                         ),
                       ],
@@ -210,7 +208,6 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                             // Terms for this letter
                             ...sectionTerms.map((term) => _TermCard(
                                   term: term,
-                                  brightness: brightness,
                                 )),
                           ],
                         );
@@ -227,8 +224,6 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
                           child: _AlphabetSidebar(
                             letters: sidebarLetters,
                             activeLetters: sortedLetters.toSet(),
-                            brightness: brightness,
-                            isDark: isDark,
                             onLetterTap: _scrollToLetter,
                           ),
                         ),
@@ -248,15 +243,11 @@ class _GlossaryScreenState extends ConsumerState<GlossaryScreen> {
 class _AlphabetSidebar extends StatelessWidget {
   final List<String> letters;
   final Set<String> activeLetters;
-  final Brightness brightness;
-  final bool isDark;
   final ValueChanged<String> onLetterTap;
 
   const _AlphabetSidebar({
     required this.letters,
     required this.activeLetters,
-    required this.brightness,
-    required this.isDark,
     required this.onLetterTap,
   });
 
@@ -265,9 +256,7 @@ class _AlphabetSidebar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.06)
-            : Colors.white.withValues(alpha: 0.7),
+        color: Colors.white.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -286,7 +275,7 @@ class _AlphabetSidebar extends StatelessWidget {
                   fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
                   color: isActive
                       ? AppColors.primary
-                      : AppColors.textMutedFor(brightness).withValues(alpha: 0.4),
+                      : Colors.white38.withValues(alpha: 0.4),
                 ),
               ),
             ),
@@ -299,9 +288,8 @@ class _AlphabetSidebar extends StatelessWidget {
 
 class _TermCard extends StatefulWidget {
   final GlossaryTermModel term;
-  final Brightness brightness;
 
-  const _TermCard({required this.term, required this.brightness});
+  const _TermCard({required this.term});
 
   @override
   State<_TermCard> createState() => _TermCardState();
@@ -340,7 +328,7 @@ class _TermCardState extends State<_TermCard> {
                       child: Text(
                         widget.term.term,
                         style: AppTypography.labelLarge.copyWith(
-                          color: AppColors.textPrimaryFor(widget.brightness),
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -348,7 +336,7 @@ class _TermCardState extends State<_TermCard> {
                       _expanded
                           ? Icons.keyboard_arrow_up
                           : Icons.keyboard_arrow_down,
-                      color: AppColors.textMutedFor(widget.brightness),
+                      color: Colors.white38,
                       size: 20,
                     ),
                   ],
@@ -366,7 +354,7 @@ class _TermCardState extends State<_TermCard> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondaryFor(widget.brightness),
+                        color: Colors.white60,
                       ),
                     ),
                   ),
@@ -381,7 +369,7 @@ class _TermCardState extends State<_TermCard> {
                         Text(
                           widget.term.definition,
                           style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textPrimaryFor(widget.brightness),
+                            color: Colors.white,
                             height: 1.5,
                           ),
                         ),

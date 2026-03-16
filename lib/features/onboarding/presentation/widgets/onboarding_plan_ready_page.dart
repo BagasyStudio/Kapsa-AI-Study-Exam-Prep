@@ -118,11 +118,9 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
-    final brightness = Theme.of(context).brightness;
     final screenH = MediaQuery.of(context).size.height;
     final ringSize = (screenH * 0.16).clamp(110.0, 150.0);
     final ringStroke = ringSize * 0.08;
-    final isDark = brightness == Brightness.dark;
 
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
@@ -140,7 +138,7 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
                 fontWeight: FontWeight.w700,
                 height: 1.2,
                 letterSpacing: -0.5,
-                color: AppColors.textPrimaryFor(brightness),
+                color: Colors.white,
               ),
               textAlign: TextAlign.center,
             ),
@@ -181,7 +179,7 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
                         child: Text(
                           l.planReadyPersonalized,
                           style: AppTypography.caption.copyWith(
-                            color: AppColors.textMutedFor(brightness),
+                            color: Colors.white38,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -210,7 +208,7 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
                       : const Color(0xFFF59E0B);
 
                   return Opacity(
-                    opacity: progress,
+                    opacity: progress.clamp(0.0, 1.0),
                     child: Transform.translate(
                       offset: Offset(0, 12 * (1 - progress)),
                       child: Container(
@@ -222,7 +220,7 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
                         ),
                         decoration: BoxDecoration(
                           color: urgencyColor
-                              .withValues(alpha: isDark ? 0.15 : 0.08),
+                              .withValues(alpha: 0.15),
                           borderRadius: AppRadius.borderRadiusMd,
                           border: Border.all(
                             color: urgencyColor.withValues(alpha: 0.3),
@@ -270,7 +268,7 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
                     final stat = stats[i];
 
                     return Opacity(
-                      opacity: progress,
+                      opacity: progress.clamp(0.0, 1.0),
                       child: Transform.translate(
                         offset: Offset(-40 * (1 - progress), 0),
                         child: Padding(
@@ -283,14 +281,10 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
                               vertical: AppSpacing.sm,
                             ),
                             decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.08)
-                                  : Colors.white.withValues(alpha: 0.55),
+                              color: Colors.white.withValues(alpha: 0.08),
                               borderRadius: AppRadius.borderRadiusMd,
                               border: Border.all(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.1)
-                                    : Colors.white.withValues(alpha: 0.2),
+                                color: Colors.white.withValues(alpha: 0.1),
                               ),
                             ),
                             child: Row(
@@ -303,8 +297,7 @@ class _OnboardingPlanReadyPageState extends State<OnboardingPlanReadyPage>
                                     stat.$2,
                                     style:
                                         AppTypography.bodyMedium.copyWith(
-                                      color: AppColors.textPrimaryFor(
-                                          brightness),
+                                      color: Colors.white,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),

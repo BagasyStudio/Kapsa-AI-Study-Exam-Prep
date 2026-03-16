@@ -19,7 +19,9 @@ import '../providers/test_provider.dart';
 /// Allows users to select a course, number of questions, and time limit
 /// before starting a timed exam simulation.
 class PracticeExamSetupScreen extends ConsumerStatefulWidget {
-  const PracticeExamSetupScreen({super.key});
+  final String? initialCourseId;
+
+  const PracticeExamSetupScreen({super.key, this.initialCourseId});
 
   @override
   ConsumerState<PracticeExamSetupScreen> createState() =>
@@ -28,7 +30,7 @@ class PracticeExamSetupScreen extends ConsumerStatefulWidget {
 
 class _PracticeExamSetupScreenState
     extends ConsumerState<PracticeExamSetupScreen> {
-  String? _selectedCourseId;
+  late String? _selectedCourseId = widget.initialCourseId;
   int _questionCount = 10;
   int? _timeLimitMinutes; // null = no limit
   bool _isGenerating = false;
@@ -446,7 +448,7 @@ class _CourseSelector extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          course.title,
+                          course.displayTitle,
                           style: AppTypography.labelLarge.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,

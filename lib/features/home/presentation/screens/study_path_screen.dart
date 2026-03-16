@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/widgets/glass_panel.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../data/models/study_task_model.dart';
@@ -27,12 +26,10 @@ class _StudyPathScreenState extends ConsumerState<StudyPathScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
     final tasksAsync = ref.watch(aiEnhancedStudyPlanProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       body: Stack(
         children: [
           // Background gradient blobs
@@ -44,7 +41,7 @@ class _StudyPathScreenState extends ConsumerState<StudyPathScreen> {
               height: 280,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: isDark ? 0.08 : 0.05),
+                color: AppColors.primary.withValues(alpha: 0.06),
               ),
             ),
           ),
@@ -56,7 +53,7 @@ class _StudyPathScreenState extends ConsumerState<StudyPathScreen> {
               height: 200,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.06 : 0.04),
+                color: const Color(0xFF10B981).withValues(alpha: 0.04),
               ),
             ),
           ),
@@ -78,14 +75,12 @@ class _StudyPathScreenState extends ConsumerState<StudyPathScreen> {
                           height: 40,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.08)
-                                : Colors.white.withValues(alpha: 0.6),
+                            color: Colors.white.withValues(alpha: 0.08),
                           ),
-                          child: Icon(
+                          child: const Icon(
                             Icons.arrow_back,
                             size: 20,
-                            color: AppColors.textPrimaryFor(brightness),
+                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -99,7 +94,7 @@ class _StudyPathScreenState extends ConsumerState<StudyPathScreen> {
                                 Text(
                                   'Study Path',
                                   style: AppTypography.h3.copyWith(
-                                    color: AppColors.textPrimaryFor(brightness),
+                                    color: Colors.white,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -143,7 +138,7 @@ class _StudyPathScreenState extends ConsumerState<StudyPathScreen> {
                             Text(
                               'Your personalized study plan',
                               style: AppTypography.caption.copyWith(
-                                color: AppColors.textMutedFor(brightness),
+                                color: Colors.white60,
                               ),
                             ),
                           ],
@@ -166,13 +161,13 @@ class _StudyPathScreenState extends ConsumerState<StudyPathScreen> {
                       child: Text(
                         'Could not load study plan',
                         style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondaryFor(brightness),
+                          color: Colors.white60,
                         ),
                       ),
                     ),
                     data: (tasks) {
                       if (tasks.isEmpty) {
-                        return _buildEmptyState(brightness, isDark);
+                        return _buildEmptyState();
                       }
 
                       final completedCount = _completedIndices.length;
@@ -197,8 +192,6 @@ class _StudyPathScreenState extends ConsumerState<StudyPathScreen> {
                             progress: progress,
                             completed: completedCount,
                             total: totalCount,
-                            brightness: brightness,
-                            isDark: isDark,
                           ),
 
                           // Focus Mode button
@@ -221,14 +214,12 @@ class _StudyPathScreenState extends ConsumerState<StudyPathScreen> {
                                     vertical: 14,
                                   ),
                                   decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [Color(0xFF6467F2), Color(0xFF8B5CF6)],
-                                    ),
+                                    color: AppColors.ctaLime,
                                     borderRadius: BorderRadius.circular(14),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: const Color(0xFF6467F2).withValues(alpha: 0.3),
-                                        blurRadius: 16,
+                                        color: AppColors.ctaLime.withValues(alpha: 0.25),
+                                        blurRadius: 12,
                                         offset: const Offset(0, 6),
                                       ),
                                     ],
@@ -238,18 +229,20 @@ class _StudyPathScreenState extends ConsumerState<StudyPathScreen> {
                                     children: [
                                       const Icon(
                                         Icons.bolt,
-                                        color: Colors.white,
+                                        color: AppColors.ctaLimeText,
                                         size: 20,
                                       ),
                                       const SizedBox(width: 8),
-                                      Text(
-                                        'Focus Mode — ${firstUncompleted.title}',
-                                        style: AppTypography.labelLarge.copyWith(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w700,
+                                      Flexible(
+                                        child: Text(
+                                          'Focus Mode — ${firstUncompleted.title}',
+                                          style: AppTypography.labelLarge.copyWith(
+                                            color: AppColors.ctaLimeText,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ],
                                   ),
@@ -269,18 +262,16 @@ class _StudyPathScreenState extends ConsumerState<StudyPathScreen> {
                               itemBuilder: (context, index) {
                                 final task = tasks[index];
                                 final isCompleted = _completedIndices.contains(index);
+                                final hasRoute = task.route != null;
                                 return _StudyPathTaskCard(
                                   task: task,
                                   index: index,
                                   isCompleted: isCompleted,
                                   isFirst: index == 0 && !isCompleted,
-                                  brightness: brightness,
-                                  isDark: isDark,
-                                  onTap: () {
-                                    if (task.route != null) {
-                                      context.push(task.route!);
-                                    }
-                                  },
+                                  hasRoute: hasRoute,
+                                  onTap: hasRoute
+                                      ? () => context.push(task.route!)
+                                      : null,
                                   onComplete: () {
                                     setState(() {
                                       if (isCompleted) {
@@ -307,7 +298,7 @@ class _StudyPathScreenState extends ConsumerState<StudyPathScreen> {
     );
   }
 
-  Widget _buildEmptyState(Brightness brightness, bool isDark) {
+  Widget _buildEmptyState() {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -324,14 +315,14 @@ class _StudyPathScreenState extends ConsumerState<StudyPathScreen> {
               child: Icon(
                 Icons.check_circle_outline,
                 size: 40,
-                color: const Color(0xFF10B981).withValues(alpha: 0.6),
+                color: const Color(0xFF10B981).withValues(alpha: 0.4),
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
               'All caught up!',
               style: AppTypography.h3.copyWith(
-                color: AppColors.textPrimaryFor(brightness),
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -339,7 +330,7 @@ class _StudyPathScreenState extends ConsumerState<StudyPathScreen> {
               'No tasks for today. Great job staying on top of your studies!',
               textAlign: TextAlign.center,
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textMutedFor(brightness),
+                color: Colors.white60,
               ),
             ),
           ],
@@ -354,24 +345,24 @@ class _ProgressHeader extends StatelessWidget {
   final double progress;
   final int completed;
   final int total;
-  final Brightness brightness;
-  final bool isDark;
 
   const _ProgressHeader({
     required this.progress,
     required this.completed,
     required this.total,
-    required this.brightness,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-      child: GlassPanel(
-        tier: GlassTier.medium,
+      child: Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: AppColors.immersiveCard,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.immersiveBorder),
+        ),
         child: Row(
           children: [
             // Progress ring
@@ -384,8 +375,8 @@ class _ProgressHeader extends StatelessWidget {
                     child: CircularProgressIndicator(
                       value: progress,
                       strokeWidth: 5,
-                      backgroundColor: AppColors.textMutedFor(brightness)
-                          .withValues(alpha: 0.15),
+                      backgroundColor:
+                          AppColors.immersiveBorder.withValues(alpha: 0.5),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         progress >= 1.0
                             ? const Color(0xFF10B981)
@@ -398,7 +389,7 @@ class _ProgressHeader extends StatelessWidget {
                     child: Text(
                       '${(progress * 100).toInt()}%',
                       style: AppTypography.labelLarge.copyWith(
-                        color: AppColors.textPrimaryFor(brightness),
+                        color: Colors.white,
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
                       ),
@@ -417,7 +408,7 @@ class _ProgressHeader extends StatelessWidget {
                         ? 'All tasks completed!'
                         : '$completed of $total tasks done',
                     style: AppTypography.labelLarge.copyWith(
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -427,7 +418,7 @@ class _ProgressHeader extends StatelessWidget {
                         ? 'Amazing work today!'
                         : 'Keep going, you\'re doing great',
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textMutedFor(brightness),
+                      color: Colors.white60,
                     ),
                   ),
                 ],
@@ -446,9 +437,8 @@ class _StudyPathTaskCard extends StatelessWidget {
   final int index;
   final bool isCompleted;
   final bool isFirst;
-  final Brightness brightness;
-  final bool isDark;
-  final VoidCallback onTap;
+  final bool hasRoute;
+  final VoidCallback? onTap;
   final VoidCallback onComplete;
 
   const _StudyPathTaskCard({
@@ -456,8 +446,7 @@ class _StudyPathTaskCard extends StatelessWidget {
     required this.index,
     required this.isCompleted,
     required this.isFirst,
-    required this.brightness,
-    required this.isDark,
+    required this.hasRoute,
     required this.onTap,
     required this.onComplete,
   });
@@ -502,144 +491,141 @@ class _StudyPathTaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDisabled = !hasRoute && !isCompleted;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: TapScale(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: isCompleted
-                ? (isDark
-                    ? Colors.white.withValues(alpha: 0.03)
-                    : Colors.white.withValues(alpha: 0.4))
-                : isFirst
-                    ? (isDark
-                        ? _accentColor.withValues(alpha: 0.08)
-                        : _accentColor.withValues(alpha: 0.05))
-                    : (isDark
-                        ? Colors.white.withValues(alpha: 0.06)
-                        : Colors.white.withValues(alpha: 0.7)),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isFirst && !isCompleted
-                  ? _accentColor.withValues(alpha: 0.25)
-                  : (isDark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Colors.white.withValues(alpha: 0.5)),
+      child: Opacity(
+        opacity: isDisabled ? 0.5 : 1.0,
+        child: TapScale(
+          onTap: isDisabled ? null : (onTap ?? onComplete),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: isCompleted
+                  ? AppColors.immersiveSurface.withValues(alpha: 0.5)
+                  : isFirst
+                      ? _accentColor.withValues(alpha: 0.06)
+                      : AppColors.immersiveCard,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isFirst && !isCompleted
+                    ? _accentColor.withValues(alpha: 0.2)
+                    : AppColors.immersiveBorder,
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              // Completion checkbox
-              GestureDetector(
-                onTap: onComplete,
-                behavior: HitTestBehavior.opaque,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isCompleted
-                        ? const Color(0xFF10B981)
-                        : Colors.transparent,
-                    border: Border.all(
+            child: Row(
+              children: [
+                // Completion checkbox
+                GestureDetector(
+                  onTap: onComplete,
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
                       color: isCompleted
                           ? const Color(0xFF10B981)
-                          : AppColors.textMutedFor(brightness).withValues(alpha: 0.3),
-                      width: 2,
-                    ),
-                  ),
-                  child: isCompleted
-                      ? const Icon(Icons.check, size: 16, color: Colors.white)
-                      : null,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-
-              // Icon
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _accentColor.withValues(alpha: isCompleted ? 0.05 : 0.1),
-                ),
-                child: Icon(
-                  _icon,
-                  size: 20,
-                  color: isCompleted
-                      ? AppColors.textMutedFor(brightness)
-                      : _accentColor,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-
-              // Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      task.title,
-                      style: AppTypography.labelLarge.copyWith(
+                          : Colors.transparent,
+                      border: Border.all(
                         color: isCompleted
-                            ? AppColors.textMutedFor(brightness)
-                            : AppColors.textPrimaryFor(brightness),
-                        fontWeight: FontWeight.w600,
-                        decoration: isCompleted
-                            ? TextDecoration.lineThrough
-                            : null,
+                            ? const Color(0xFF10B981)
+                            : Colors.white.withValues(alpha: 0.2),
+                        width: 2,
                       ),
                     ),
-                    Text(
-                      task.subtitle,
-                      style: AppTypography.caption.copyWith(
-                        color: AppColors.textMutedFor(brightness),
-                      ),
-                    ),
-                    if (task.reason != null && !isCompleted) ...[
-                      const SizedBox(height: 4),
+                    child: isCompleted
+                        ? const Icon(Icons.check, size: 16, color: Colors.white)
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+
+                // Icon
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _accentColor.withValues(alpha: isCompleted ? 0.05 : 0.1),
+                  ),
+                  child: Icon(
+                    _icon,
+                    size: 20,
+                    color: isCompleted
+                        ? Colors.white38
+                        : _accentColor,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+
+                // Content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        task.reason!,
-                        style: AppTypography.caption.copyWith(
-                          color: _accentColor.withValues(alpha: 0.8),
-                          fontSize: 11,
-                          fontStyle: FontStyle.italic,
+                        task.title,
+                        style: AppTypography.labelLarge.copyWith(
+                          color: isCompleted
+                              ? Colors.white38
+                              : Colors.white,
+                          fontWeight: FontWeight.w600,
+                          decoration: isCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
                         ),
                       ),
+                      Text(
+                        task.subtitle,
+                        style: AppTypography.caption.copyWith(
+                          color: Colors.white60,
+                        ),
+                      ),
+                      if (task.reason != null && !isCompleted) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          task.reason!,
+                          style: AppTypography.caption.copyWith(
+                            color: _accentColor.withValues(alpha: 0.7),
+                            fontSize: 11,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
 
-              // Priority badge for first uncompleted
-              if (isFirst && !isCompleted)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: _accentColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: Text(
-                    'NEXT',
-                    style: AppTypography.caption.copyWith(
-                      color: _accentColor,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
-                      letterSpacing: 0.8,
+                // Priority badge for first uncompleted
+                if (isFirst && !isCompleted)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: _accentColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(100),
                     ),
+                    child: Text(
+                      'NEXT',
+                      style: AppTypography.caption.copyWith(
+                        color: _accentColor,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  )
+                else if (!isCompleted && hasRoute)
+                  const Icon(
+                    Icons.chevron_right,
+                    size: 20,
+                    color: Colors.white38,
                   ),
-                )
-              else if (!isCompleted)
-                Icon(
-                  Icons.chevron_right,
-                  size: 20,
-                  color: AppColors.textMutedFor(brightness),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

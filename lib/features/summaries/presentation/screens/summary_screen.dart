@@ -15,11 +15,10 @@ class SummaryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final brightness = Theme.of(context).brightness;
     final summaryAsync = ref.watch(summaryProvider(summaryId));
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       appBar: AppBar(
         title: const Text('Summary'),
         backgroundColor: Colors.transparent,
@@ -34,7 +33,7 @@ class SummaryScreen extends ConsumerWidget {
           child: Text(
             AppErrorHandler.friendlyMessage(e),
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textSecondaryFor(brightness),
+              color: Colors.white60,
             ),
           ),
         ),
@@ -54,14 +53,14 @@ class SummaryScreen extends ConsumerWidget {
                 Text(
                   summary.title,
                   style: AppTypography.h2.copyWith(
-                    color: AppColors.textPrimaryFor(brightness),
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   '${summary.wordCount} words',
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.textMutedFor(brightness),
+                    color: Colors.white38,
                   ),
                 ),
 
@@ -71,7 +70,7 @@ class SummaryScreen extends ConsumerWidget {
                   Text(
                     'Key Takeaways',
                     style: AppTypography.labelLarge.copyWith(
-                      color: AppColors.textSecondaryFor(brightness),
+                      color: Colors.white60,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
@@ -101,7 +100,7 @@ class SummaryScreen extends ConsumerWidget {
                                 child: Text(
                                   point,
                                   style: AppTypography.bodySmall.copyWith(
-                                    color: AppColors.textPrimaryFor(brightness),
+                                    color: Colors.white,
                                     height: 1.5,
                                   ),
                                 ),
@@ -119,7 +118,7 @@ class SummaryScreen extends ConsumerWidget {
                 Text(
                   'Full Summary',
                   style: AppTypography.labelLarge.copyWith(
-                    color: AppColors.textSecondaryFor(brightness),
+                    color: Colors.white60,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -129,7 +128,7 @@ class SummaryScreen extends ConsumerWidget {
                   child: SelectableText(
                     summary.content,
                     style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                       height: 1.7,
                     ),
                   ),

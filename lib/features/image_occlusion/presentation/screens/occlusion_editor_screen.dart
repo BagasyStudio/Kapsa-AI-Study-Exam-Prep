@@ -8,7 +8,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
-import '../../../../core/providers/theme_provider.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../flashcards/presentation/providers/flashcard_provider.dart';
 import '../../data/models/occlusion_rect_model.dart';
@@ -123,31 +122,28 @@ class _OcclusionEditorScreenState
 
   void _showLabelDialog(int index) {
     _labelController.text = _rects[index].label;
-    final brightness = Theme.of(context).brightness;
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: context.isDark
-            ? AppColors.surfaceDark
-            : const Color(0xFFF8FAFC),
+        backgroundColor: AppColors.surfaceDark,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
         title: Text(
           'Label for Region ${index + 1}',
           style: AppTypography.h3.copyWith(
-            color: AppColors.textPrimaryFor(brightness),
+            color: Colors.white,
           ),
         ),
         content: TextField(
           controller: _labelController,
           autofocus: true,
-          style: TextStyle(color: AppColors.textPrimaryFor(brightness)),
+          style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: 'e.g. Mitochondria',
             filled: true,
-            fillColor: context.isDark ? AppColors.cardDark : Colors.white,
+            fillColor: AppColors.cardDark,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
             ),
@@ -160,9 +156,9 @@ class _OcclusionEditorScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel',
+            child: const Text('Cancel',
                 style: TextStyle(
-                    color: AppColors.textMutedFor(brightness))),
+                    color: Colors.white38)),
           ),
           TextButton(
             onPressed: () {
@@ -292,23 +288,20 @@ class _OcclusionEditorScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.isDark;
-    final brightness = Theme.of(context).brightness;
-
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon:
-              Icon(Icons.close, color: AppColors.textPrimaryFor(brightness)),
+              const Icon(Icons.close, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           'Image Occlusion',
           style: AppTypography.h3.copyWith(
-            color: AppColors.textPrimaryFor(brightness),
+            color: Colors.white,
           ),
         ),
         actions: [
@@ -345,12 +338,12 @@ class _OcclusionEditorScreenState
         ],
       ),
       body: _imageFile == null
-          ? _buildPickPrompt(brightness)
-          : _buildEditor(isDark, brightness),
+          ? _buildPickPrompt()
+          : _buildEditor(),
     );
   }
 
-  Widget _buildPickPrompt(Brightness brightness) {
+  Widget _buildPickPrompt() {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -369,14 +362,14 @@ class _OcclusionEditorScreenState
           Text(
             'Choose an Image',
             style: AppTypography.h3.copyWith(
-              color: AppColors.textPrimaryFor(brightness),
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
             'Select a diagram, chart, or image to create\nocclusion flashcards',
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textMutedFor(brightness),
+              color: Colors.white38,
             ),
             textAlign: TextAlign.center,
           ),
@@ -411,7 +404,7 @@ class _OcclusionEditorScreenState
     );
   }
 
-  Widget _buildEditor(bool isDark, Brightness brightness) {
+  Widget _buildEditor() {
     return Column(
       children: [
         // Toolbar
@@ -420,14 +413,14 @@ class _OcclusionEditorScreenState
               horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
           child: Row(
             children: [
-              Icon(Icons.touch_app,
-                  size: 16, color: AppColors.textMutedFor(brightness)),
+              const Icon(Icons.touch_app,
+                  size: 16, color: Colors.white38),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   'Draw rectangles over areas to occlude',
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.textMutedFor(brightness),
+                    color: Colors.white38,
                   ),
                 ),
               ),
@@ -564,11 +557,8 @@ class _OcclusionEditorScreenState
                         color: isSelected
                             ? AppColors.primary
                                 .withValues(alpha: 0.15)
-                            : isDark
-                                ? Colors.white
-                                    .withValues(alpha: 0.08)
-                                : Colors.white
-                                    .withValues(alpha: 0.5),
+                            : Colors.white
+                                    .withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isSelected
@@ -586,8 +576,7 @@ class _OcclusionEditorScreenState
                             style: AppTypography.labelLarge.copyWith(
                               color: isSelected
                                   ? AppColors.primary
-                                  : AppColors.textPrimaryFor(
-                                      brightness),
+                                  : Colors.white,
                               fontWeight: FontWeight.w700,
                               fontSize: 13,
                             ),
@@ -596,8 +585,7 @@ class _OcclusionEditorScreenState
                             Text(
                               r.label,
                               style: AppTypography.caption.copyWith(
-                                color:
-                                    AppColors.textMutedFor(brightness),
+                                color: Colors.white38,
                                 fontSize: 10,
                               ),
                               maxLines: 1,

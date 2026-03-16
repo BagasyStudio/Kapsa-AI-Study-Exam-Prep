@@ -34,22 +34,37 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
   /// Start generating flashcards in background. Returns false if already running.
   ///
   /// Optionally pass [materialId] to generate from a specific material.
-  bool generateFlashcards(String courseId, String courseName, {String? materialId}) {
+  /// If [count] is not provided, free users are capped at 30 cards.
+  bool generateFlashcards(String courseId, String courseName, {String? materialId, int? count}) {
     if (isRunning(GenerationType.flashcards, courseId)) return false;
 
     final task = _createTask(GenerationType.flashcards, courseId, courseName);
 
-    // Fire-and-forget
-    _ref
-        .read(flashcardRepositoryProvider)
-        .generateFlashcards(courseId: courseId, materialId: materialId)
-        .then((deck) {
-      _recordUsage('flashcards');
-      _ref.invalidate(flashcardDecksProvider(courseId));
-      _completeTask(task.id, Routes.flashcardSessionPath(deck.id));
-    }).catchError((Object e) {
-      _failTask(task.id, e);
-    });
+    // Fire-and-forget — resolve pro status + generate
+    () async {
+      // Cap free users to 30 cards regardless of requested count
+      var effectiveCount = count;
+      try {
+        final isPro = await _ref.read(isProProvider.future);
+        if (!isPro) {
+          effectiveCount = (effectiveCount ?? 30).clamp(1, 30);
+        }
+      } catch (_) {
+        effectiveCount = (effectiveCount ?? 30).clamp(1, 30);
+      }
+
+      try {
+        final deck = await _ref
+            .read(flashcardRepositoryProvider)
+            .generateFlashcards(courseId: courseId, materialId: materialId, count: effectiveCount);
+        _recordUsage('flashcards');
+        _ref.invalidate(flashcardDecksProvider(courseId));
+        _ref.invalidate(parentDecksProvider(courseId));
+        _completeTask(task.id, Routes.deckDetailPath(deck.id));
+      } catch (e) {
+        _failTask(task.id, e);
+      }
+    }();
 
     return true;
   }

@@ -10,7 +10,6 @@ import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../core/widgets/staggered_list.dart';
 import '../../../../core/utils/error_handler.dart';
-import '../../../../core/providers/theme_provider.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../gamification/presentation/providers/xp_provider.dart';
 import '../../../sharing/data/milestone_service.dart';
@@ -61,12 +60,10 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
   @override
   Widget build(BuildContext context) {
     final groupAsync = ref.watch(groupDetailProvider(widget.groupId));
-    final brightness = Theme.of(context).brightness;
-    final isDark = context.isDark;
     final currentUserId = Supabase.instance.client.auth.currentUser?.id;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       body: SafeArea(
         child: groupAsync.when(
           loading: () => const Padding(
@@ -79,7 +76,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
               child: Text(
                 AppErrorHandler.friendlyMessage(e),
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textMutedFor(brightness),
+                  color: Colors.white38,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -99,7 +96,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                     children: [
                       IconButton(
                         icon: Icon(Icons.arrow_back,
-                            color: AppColors.textPrimaryFor(brightness)),
+                            color: Colors.white),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                       Expanded(
@@ -109,7 +106,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                             Text(
                               group.name,
                               style: AppTypography.h3.copyWith(
-                                color: AppColors.textPrimaryFor(brightness),
+                                color: Colors.white,
                                 fontWeight: FontWeight.w700,
                               ),
                               maxLines: 1,
@@ -120,7 +117,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                               Text(
                                 group.description!,
                                 style: AppTypography.caption.copyWith(
-                                  color: AppColors.textMutedFor(brightness),
+                                  color: Colors.white38,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -166,9 +163,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                   margin: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.xl),
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.06)
-                        : Colors.white.withValues(alpha: 0.5),
+                    color: Colors.white.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: TabBar(
@@ -179,7 +174,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                       borderRadius: BorderRadius.circular(12),
                     ),
                     labelColor: Colors.white,
-                    unselectedLabelColor: AppColors.textMutedFor(brightness),
+                    unselectedLabelColor: Colors.white38,
                     labelStyle: AppTypography.labelLarge.copyWith(
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
@@ -229,7 +224,6 @@ class _FeedTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final activitiesAsync = ref.watch(groupActivitiesProvider(groupId));
-    final brightness = Theme.of(context).brightness;
 
     return activitiesAsync.when(
       loading: () => const Padding(
@@ -242,7 +236,7 @@ class _FeedTab extends ConsumerWidget {
           child: Text(
             AppErrorHandler.friendlyMessage(e),
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textMutedFor(Theme.of(context).brightness),
+              color: Colors.white38,
             ),
             textAlign: TextAlign.center,
           ),
@@ -254,7 +248,7 @@ class _FeedTab extends ConsumerWidget {
             child: Text(
               'No activity yet.\nStart studying to share progress!',
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textMutedFor(brightness),
+                color: Colors.white38,
               ),
               textAlign: TextAlign.center,
             ),
@@ -339,7 +333,7 @@ class _LeaderboardTab extends ConsumerWidget {
           child: Text(
             AppErrorHandler.friendlyMessage(e),
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textMutedFor(Theme.of(context).brightness),
+              color: Colors.white38,
             ),
             textAlign: TextAlign.center,
           ),
@@ -377,7 +371,6 @@ class _MembersTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final membersAsync = ref.watch(groupMembersProvider(groupId));
-    final brightness = Theme.of(context).brightness;
 
     return membersAsync.when(
       loading: () => const Padding(
@@ -390,7 +383,7 @@ class _MembersTab extends ConsumerWidget {
           child: Text(
             AppErrorHandler.friendlyMessage(e),
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textMutedFor(Theme.of(context).brightness),
+              color: Colors.white38,
             ),
             textAlign: TextAlign.center,
           ),
@@ -430,7 +423,7 @@ class _MembersTab extends ConsumerWidget {
                         Text(
                           member.fullName ?? 'Member',
                           style: AppTypography.labelLarge.copyWith(
-                            color: AppColors.textPrimaryFor(brightness),
+                            color: Colors.white,
                             fontSize: 14,
                           ),
                         ),
@@ -439,7 +432,7 @@ class _MembersTab extends ConsumerWidget {
                           style: AppTypography.caption.copyWith(
                             color: member.role == 'owner'
                                 ? AppColors.primary
-                                : AppColors.textMutedFor(brightness),
+                                : Colors.white38,
                             fontWeight: member.role == 'owner'
                                 ? FontWeight.w600
                                 : FontWeight.w400,

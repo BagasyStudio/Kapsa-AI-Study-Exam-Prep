@@ -24,7 +24,7 @@ class RecentMaterialsGrid extends ConsumerWidget {
         Text(
           'RECENT MATERIALS',
           style: AppTypography.sectionHeader.copyWith(
-            color: AppColors.textMutedFor(Theme.of(context).brightness),
+            color: Colors.white38,
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -71,7 +71,7 @@ class RecentMaterialsGrid extends ConsumerWidget {
               children: [
                 for (final material in displayMaterials)
                   MaterialThumbnail(
-                    title: material.title,
+                    title: material.displayTitle,
                     subtitle: _timeAgo(material.createdAt),
                     type: _mapType(material.type),
                     onTap: () => context.push(

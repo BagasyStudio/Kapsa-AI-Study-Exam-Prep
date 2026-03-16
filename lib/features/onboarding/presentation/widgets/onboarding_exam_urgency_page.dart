@@ -72,7 +72,6 @@ class _OnboardingExamUrgencyPageState extends State<OnboardingExamUrgencyPage>
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     final options = _options(l);
-    final brightness = Theme.of(context).brightness;
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
@@ -118,7 +117,7 @@ class _OnboardingExamUrgencyPageState extends State<OnboardingExamUrgencyPage>
                         fontWeight: FontWeight.w700,
                         height: 1.2,
                         letterSpacing: -0.5,
-                        color: AppColors.textPrimaryFor(brightness),
+                        color: Colors.white,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -132,7 +131,7 @@ class _OnboardingExamUrgencyPageState extends State<OnboardingExamUrgencyPage>
                   child: Text(
                     l.examUrgencySubtitle,
                     style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textSecondaryFor(brightness),
+                      color: Colors.white60,
                       height: 1.55,
                     ),
                     textAlign: TextAlign.center,
@@ -143,7 +142,7 @@ class _OnboardingExamUrgencyPageState extends State<OnboardingExamUrgencyPage>
 
                 // Option cards
                 ...List.generate(
-                    options.length, (i) => _buildCard(i, options, brightness)),
+                    options.length, (i) => _buildCard(i, options)),
 
                 const SizedBox(height: AppSpacing.md),
               ],
@@ -154,7 +153,7 @@ class _OnboardingExamUrgencyPageState extends State<OnboardingExamUrgencyPage>
     );
   }
 
-  Widget _buildCard(int i, List<({String emoji, String label})> options, Brightness brightness) {
+  Widget _buildCard(int i, List<({String emoji, String label})> options) {
     final start = (0.25 + i * 0.10).clamp(0.0, 1.0);
     final end = (start + 0.35).clamp(0.0, 1.0);
     final progress = CurvedAnimation(
@@ -170,7 +169,7 @@ class _OnboardingExamUrgencyPageState extends State<OnboardingExamUrgencyPage>
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.xs),
       child: Opacity(
-        opacity: progress,
+        opacity: progress.clamp(0.0, 1.0),
         child: Transform.translate(
           offset: Offset(slideX, 0),
           child: TapScale(
@@ -191,16 +190,12 @@ class _OnboardingExamUrgencyPageState extends State<OnboardingExamUrgencyPage>
                 decoration: BoxDecoration(
                   color: isSelected
                       ? AppColors.primary.withValues(alpha: 0.12)
-                      : brightness == Brightness.dark
-                          ? Colors.white.withValues(alpha: 0.08)
-                          : Colors.white,
+                      : Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(AppSpacing.sm),
                   border: Border.all(
                     color: isSelected
                         ? AppColors.primary
-                        : brightness == Brightness.dark
-                            ? Colors.white.withValues(alpha: 0.12)
-                            : AppColors.primary.withValues(alpha: 0.12),
+                        : Colors.white.withValues(alpha: 0.12),
                     width: isSelected ? 1.5 : 1,
                   ),
                 ),
@@ -217,7 +212,7 @@ class _OnboardingExamUrgencyPageState extends State<OnboardingExamUrgencyPage>
                         style: AppTypography.bodyMedium.copyWith(
                           color: isSelected
                               ? AppColors.primary
-                              : AppColors.textSecondaryFor(brightness),
+                              : Colors.white60,
                           fontWeight:
                               isSelected ? FontWeight.w600 : FontWeight.w400,
                         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
 import 'tap_scale.dart';
 
@@ -6,6 +7,7 @@ import 'tap_scale.dart';
 ///
 /// Uses a semi-transparent gradient fill instead of BackdropFilter
 /// for better performance on scrollable surfaces.
+/// Always renders in immersive dark style.
 class GlassButton extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
@@ -23,43 +25,26 @@ class GlassButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = borderRadius ?? AppRadius.borderRadiusCard;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return TapScale(
       onTap: onTap,
       child: Container(
         padding: padding ?? const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDark
-                ? [
-                    const Color(0xFF1E1E2E).withValues(alpha: 0.90),
-                    const Color(0xFF1A1B2E).withValues(alpha: 0.80),
-                  ]
-                : [
-                    const Color(0xE6FFFFFF), // ~90%
-                    const Color(0x99FFFFFF), // ~60%
-                  ],
-          ),
+          color: AppColors.immersiveCard,
           borderRadius: radius,
           border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.12)
-                : Colors.white.withValues(alpha: 0.5),
+            color: AppColors.immersiveBorder,
           ),
           boxShadow: [
             BoxShadow(
-              color: isDark
-                  ? Colors.black.withValues(alpha: 0.3)
-                  : Colors.white.withValues(alpha: 0.9),
+              color: Colors.black.withValues(alpha: 0.3),
               blurRadius: 20,
               offset: Offset.zero,
               blurStyle: BlurStyle.inner,
             ),
             BoxShadow(
-              color: const Color(0xFF6467F2).withValues(alpha: isDark ? 0.15 : 0.1),
+              color: const Color(0xFF6467F2).withValues(alpha: 0.15),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),

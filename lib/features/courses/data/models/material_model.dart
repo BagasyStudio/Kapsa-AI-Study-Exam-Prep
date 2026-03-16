@@ -1,3 +1,5 @@
+import '../../../../core/utils/title_utils.dart';
+
 /// Model representing a course material from the `course_materials` table.
 class MaterialModel {
   final String id;
@@ -81,6 +83,9 @@ class MaterialModel {
       createdAt: createdAt,
     );
   }
+
+  /// Clean display title: strip numeric prefix, replace underscores, title-case.
+  String get displayTitle => cleanDisplayTitle(title);
 
   /// Human-readable label for the material type.
   String get typeLabel {

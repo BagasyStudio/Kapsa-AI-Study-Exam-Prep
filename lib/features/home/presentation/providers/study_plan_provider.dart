@@ -28,7 +28,7 @@ final studyPlanProvider = FutureProvider<List<StudyTask>>((ref) async {
 
   final client = ref.read(supabaseClientProvider);
   final courseIds = courses.map((c) => c.id).toList();
-  final courseMap = {for (final c in courses) c.id: c.title};
+  final courseMap = {for (final c in courses) c.id: c.displayTitle};
   final tasks = <StudyTask>[];
 
   // ── 1. Flashcard due cards — single batched query ──
@@ -114,7 +114,7 @@ final studyPlanProvider = FutureProvider<List<StudyTask>>((ref) async {
           title: 'Retake quiz',
           subtitle: title,
           courseId: entry.key,
-          route: Routes.courseDetailPath(entry.key),
+          route: '${Routes.practiceExam}?courseId=${entry.key}',
           priority: 20,
           reason: 'Your last score was ${entry.value.toInt()}% — practice to improve',
         ));
@@ -128,9 +128,9 @@ final studyPlanProvider = FutureProvider<List<StudyTask>>((ref) async {
         tasks.add(StudyTask(
           type: StudyTaskType.quiz,
           title: 'Take a quiz',
-          subtitle: course.title,
+          subtitle: course.displayTitle,
           courseId: course.id,
-          route: Routes.courseDetailPath(course.id),
+          route: '${Routes.practiceExam}?courseId=${course.id}',
           priority: 35,
           reason: 'No quiz in 7+ days — test your knowledge',
         ));
@@ -169,7 +169,7 @@ final studyPlanProvider = FutureProvider<List<StudyTask>>((ref) async {
         tasks.add(StudyTask(
           type: StudyTaskType.materialReview,
           title: 'Review materials',
-          subtitle: course.title,
+          subtitle: course.displayTitle,
           courseId: course.id,
           route: Routes.courseDetailPath(course.id),
           priority: 40,
@@ -216,6 +216,7 @@ String? _routeForTask(StudyTaskType type, String? courseId) {
     case StudyTaskType.flashcardReview:
       return Routes.srsReviewPath(courseId);
     case StudyTaskType.quiz:
+      return '${Routes.practiceExam}?courseId=$courseId';
     case StudyTaskType.materialReview:
     case StudyTaskType.summaryGeneration:
     case StudyTaskType.glossaryGeneration:

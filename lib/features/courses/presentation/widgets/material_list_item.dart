@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -47,16 +46,14 @@ class MaterialListItem extends StatelessWidget {
 
   void _showContextMenu(BuildContext context) {
     HapticFeedback.mediumImpact();
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1F3B) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: const BoxDecoration(
+          color: AppColors.immersiveCard,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SafeArea(
           top: false,
@@ -69,8 +66,7 @@ class MaterialListItem extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: (isDark ? Colors.white : Colors.black)
-                      .withValues(alpha: 0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(100),
                 ),
               ),
@@ -81,7 +77,7 @@ class MaterialListItem extends StatelessWidget {
                 child: Text(
                   title,
                   style: AppTypography.labelLarge.copyWith(
-                    color: AppColors.textPrimaryFor(brightness),
+                    color: Colors.white,
                     fontWeight: FontWeight.w700,
                   ),
                   maxLines: 2,
@@ -91,8 +87,7 @@ class MaterialListItem extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Divider(
-                color: (isDark ? Colors.white : Colors.black)
-                    .withValues(alpha: 0.08),
+                color: Colors.white.withValues(alpha: 0.08),
                 height: 1,
               ),
               // Action items
@@ -101,8 +96,6 @@ class MaterialListItem extends StatelessWidget {
                   icon: Icons.style_rounded,
                   label: 'Generate Flashcards',
                   color: const Color(0xFF3B82F6),
-                  isDark: isDark,
-                  brightness: brightness,
                   onTap: () {
                     Navigator.pop(ctx);
                     onGenerateFlashcards?.call();
@@ -113,8 +106,6 @@ class MaterialListItem extends StatelessWidget {
                   icon: Icons.headphones_rounded,
                   label: 'Audio Summary',
                   color: const Color(0xFF14B8A6),
-                  isDark: isDark,
-                  brightness: brightness,
                   onTap: () {
                     Navigator.pop(ctx);
                     onAudioSummary?.call();
@@ -125,8 +116,6 @@ class MaterialListItem extends StatelessWidget {
                   icon: Icons.quiz_rounded,
                   label: 'Practice Quiz',
                   color: const Color(0xFF10B981),
-                  isDark: isDark,
-                  brightness: brightness,
                   onTap: () {
                     Navigator.pop(ctx);
                     onPracticeQuiz?.call();
@@ -134,16 +123,13 @@ class MaterialListItem extends StatelessWidget {
                 ),
               if (onDelete != null) ...[
                 Divider(
-                  color: (isDark ? Colors.white : Colors.black)
-                      .withValues(alpha: 0.08),
+                  color: Colors.white.withValues(alpha: 0.08),
                   height: 1,
                 ),
                 _ContextMenuItem(
                   icon: Icons.delete_outline_rounded,
                   label: 'Delete',
                   color: AppColors.error,
-                  isDark: isDark,
-                  brightness: brightness,
                   onTap: () {
                     Navigator.pop(ctx);
                     _confirmDelete(context);
@@ -160,8 +146,7 @@ class MaterialListItem extends StatelessWidget {
                     onPressed: () => Navigator.pop(ctx),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: (isDark ? Colors.white : Colors.black)
-                          .withValues(alpha: 0.06),
+                      backgroundColor: Colors.white.withValues(alpha: 0.06),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -169,7 +154,7 @@ class MaterialListItem extends StatelessWidget {
                     child: Text(
                       'Cancel',
                       style: AppTypography.labelLarge.copyWith(
-                        color: AppColors.textSecondaryFor(brightness),
+                        color: Colors.white60,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -188,12 +173,14 @@ class MaterialListItem extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Material'),
-        content: Text('Are you sure you want to delete "$title"?'),
+        backgroundColor: AppColors.immersiveCard,
+        title: const Text('Delete Material', style: TextStyle(color: Colors.white)),
+        content: Text('Are you sure you want to delete "$title"?',
+            style: const TextStyle(color: Colors.white60)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white38)),
           ),
           TextButton(
             onPressed: () {
@@ -212,26 +199,17 @@ class MaterialListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     final card = GestureDetector(
       onLongPress: () => _showContextMenu(context),
       child: TapScale(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: AppRadius.borderRadiusLg,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
+      child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
             decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white.withValues(alpha: 0.10)
-                  : Colors.white.withValues(alpha: 0.82),
+              color: AppColors.immersiveCard,
               borderRadius: AppRadius.borderRadiusLg,
               border: Border.all(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white.withValues(alpha: 0.12)
-                    : Colors.black.withValues(alpha: 0.06),
+                color: AppColors.immersiveBorder,
               ),
             ),
             child: Column(
@@ -260,7 +238,7 @@ class MaterialListItem extends StatelessWidget {
                             Text(
                               title,
                               style: AppTypography.labelLarge.copyWith(
-                                color: AppColors.textPrimaryFor(brightness),
+                                color: Colors.white,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -278,7 +256,7 @@ class MaterialListItem extends StatelessWidget {
                                   label: isReviewed ? 'Reviewed' : timeLabel,
                                   color: isReviewed
                                       ? AppColors.success
-                                      : AppColors.textMutedFor(brightness),
+                                      : Colors.white38,
                                 ),
 
                                 // Type chip
@@ -326,14 +304,14 @@ class MaterialListItem extends StatelessWidget {
                           decoration: BoxDecoration(
                             borderRadius: AppRadius.borderRadiusPill,
                             border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.3),
+                              color: AppColors.primary.withValues(alpha: 0.5),
                             ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                Icons.psychology,
+                                Icons.auto_awesome,
                                 size: 16,
                                 color: AppColors.primary,
                               ),
@@ -343,6 +321,7 @@ class MaterialListItem extends StatelessWidget {
                                 style: AppTypography.caption.copyWith(
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.w600,
+                                  fontSize: 12,
                                 ),
                               ),
                             ],
@@ -354,8 +333,6 @@ class MaterialListItem extends StatelessWidget {
                 ],
               ),
           ),
-        ),
-      ),
       ),
     );
 
@@ -368,12 +345,14 @@ class MaterialListItem extends StatelessWidget {
         return await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Delete Material'),
-            content: Text('Are you sure you want to delete "$title"?'),
+            backgroundColor: AppColors.immersiveCard,
+            title: const Text('Delete Material', style: TextStyle(color: Colors.white)),
+            content: Text('Are you sure you want to delete "$title"?',
+                style: const TextStyle(color: Colors.white60)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
+                child: const Text('Cancel', style: TextStyle(color: Colors.white38)),
               ),
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(true),
@@ -404,9 +383,9 @@ class MaterialListItem extends StatelessWidget {
   }
 
   Color get _iconBgColor => switch (kind) {
-        CourseMaterialKind.pdf => const Color(0xFFFEE2E2),
-        CourseMaterialKind.audio => const Color(0xFFF3E8FF),
-        CourseMaterialKind.notes => const Color(0xFFDBEAFE),
+        CourseMaterialKind.pdf => AppColors.pdfRed.withValues(alpha: 0.12),
+        CourseMaterialKind.audio => AppColors.audioPurple.withValues(alpha: 0.12),
+        CourseMaterialKind.notes => AppColors.notesBlue.withValues(alpha: 0.12),
       };
 
   Color get _iconColor => switch (kind) {
@@ -466,16 +445,12 @@ class _ContextMenuItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
-  final bool isDark;
-  final Brightness brightness;
   final VoidCallback onTap;
 
   const _ContextMenuItem({
     required this.icon,
     required this.label,
     required this.color,
-    required this.isDark,
-    required this.brightness,
     required this.onTap,
   });
 
@@ -501,14 +476,14 @@ class _ContextMenuItem extends StatelessWidget {
               child: Text(
                 label,
                 style: AppTypography.labelLarge.copyWith(
-                  color: AppColors.textPrimaryFor(brightness),
+                  color: Colors.white,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
-            Icon(
+            const Icon(
               Icons.chevron_right_rounded,
-              color: AppColors.textMutedFor(brightness),
+              color: Colors.white38,
               size: 20,
             ),
           ],

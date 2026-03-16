@@ -103,7 +103,6 @@ class _GlobalChatScreenState extends ConsumerState<GlobalChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     final chatState = ref.watch(globalChatProvider);
     final messages = chatState.messages;
 
@@ -113,7 +112,7 @@ class _GlobalChatScreenState extends ConsumerState<GlobalChatScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       body: Stack(
         children: [
           // Animated ambient orbs
@@ -173,12 +172,12 @@ class _GlobalChatScreenState extends ConsumerState<GlobalChatScreen> {
                                           vertical: 6,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: AppColors.surfaceFor(brightness)
+                                          color: AppColors.immersiveSurface
                                               .withValues(alpha: 0.6),
                                           borderRadius:
                                               BorderRadius.circular(100),
                                           border: Border.all(
-                                            color: AppColors.surfaceFor(brightness)
+                                            color: AppColors.immersiveSurface
                                                 .withValues(alpha: 0.2),
                                           ),
                                         ),
@@ -188,7 +187,7 @@ class _GlobalChatScreenState extends ConsumerState<GlobalChatScreen> {
                                               AppTypography.caption.copyWith(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w500,
-                                            color: AppColors.textMutedFor(brightness),
+                                            color: Colors.white38,
                                           ),
                                         ),
                                       ),
@@ -199,9 +198,7 @@ class _GlobalChatScreenState extends ConsumerState<GlobalChatScreen> {
                                 // Typing indicator at the end
                                 if (chatState.isLoading &&
                                     index == messages.length + 1) {
-                                  return _TypingIndicator(
-                                    brightness: brightness,
-                                  );
+                                  return const _TypingIndicator();
                                 }
 
                                 // Message grouping logic
@@ -327,7 +324,6 @@ class _EmptyGlobalChatState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),
@@ -339,7 +335,7 @@ class _EmptyGlobalChatState extends StatelessWidget {
             Text(
               'The Oracle knows everything',
               style: AppTypography.h3.copyWith(
-                color: AppColors.textSecondaryFor(brightness),
+                color: Colors.white60,
               ),
               textAlign: TextAlign.center,
             ),
@@ -347,7 +343,7 @@ class _EmptyGlobalChatState extends StatelessWidget {
             Text(
               'Ask about your courses, scores, weak areas, and upcoming exams.',
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textMutedFor(brightness),
+                color: Colors.white38,
               ),
               textAlign: TextAlign.center,
             ),
@@ -366,11 +362,9 @@ class _EmptyGlobalChatState extends StatelessWidget {
   }
 }
 
-/// Typing indicator bubble with theme-aware styling.
+/// Typing indicator bubble with immersive dark styling.
 class _TypingIndicator extends StatelessWidget {
-  final Brightness brightness;
-
-  const _TypingIndicator({required this.brightness});
+  const _TypingIndicator();
 
   @override
   Widget build(BuildContext context) {
@@ -386,7 +380,7 @@ class _TypingIndicator extends StatelessWidget {
               vertical: AppSpacing.md,
             ),
             decoration: BoxDecoration(
-              color: AppColors.cardFor(brightness),
+              color: AppColors.immersiveCard,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),

@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/sound_service.dart';
@@ -68,7 +67,7 @@ class _FlashcardSessionScreenState
             .read(courseRepositoryProvider)
             .getCourse(courseId);
         if (course != null && mounted) {
-          setState(() => _courseName = course.title);
+          setState(() => _courseName = course.displayTitle);
         }
       }
     } catch (_) {
@@ -210,7 +209,7 @@ class _FlashcardSessionScreenState
       SharePreviewSheet.show(
         context,
         shareCard: CourseMasteryCard(
-          courseName: course.title,
+          courseName: course.displayTitle,
           totalCards: totalCards,
           quizzesTaken: 0, // simplified
           daysToMaster: DateTime.now()
@@ -232,7 +231,6 @@ class _FlashcardSessionScreenState
   @override
   Widget build(BuildContext context) {
     final cardsAsync = ref.watch(flashcardsProvider(widget.sessionId));
-    final brightness = Theme.of(context).brightness;
 
     return PopScope(
       canPop: false,
@@ -242,7 +240,7 @@ class _FlashcardSessionScreenState
         if (shouldLeave && context.mounted) Navigator.of(context).pop();
       },
       child: Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       body: cardsAsync.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
@@ -254,19 +252,19 @@ class _FlashcardSessionScreenState
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.error_outline,
-                    size: 48, color: AppColors.textMutedFor(brightness)),
+                    size: 48, color: Colors.white38),
                 const SizedBox(height: AppSpacing.md),
                 Text(
                   'Could not load flashcards',
                   style: AppTypography.h3.copyWith(
-                    color: AppColors.textPrimaryFor(brightness),
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   AppErrorHandler.friendlyMessage(e),
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textMutedFor(brightness),
+                    color: Colors.white38,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -290,19 +288,19 @@ class _FlashcardSessionScreenState
                     children: [
                       Icon(Icons.style,
                           size: 48,
-                          color: AppColors.textMutedFor(brightness)),
+                          color: Colors.white38),
                       const SizedBox(height: AppSpacing.md),
                       Text(
                         'No flashcards yet',
                         style: AppTypography.h3.copyWith(
-                          color: AppColors.textPrimaryFor(brightness),
+                          color: Colors.white,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         'Generate flashcards from your course materials first.',
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.textMutedFor(brightness),
+                          color: Colors.white38,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -330,16 +328,17 @@ class _FlashcardSessionScreenState
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Leave session?'),
-        content: const Text('Your progress in this session will be lost.'),
+        backgroundColor: AppColors.immersiveCard,
+        title: const Text('Leave session?', style: TextStyle(color: Colors.white)),
+        content: const Text('Your progress in this session will be lost.', style: TextStyle(color: Colors.white60)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Stay'),
+            child: const Text('Stay', style: TextStyle(color: Colors.white70)),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Leave'),
+            child: const Text('Leave', style: TextStyle(color: Colors.white70)),
           ),
         ],
       ),
@@ -410,7 +409,7 @@ class _FlashcardSessionScreenState
               height: 380,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: 0.2),
+                color: AppColors.primary.withValues(alpha: 0.10),
               ),
             ),
           ),
@@ -567,8 +566,6 @@ class _FlashcardSessionScreenState
   }
 
   Widget _buildCompletionOverlay(List<FlashcardModel> cards) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
     final profile = ref.watch(profileProvider).whenOrNull(data: (p) => p);
     final xpLevel = ref.watch(xpLevelProvider);
     final userName = profile?.firstName ?? 'Student';
@@ -580,9 +577,7 @@ class _FlashcardSessionScreenState
 
     return GestureDetector(
       onTap: () {}, // absorb taps
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Container(
+      child: Container(
           color: Colors.black.withValues(alpha: 0.5),
           child: SafeArea(
             child: Center(
@@ -593,14 +588,10 @@ class _FlashcardSessionScreenState
                   vertical: 32,
                 ),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF1A1B2E).withValues(alpha: 0.85)
-                      : Colors.white.withValues(alpha: 0.9),
+                  color: AppColors.immersiveCard.withValues(alpha: 0.95),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : Colors.black.withValues(alpha: 0.06),
+                    color: AppColors.immersiveBorder,
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -617,7 +608,7 @@ class _FlashcardSessionScreenState
                     Text(
                       '\u{1f389} Session Complete!',
                       style: AppTypography.h2.copyWith(
-                        color: AppColors.textPrimaryFor(brightness),
+                        color: Colors.white,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -625,7 +616,7 @@ class _FlashcardSessionScreenState
                     Text(
                       '$totalCards cards reviewed',
                       style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textMutedFor(brightness),
+                        color: Colors.white60,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -639,7 +630,6 @@ class _FlashcardSessionScreenState
                           value: '$_masteredCount',
                           label: 'Mastered',
                           color: const Color(0xFF10B981),
-                          brightness: brightness,
                         ),
                         const SizedBox(width: 32),
                         _CompletionStat(
@@ -647,7 +637,6 @@ class _FlashcardSessionScreenState
                           value: '$_againCount',
                           label: 'Again',
                           color: const Color(0xFFF97316),
-                          brightness: brightness,
                         ),
                         const SizedBox(width: 32),
                         _CompletionStat(
@@ -655,7 +644,6 @@ class _FlashcardSessionScreenState
                           value: '${masteryRate.round()}%',
                           label: 'Mastery',
                           color: AppColors.primary,
-                          brightness: brightness,
                         ),
                       ],
                     ),
@@ -724,21 +712,17 @@ class _FlashcardSessionScreenState
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.08)
-                              : Colors.black.withValues(alpha: 0.05),
+                          color: AppColors.immersiveSurface,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.1)
-                                : Colors.black.withValues(alpha: 0.08),
+                            color: AppColors.immersiveBorder,
                           ),
                         ),
                         child: Center(
                           child: Text(
                             'Continue Reviewing',
                             style: AppTypography.labelLarge.copyWith(
-                              color: AppColors.textPrimaryFor(brightness),
+                              color: Colors.white70,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -761,7 +745,7 @@ class _FlashcardSessionScreenState
                           child: Text(
                             'Done',
                             style: AppTypography.labelLarge.copyWith(
-                              color: AppColors.textMutedFor(brightness),
+                              color: Colors.white38,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -774,7 +758,6 @@ class _FlashcardSessionScreenState
             ),
           ),
         ),
-      ),
     );
   }
 }
@@ -784,14 +767,12 @@ class _CompletionStat extends StatelessWidget {
   final String value;
   final String label;
   final Color color;
-  final Brightness brightness;
 
   const _CompletionStat({
     required this.icon,
     required this.value,
     required this.label,
     required this.color,
-    required this.brightness,
   });
 
   @override
@@ -803,14 +784,14 @@ class _CompletionStat extends StatelessWidget {
         Text(
           value,
           style: AppTypography.h3.copyWith(
-            color: AppColors.textPrimaryFor(brightness),
+            color: Colors.white,
             fontWeight: FontWeight.w800,
           ),
         ),
         Text(
           label,
           style: AppTypography.caption.copyWith(
-            color: AppColors.textMutedFor(brightness),
+            color: Colors.white60,
           ),
         ),
       ],

@@ -120,7 +120,6 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     final l = AppLocalizations.of(context)!;
     final testimonials = _testimonials(l);
     return AnimatedBuilder(
@@ -144,7 +143,6 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
 
         final screenH = MediaQuery.of(context).size.height;
         final imgSize = (screenH * 0.13).clamp(75.0, 110.0);
-        final isDark = brightness == Brightness.dark;
 
         // Testimonials should start typing after they become visible
         final canType = testimonialProgress > 0.5;
@@ -180,7 +178,7 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                       fontWeight: FontWeight.w700,
                       height: 1.2,
                       letterSpacing: -0.5,
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -206,7 +204,7 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                         ? l.socialProofFlashcardsReady(widget.flashcardCount)
                         : l.socialProofActiveStudents,
                     style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.textMutedFor(brightness),
+                      color: Colors.white38,
                       fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
@@ -276,8 +274,6 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                                 role: t.role,
                                 avatar: t.avatar,
                                 quote: t.quote,
-                                brightness: brightness,
-                                isDark: isDark,
                                 shouldType: canType && i == _currentTestimonial,
                               );
                             },
@@ -343,14 +339,14 @@ class _OnboardingSocialProofPageState extends State<OnboardingSocialProofPage>
                                 l.socialProofIn30Days,
                                 style: AppTypography.labelLarge.copyWith(
                                   color:
-                                      AppColors.textPrimaryFor(brightness),
+                                      Colors.white,
                                 ),
                               ),
                               Text(
                                 l.socialProofGradeImprovement,
                                 style: AppTypography.bodySmall.copyWith(
                                   color:
-                                      AppColors.textSecondaryFor(brightness),
+                                      Colors.white60,
                                 ),
                               ),
                             ],
@@ -376,8 +372,6 @@ class _TestimonialCard extends StatelessWidget {
   final String role;
   final String avatar;
   final String quote;
-  final Brightness brightness;
-  final bool isDark;
   final bool shouldType;
 
   const _TestimonialCard({
@@ -386,8 +380,6 @@ class _TestimonialCard extends StatelessWidget {
     required this.role,
     required this.avatar,
     required this.quote,
-    required this.brightness,
-    required this.isDark,
     required this.shouldType,
   });
 
@@ -397,14 +389,10 @@ class _TestimonialCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 2),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.08)
-            : Colors.white.withValues(alpha: 0.55),
+        color: Colors.white.withValues(alpha: 0.08),
         borderRadius: AppRadius.borderRadiusLg,
         border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.1)
-              : Colors.white.withValues(alpha: 0.2),
+          color: Colors.white.withValues(alpha: 0.1),
         ),
       ),
       child: Column(
@@ -423,7 +411,7 @@ class _TestimonialCard extends StatelessWidget {
                       HapticFeedback.selectionClick();
                     },
                     style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                       fontStyle: FontStyle.italic,
                       height: 1.5,
                     ),
@@ -432,7 +420,7 @@ class _TestimonialCard extends StatelessWidget {
                 : Text(
                     quote,
                     style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                       fontStyle: FontStyle.italic,
                       height: 1.5,
                     ),
@@ -459,14 +447,14 @@ class _TestimonialCard extends StatelessWidget {
                   Text(
                     name,
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   Text(
                     role,
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textMutedFor(brightness),
+                      color: Colors.white38,
                       fontSize: 10,
                     ),
                   ),

@@ -30,8 +30,6 @@ class StudyTimeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
     return TapScale(
       onTap: () {
         HapticFeedback.lightImpact();
@@ -51,16 +49,12 @@ class StudyTimeCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: isSelected
                 ? AppColors.primary.withValues(alpha: 0.08)
-                : isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : Colors.white.withValues(alpha: 0.55),
+                : Colors.white.withValues(alpha: 0.08),
             borderRadius: AppRadius.borderRadiusLg,
             border: Border.all(
               color: isSelected
                   ? AppColors.primary
-                  : isDark
-                      ? Colors.white.withValues(alpha: 0.12)
-                      : Colors.white.withValues(alpha: 0.2),
+                  : Colors.white.withValues(alpha: 0.12),
               width: isSelected ? 2 : 1,
             ),
             boxShadow: [
@@ -91,7 +85,7 @@ class StudyTimeCard extends StatelessWidget {
                 style: AppTypography.labelLarge.copyWith(
                   color: isSelected
                       ? AppColors.primary
-                      : AppColors.textPrimaryFor(brightness),
+                      : Colors.white,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                 ),
               ),
@@ -101,7 +95,7 @@ class StudyTimeCard extends StatelessWidget {
                 style: AppTypography.caption.copyWith(
                   color: isSelected
                       ? AppColors.primary.withValues(alpha: 0.7)
-                      : AppColors.textMutedFor(brightness),
+                      : Colors.white38,
                 ),
                 textAlign: TextAlign.center,
               ),

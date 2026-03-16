@@ -33,25 +33,21 @@ class _ExplainMistakesSheetState extends ConsumerState<ExplainMistakesSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final brightness = Theme.of(context).brightness;
-
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+        color: AppColors.immersiveBg,
         borderRadius: AppRadius.borderRadiusSheet,
       ),
       child: FutureBuilder<Map<String, dynamic>>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return _buildLoading(brightness);
+            return _buildLoading();
           }
 
           if (snapshot.hasError) {
             return _buildError(
               AppErrorHandler.friendlyMessage(snapshot.error!),
-              brightness,
             );
           }
 
@@ -66,14 +62,13 @@ class _ExplainMistakesSheetState extends ConsumerState<ExplainMistakesSheet> {
                     ?.map((e) => e.toString())
                     .toList() ??
                 [],
-            brightness: brightness,
           );
         },
       ),
     );
   }
 
-  Widget _buildLoading(Brightness brightness) {
+  Widget _buildLoading() {
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
@@ -90,14 +85,14 @@ class _ExplainMistakesSheetState extends ConsumerState<ExplainMistakesSheet> {
           Text(
             'Analizando tus errores...',
             style: AppTypography.h4.copyWith(
-              color: AppColors.textPrimaryFor(brightness),
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
             'La IA esta revisando tus respuestas',
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textSecondaryFor(brightness),
+              color: Colors.white60,
             ),
           ),
           const SizedBox(height: AppSpacing.xxl),
@@ -112,7 +107,7 @@ class _ExplainMistakesSheetState extends ConsumerState<ExplainMistakesSheet> {
     );
   }
 
-  Widget _buildError(String message, Brightness brightness) {
+  Widget _buildError(String message) {
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
@@ -125,14 +120,14 @@ class _ExplainMistakesSheetState extends ConsumerState<ExplainMistakesSheet> {
           Text(
             'No se pudo analizar',
             style: AppTypography.h4.copyWith(
-              color: AppColors.textPrimaryFor(brightness),
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
             message,
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textSecondaryFor(brightness),
+              color: Colors.white60,
             ),
             textAlign: TextAlign.center,
           ),
@@ -151,7 +146,6 @@ class _ExplainMistakesSheetState extends ConsumerState<ExplainMistakesSheet> {
     required String explanation,
     required List<String> weakTopics,
     required List<String> studyTips,
-    required Brightness brightness,
   }) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
@@ -192,7 +186,7 @@ class _ExplainMistakesSheetState extends ConsumerState<ExplainMistakesSheet> {
                 child: Text(
                   'Entendiendo tus errores',
                   style: AppTypography.h3.copyWith(
-                    color: AppColors.textPrimaryFor(brightness),
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -205,7 +199,7 @@ class _ExplainMistakesSheetState extends ConsumerState<ExplainMistakesSheet> {
             Text(
               'Temas a reforzar',
               style: AppTypography.labelLarge.copyWith(
-                color: AppColors.textSecondaryFor(brightness),
+                color: Colors.white60,
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
@@ -246,7 +240,7 @@ class _ExplainMistakesSheetState extends ConsumerState<ExplainMistakesSheet> {
               child: SelectableText(
                 explanation,
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textPrimaryFor(brightness),
+                  color: Colors.white,
                   height: 1.6,
                 ),
               ),
@@ -259,7 +253,7 @@ class _ExplainMistakesSheetState extends ConsumerState<ExplainMistakesSheet> {
             Text(
               'Tips de estudio',
               style: AppTypography.labelLarge.copyWith(
-                color: AppColors.textSecondaryFor(brightness),
+                color: Colors.white60,
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
@@ -293,7 +287,7 @@ class _ExplainMistakesSheetState extends ConsumerState<ExplainMistakesSheet> {
                         child: Text(
                           entry.value,
                           style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textPrimaryFor(brightness),
+                            color: Colors.white,
                             height: 1.5,
                           ),
                         ),

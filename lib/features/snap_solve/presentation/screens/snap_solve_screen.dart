@@ -130,17 +130,14 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       body: AuroraBackground(
         child: SafeArea(
           child: Column(
             children: [
               // App bar
-              _buildAppBar(brightness, isDark),
+              _buildAppBar(),
 
               // Content
               Expanded(
@@ -148,7 +145,7 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
                   duration: const Duration(milliseconds: 400),
                   switchInCurve: Curves.easeOut,
                   switchOutCurve: Curves.easeIn,
-                  child: _buildContent(brightness, isDark),
+                  child: _buildContent(),
                 ),
               ),
             ],
@@ -158,7 +155,7 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
     );
   }
 
-  Widget _buildAppBar(Brightness brightness, bool isDark) {
+  Widget _buildAppBar() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0,
@@ -176,19 +173,15 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
                   height: 40,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : Colors.white.withValues(alpha: 0.45),
+                    color: Colors.white.withValues(alpha: 0.1),
                     border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.15)
-                          : Colors.white.withValues(alpha: 0.6),
+                      color: Colors.white.withValues(alpha: 0.15),
                     ),
                   ),
                   child: Icon(
                     Icons.close,
                     size: 20,
-                    color: AppColors.textSecondaryFor(brightness),
+                    color: Colors.white60,
                   ),
                 ),
               ),
@@ -201,7 +194,7 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
           Text(
             'Snap & Solve',
             style: AppTypography.h4.copyWith(
-              color: AppColors.textPrimaryFor(brightness),
+              color: Colors.white,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -219,19 +212,15 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
                   height: 40,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : Colors.white.withValues(alpha: 0.45),
+                    color: Colors.white.withValues(alpha: 0.1),
                     border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.15)
-                          : Colors.white.withValues(alpha: 0.6),
+                      color: Colors.white.withValues(alpha: 0.15),
                     ),
                   ),
                   child: Icon(
                     Icons.history,
                     size: 20,
-                    color: AppColors.textSecondaryFor(brightness),
+                    color: Colors.white60,
                   ),
                 ),
               ),
@@ -242,7 +231,7 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
     );
   }
 
-  Widget _buildContent(Brightness brightness, bool isDark) {
+  Widget _buildContent() {
     // If viewing a history solution, show it directly
     // (independent of the global background job).
     if (_historySolution != null) {
@@ -294,9 +283,6 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
   }
 
   void _showHistory() {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -311,9 +297,7 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
             filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
             child: Container(
               decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.surfaceDark.withValues(alpha: 0.95)
-                    : Colors.white.withValues(alpha: 0.9),
+                color: AppColors.surfaceDark.withValues(alpha: 0.95),
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(24)),
               ),
@@ -339,7 +323,7 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
                     child: Text(
                       'Solution History',
                       style: AppTypography.h3.copyWith(
-                        color: AppColors.textPrimaryFor(brightness),
+                        color: Colors.white,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -364,7 +348,7 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
                                     Icon(
                                       Icons.history,
                                       size: 48,
-                                      color: AppColors.textMutedFor(brightness)
+                                      color: Colors.white38
                                           .withValues(alpha: 0.4),
                                     ),
                                     const SizedBox(height: AppSpacing.md),
@@ -373,7 +357,7 @@ class _SnapSolveScreenState extends ConsumerState<SnapSolveScreen>
                                       style:
                                           AppTypography.bodyMedium.copyWith(
                                         color:
-                                            AppColors.textMutedFor(brightness),
+                                            Colors.white38,
                                       ),
                                     ),
                                   ],
@@ -433,9 +417,6 @@ class _InitialView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       child: Column(
@@ -466,7 +447,7 @@ class _InitialView extends StatelessWidget {
           Text(
             'Take a photo of any problem',
             style: AppTypography.h3.copyWith(
-              color: AppColors.textPrimaryFor(brightness),
+              color: Colors.white,
               fontWeight: FontWeight.w700,
             ),
             textAlign: TextAlign.center,
@@ -477,7 +458,7 @@ class _InitialView extends StatelessWidget {
           Text(
             'Math, physics, chemistry — our AI will solve it step by step',
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textMutedFor(brightness),
+              color: Colors.white38,
             ),
             textAlign: TextAlign.center,
           ),
@@ -531,26 +512,22 @@ class _InitialView extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : Colors.white.withValues(alpha: 0.5),
+                color: Colors.white.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.15)
-                      : Colors.black.withValues(alpha: 0.08),
+                  color: Colors.white.withValues(alpha: 0.15),
                 ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.photo_library_rounded,
-                      color: AppColors.textSecondaryFor(brightness), size: 22),
+                      color: Colors.white60, size: 22),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
                     'Choose from Gallery',
                     style: AppTypography.labelLarge.copyWith(
-                      color: AppColors.textPrimaryFor(brightness),
+                      color: Colors.white,
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
                     ),
@@ -583,8 +560,6 @@ class _ProcessingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
@@ -648,7 +623,7 @@ class _ProcessingView extends StatelessWidget {
                 key: ValueKey(status),
                 style: AppTypography.h3.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimaryFor(brightness),
+                  color: Colors.white,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -664,7 +639,7 @@ class _ProcessingView extends StatelessWidget {
                     : 'Our AI is working through the problem...',
                 key: ValueKey(step),
                 style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textMutedFor(brightness),
+                  color: Colors.white38,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -676,7 +651,7 @@ class _ProcessingView extends StatelessWidget {
             Text(
               'You can go back — we\'ll notify you when it\'s ready',
               style: AppTypography.caption.copyWith(
-                color: AppColors.textMutedFor(brightness).withValues(alpha: 0.6),
+                color: Colors.white38.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
@@ -731,12 +706,11 @@ class _StepDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
     final color = isComplete
         ? AppColors.success
         : isActive
             ? AppColors.primary
-            : AppColors.textMutedFor(brightness).withValues(alpha: 0.4);
+            : Colors.white38.withValues(alpha: 0.4);
 
     return Column(
       children: [
@@ -765,7 +739,7 @@ class _StepDot extends StatelessWidget {
           style: AppTypography.caption.copyWith(
             color: isActive
                 ? AppColors.primary
-                : AppColors.textMutedFor(brightness),
+                : Colors.white38,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
@@ -790,7 +764,7 @@ class _StepConnector extends StatelessWidget {
         decoration: BoxDecoration(
           color: isComplete
               ? AppColors.success.withValues(alpha: 0.5)
-              : AppColors.textMutedFor(Theme.of(context).brightness)
+              : Colors.white38
                   .withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(1),
         ),
@@ -824,8 +798,6 @@ class _ErrorViewState extends State<_ErrorView> {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       child: Column(
@@ -848,7 +820,7 @@ class _ErrorViewState extends State<_ErrorView> {
           Text(
             'Oops!',
             style: AppTypography.h3.copyWith(
-              color: AppColors.textPrimaryFor(brightness),
+              color: Colors.white,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -856,7 +828,7 @@ class _ErrorViewState extends State<_ErrorView> {
           Text(
             widget.message,
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textMutedFor(brightness),
+              color: Colors.white38,
             ),
             textAlign: TextAlign.center,
           ),
@@ -868,7 +840,7 @@ class _ErrorViewState extends State<_ErrorView> {
               child: Text(
                 _showDetails ? 'Hide details \u25B2' : 'Show details \u25BC',
                 style: AppTypography.caption.copyWith(
-                  color: AppColors.textMutedFor(brightness).withValues(alpha: 0.5),
+                  color: Colors.white38.withValues(alpha: 0.5),
                   decoration: TextDecoration.underline,
                 ),
               ),
@@ -888,7 +860,7 @@ class _ErrorViewState extends State<_ErrorView> {
                 child: SelectableText(
                   widget.rawError!,
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.textMutedFor(brightness),
+                    color: Colors.white38,
                     fontFamily: 'monospace',
                     fontSize: 11,
                   ),
@@ -937,9 +909,6 @@ class _HistoryItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: TapScale(
@@ -947,14 +916,10 @@ class _HistoryItem extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.06)
-                : Colors.white.withValues(alpha: 0.5),
+            color: Colors.white.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.black.withValues(alpha: 0.05),
+              color: Colors.white.withValues(alpha: 0.1),
             ),
           ),
           child: Row(
@@ -985,14 +950,14 @@ class _HistoryItem extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTypography.labelLarge.copyWith(
-                        color: AppColors.textPrimaryFor(brightness),
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${solution.subject ?? 'Other'} \u2022 ${_formatDate(solution.createdAt)}',
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.textMutedFor(brightness),
+                        color: Colors.white38,
                       ),
                     ),
                   ],
@@ -1001,7 +966,7 @@ class _HistoryItem extends StatelessWidget {
               Icon(
                 Icons.chevron_right_rounded,
                 size: 20,
-                color: AppColors.textMutedFor(brightness),
+                color: Colors.white38,
               ),
             ],
           ),

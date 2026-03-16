@@ -5,7 +5,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
-import '../../../../core/providers/theme_provider.dart';
 import '../providers/groups_provider.dart';
 
 /// Screen for joining a study group via invite code.
@@ -61,22 +60,20 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-
     return Scaffold(
-      backgroundColor: AppColors.backgroundFor(brightness),
+      backgroundColor: AppColors.immersiveBg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.close,
-              color: AppColors.textPrimaryFor(brightness)),
+              color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           'Join Group',
           style: AppTypography.h3.copyWith(
-            color: AppColors.textPrimaryFor(brightness),
+            color: Colors.white,
           ),
         ),
       ),
@@ -104,7 +101,7 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
               child: Text(
                 'Enter Invite Code',
                 style: AppTypography.h3.copyWith(
-                  color: AppColors.textPrimaryFor(brightness),
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -113,7 +110,7 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
               child: Text(
                 'Ask your group admin for the 8-character code',
                 style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textMutedFor(brightness),
+                  color: Colors.white38,
                 ),
               ),
             ),
@@ -124,18 +121,18 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
               textAlign: TextAlign.center,
               textCapitalization: TextCapitalization.none,
               style: AppTypography.h2.copyWith(
-                color: AppColors.textPrimaryFor(brightness),
+                color: Colors.white,
                 letterSpacing: 4,
                 fontWeight: FontWeight.w700,
               ),
               decoration: InputDecoration(
                 hintText: 'abcd1234',
                 hintStyle: AppTypography.h2.copyWith(
-                  color: AppColors.textMutedFor(brightness).withValues(alpha: 0.3),
+                  color: Colors.white.withValues(alpha: 0.15),
                   letterSpacing: 4,
                 ),
                 filled: true,
-                fillColor: context.isDark ? AppColors.cardDark : Colors.white,
+                fillColor: AppColors.immersiveSurface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
