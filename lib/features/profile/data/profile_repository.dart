@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models/profile_model.dart';
 
@@ -18,7 +19,8 @@ class ProfileRepository {
           .eq('id', userId)
           .single();
       return ProfileModel.fromJson(data);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ProfileRepository: getProfile failed: $e');
       return ProfileModel(id: userId);
     }
   }
@@ -53,8 +55,9 @@ class ProfileRepository {
   Future<void> updateStreak(String userId) async {
     try {
       await _client.rpc('update_streak', params: {'p_user_id': userId});
-    } catch (_) {
+    } catch (e) {
       // Silently fail — streak update is non-critical
+      debugPrint('ProfileRepository: updateStreak failed: $e');
     }
   }
 }

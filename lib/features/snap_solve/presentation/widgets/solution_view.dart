@@ -139,8 +139,9 @@ class _SolutionViewState extends State<SolutionView> {
           );
         });
       }
-    } catch (_) {
+    } catch (e) {
       // Ignore errors reading preferences
+      debugPrint('SolutionView: loadFeedback failed: $e');
     }
   }
 
@@ -148,8 +149,9 @@ class _SolutionViewState extends State<SolutionView> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_feedbackKey, type.name);
-    } catch (_) {
+    } catch (e) {
       // Ignore errors writing preferences
+      debugPrint('SolutionView: saveFeedback failed: $e');
     }
   }
 

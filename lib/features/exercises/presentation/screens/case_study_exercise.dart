@@ -83,7 +83,8 @@ class _CaseStudyExerciseState extends State<CaseStudyExercise>
       final questions = map['questions'] as List;
       _questions =
           questions.map((e) => Map<String, dynamic>.from(e as Map)).toList();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('CaseStudyExercise: parseData failed: $e');
       _scenario = '';
       _questions = [];
     }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models/achievement_model.dart';
 
@@ -38,7 +39,8 @@ class AchievementRepository {
         ignoreDuplicates: true,
       );
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('AchievementRepository: unlock failed: $e');
       return false;
     }
   }

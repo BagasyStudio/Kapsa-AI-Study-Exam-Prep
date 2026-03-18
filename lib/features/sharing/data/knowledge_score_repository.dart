@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models/knowledge_score_model.dart';
 
@@ -83,7 +84,8 @@ class KnowledgeScoreRepository {
       }).length;
 
       return (retained / total * 100).clamp(0.0, 100.0);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('KnowledgeScoreRepository: calcRetention failed: $e');
       return 0;
     }
   }
@@ -102,7 +104,8 @@ class KnowledgeScoreRepository {
           .toList();
       final avg = scores.reduce((a, b) => a + b) / scores.length;
       return (avg * 100).clamp(0.0, 100.0);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('KnowledgeScoreRepository: calcAccuracy failed: $e');
       return 0;
     }
   }
@@ -137,7 +140,8 @@ class KnowledgeScoreRepository {
       final streakBonus = (streak / 30.0 * 10).clamp(0.0, 10.0);
 
       return (dayRatio * 90 + streakBonus).clamp(0.0, 100.0);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('KnowledgeScoreRepository: calcConsistency failed: $e');
       return 0;
     }
   }
@@ -169,7 +173,8 @@ class KnowledgeScoreRepository {
       final materialScore = ((materials as List).length / 10.0).clamp(0.0, 1.0);
 
       return ((coverage * 70 + materialScore * 30)).clamp(0.0, 100.0);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('KnowledgeScoreRepository: calcDepth failed: $e');
       return 0;
     }
   }
@@ -198,7 +203,8 @@ class KnowledgeScoreRepository {
       }).length;
 
       return (mastered / total * 100).clamp(0.0, 100.0);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('KnowledgeScoreRepository: calcMastery failed: $e');
       return 0;
     }
   }
@@ -220,7 +226,8 @@ class KnowledgeScoreRepository {
       final avgScore = scores.reduce((a, b) => a + b) / scores.length;
 
       return (avgScore * 100).clamp(0.0, 100.0);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('KnowledgeScoreRepository: calcExamReadiness failed: $e');
       return 0;
     }
   }
@@ -245,7 +252,8 @@ class KnowledgeScoreRepository {
 
       // Normalize: 500 XP in 30 days = 100 score
       return (totalXp / 500.0 * 100).clamp(0.0, 100.0);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('KnowledgeScoreRepository: calcDedication failed: $e');
       return 0;
     }
   }

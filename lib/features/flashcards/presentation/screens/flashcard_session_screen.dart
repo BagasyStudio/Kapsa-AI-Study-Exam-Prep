@@ -72,8 +72,9 @@ class _FlashcardSessionScreenState
           setState(() => _courseName = course.displayTitle);
         }
       }
-    } catch (_) {
+    } catch (e) {
       // Best-effort — keep default 'Flashcards'
+      debugPrint('FlashcardSessionScreen: loadCourseName failed: $e');
     }
   }
 
@@ -177,8 +178,9 @@ class _FlashcardSessionScreenState
         // Check if course reached 100% mastery
         _checkCourseMastery(courseId);
       }
-    } catch (_) {
+    } catch (e) {
       // Best-effort — don't interrupt the user's session
+      debugPrint('FlashcardSessionScreen: recalculateCourseProgress failed: $e');
     }
   }
 

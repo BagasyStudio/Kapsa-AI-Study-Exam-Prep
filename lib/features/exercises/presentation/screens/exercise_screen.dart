@@ -253,8 +253,9 @@ class _ExerciseBody extends ConsumerWidget {
         history = history.sublist(history.length - 30);
       }
       await prefs.setString(key, jsonEncode(history));
-    } catch (_) {
+    } catch (e) {
       // Silently ignore storage errors
+      debugPrint('ExerciseScreen: saveScoreHistory failed: $e');
     }
   }
 }

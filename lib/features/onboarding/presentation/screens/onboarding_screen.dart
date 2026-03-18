@@ -195,8 +195,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       if (await inAppReview.isAvailable()) {
         await inAppReview.requestReview();
       }
-    } catch (_) {
+    } catch (e) {
       // Silently fail — store review may not be available
+      debugPrint('OnboardingScreen: handleRate failed: $e');
     }
     // After rating → go to real paywall (last step before login)
     _goToPaywall();

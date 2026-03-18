@@ -79,7 +79,8 @@ class _TeachBotExerciseState extends State<TeachBotExercise>
       final fq = map['followUpQuestions'] as List?;
       _followUpQuestions = fq?.map((e) => e.toString()).toList() ?? [];
       _coveredPoints = List.filled(_keyPoints.length, false);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('TeachBotExercise: parseData failed: $e');
       _topic = '';
       _botQuestion = '';
       _keyPoints = [];

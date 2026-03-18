@@ -112,8 +112,9 @@ class SnapSolveJobNotifier extends StateNotifier<SnapSolveJobState> {
           _ref.invalidate(remainingCreditsProvider);
           _ref.invalidate(creditsUsedTodayProvider);
         }
-      } catch (_) {
+      } catch (e) {
         // Best-effort usage recording
+        debugPrint('SnapSolveProvider: recordUsage failed: $e');
       }
       _ref.invalidate(snapSolveHistoryProvider);
 

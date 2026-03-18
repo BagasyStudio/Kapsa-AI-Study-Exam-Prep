@@ -71,8 +71,9 @@ class _AudioPlayerScreenState extends ConsumerState<AudioPlayerScreen> {
       if (summaries.isNotEmpty && mounted) {
         setState(() => _summary = summaries.first);
       }
-    } catch (_) {
+    } catch (e) {
       // No existing summary
+      debugPrint('AudioPlayerScreen: loadExisting failed: $e');
     }
   }
 

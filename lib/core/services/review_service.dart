@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -47,8 +48,9 @@ class ReviewService {
           DateTime.now().millisecondsSinceEpoch,
         );
       }
-    } catch (_) {
+    } catch (e) {
       // Best-effort — never interrupt the user
+      debugPrint('ReviewService: recordPositiveEvent failed: $e');
     }
   }
 }

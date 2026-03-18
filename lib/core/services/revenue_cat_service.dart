@@ -55,8 +55,9 @@ class RevenueCatService {
     try {
       await Purchases.logIn(userId);
       await _syncProStatus();
-    } on MissingPluginException catch (_) {
+    } on MissingPluginException catch (e) {
       // RevenueCat not available on this platform (web)
+      debugPrint('RevenueCatService: login failed: $e');
     }
   }
 
@@ -67,8 +68,9 @@ class RevenueCatService {
   Future<void> logout() async {
     try {
       await Purchases.logOut();
-    } on MissingPluginException catch (_) {
+    } on MissingPluginException catch (e) {
       // RevenueCat not available on this platform (web)
+      debugPrint('RevenueCatService: logout failed: $e');
     }
   }
 
@@ -77,7 +79,8 @@ class RevenueCatService {
     try {
       final customerInfo = await Purchases.getCustomerInfo();
       return customerInfo.entitlements.active.containsKey(_entitlementId);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('RevenueCatService: isPro check failed: $e');
       return false;
     }
   }
@@ -88,7 +91,8 @@ class RevenueCatService {
   Future<Offerings?> getOfferings() async {
     try {
       return await Purchases.getOfferings();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('RevenueCatService: getOfferings failed: $e');
       return null;
     }
   }
@@ -126,7 +130,8 @@ class RevenueCatService {
           customerInfo.entitlements.active.containsKey(_entitlementId);
       await _setSupabasePro(isPro);
       return isPro;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('RevenueCatService: restorePurchases failed: $e');
       return false;
     }
   }
@@ -154,8 +159,9 @@ class RevenueCatService {
       await _supabase.from('profiles').update({
         'is_pro': isPro,
       }).eq('id', user.id);
-    } catch (_) {
+    } catch (e) {
       // Silent fail — will retry on next sync
+      debugPrint('RevenueCatService: setSupabasePro failed: $e');
     }
   }
 }

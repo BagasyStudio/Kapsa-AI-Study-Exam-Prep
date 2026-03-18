@@ -42,7 +42,8 @@ class ShareCardService {
       });
 
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ShareCardService: captureAndShare failed: $e');
       return false;
     }
   }

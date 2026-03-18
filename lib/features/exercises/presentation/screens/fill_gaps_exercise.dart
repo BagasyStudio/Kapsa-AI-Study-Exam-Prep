@@ -81,7 +81,8 @@ class _FillGapsExerciseState extends State<FillGapsExercise>
     try {
       final list = widget.data as List;
       _items = list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('FillGapsExercise: parseData failed: $e');
       _items = [];
     }
   }

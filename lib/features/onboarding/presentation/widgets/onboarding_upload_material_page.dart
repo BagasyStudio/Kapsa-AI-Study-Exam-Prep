@@ -82,8 +82,9 @@ class _OnboardingUploadMaterialPageState
         widget.onMaterialPicked(photo.path, 'camera', size);
         return;
       }
-    } catch (_) {
+    } catch (e) {
       // User cancelled or camera unavailable
+      debugPrint('OnboardingUploadMaterialPage: takePhoto failed: $e');
     }
     if (mounted) setState(() => _isPicking = false);
   }
@@ -106,8 +107,9 @@ class _OnboardingUploadMaterialPageState
           return;
         }
       }
-    } catch (_) {
+    } catch (e) {
       // User cancelled
+      debugPrint('OnboardingUploadMaterialPage: uploadPdf failed: $e');
     }
     if (mounted) setState(() => _isPicking = false);
   }

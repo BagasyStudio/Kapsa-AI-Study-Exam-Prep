@@ -64,7 +64,8 @@ class _MistakeSpotterExerciseState extends State<MistakeSpotterExercise>
       final errorsList = map['errors'] as List;
       _errors =
           errorsList.map((e) => Map<String, dynamic>.from(e as Map)).toList();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('MistakeSpotterExercise: parseData failed: $e');
       _sentences = [];
       _errors = [];
     }

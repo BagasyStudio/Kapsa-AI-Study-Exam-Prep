@@ -1109,7 +1109,8 @@ class _PredictedPerformanceCardState
         });
         _progressController.forward();
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ProfileScreen: loadConfidence failed: $e');
       if (mounted) setState(() => _loaded = true);
     }
   }
@@ -1406,8 +1407,9 @@ class _ComparativeAnalyticsState extends ConsumerState<_ComparativeAnalytics> {
               (avgResult['avg_quiz_accuracy'] as num?)?.toDouble() ??
                   _avgQuizAccuracy;
         }
-      } catch (_) {
+      } catch (e) {
         // RPC not available — keep defaults
+        debugPrint('ProfileScreen: community averages failed: $e');
       }
 
       if (mounted) {
@@ -1417,8 +1419,9 @@ class _ComparativeAnalyticsState extends ConsumerState<_ComparativeAnalytics> {
           _loaded = true;
         });
       }
-    } catch (_) {
+    } catch (e) {
       // Graceful fallback — show defaults
+      debugPrint('ProfileScreen: loadComparisonData failed: $e');
       if (mounted) setState(() => _loaded = true);
     }
   }
@@ -1658,8 +1661,9 @@ class _NotificationToggleTileState
         }
       }
       courseNamesWithDue = names.toList();
-    } catch (_) {
+    } catch (e) {
       // Best-effort — don't block reminders
+      debugPrint('ProfileScreen: fetchDueCards failed: $e');
     }
 
     await NotificationService.scheduleSmartReminders(
@@ -1980,7 +1984,8 @@ class _AiDataToggleTileState extends ConsumerState<_AiDataToggleTile> {
       final value = profile?['ai_consent_accepted'] as bool? ?? false;
       ref.read(aiConsentCacheProvider.notifier).state = value;
       if (mounted) setState(() { _enabled = value; _loading = false; });
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ProfileScreen: loadAiConsent failed: $e');
       if (mounted) setState(() => _loading = false);
     }
   }

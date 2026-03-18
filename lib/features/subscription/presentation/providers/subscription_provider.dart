@@ -96,7 +96,8 @@ Future<bool> checkFeatureAccess({
           .maybeSingle();
       hasConsent = profile?['ai_consent_accepted'] as bool? ?? false;
       ref.read(aiConsentCacheProvider.notifier).state = hasConsent;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('SubscriptionProvider: consent check failed: $e');
       hasConsent = false;
     }
   }

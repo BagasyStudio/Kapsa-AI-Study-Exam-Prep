@@ -75,7 +75,8 @@ class _TimelineExerciseState extends State<TimelineExercise>
           attempts++;
         }
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('TimelineExercise: parseData failed: $e');
       _correctOrder = [];
       _currentOrder = [];
     }

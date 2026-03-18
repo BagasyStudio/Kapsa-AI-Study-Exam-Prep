@@ -145,8 +145,9 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
       final file = await _cacheFile();
       final exists = await file.exists();
       if (mounted) setState(() => _isCachedOffline = exists);
-    } catch (_) {
+    } catch (e) {
       // Ignore file-system errors silently
+      debugPrint('MaterialViewerScreen: checkOfflineCache failed: $e');
     }
   }
 
@@ -167,8 +168,9 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
           _highlights = loaded;
         });
       }
-    } catch (_) {
+    } catch (e) {
       // Ignore silently
+      debugPrint('MaterialViewerScreen: loadHighlights failed: $e');
     }
   }
 
@@ -178,8 +180,9 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
       final encoded =
           _highlights.map((h) => jsonEncode(h.toJson())).toList();
       await prefs.setStringList(_highlightsKey, encoded);
-    } catch (_) {
+    } catch (e) {
       // Ignore silently
+      debugPrint('MaterialViewerScreen: saveHighlights failed: $e');
     }
   }
 
@@ -386,7 +389,8 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
         content: content.isNotEmpty ? content : null,
         fileUrl: fileUrl,
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('MaterialViewerScreen: parseOfflineCache failed: $e');
       return null;
     }
   }
@@ -432,7 +436,8 @@ class _MaterialViewerScreenState extends ConsumerState<MaterialViewerScreen>
           ),
         );
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('MaterialViewerScreen: cacheMaterialContent failed: $e');
       if (mounted) setState(() => _isCaching = false);
     }
   }

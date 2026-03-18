@@ -62,8 +62,9 @@ class _KnowledgeScoreScreenState extends ConsumerState<KnowledgeScoreScreen> {
           _aiAnalysis = analysis;
         });
       }
-    } catch (_) {
+    } catch (e) {
       // Edge function failed — keep showing local analysis.
+      debugPrint('KnowledgeScoreScreen: fetchAiAnalysis failed: $e');
     }
   }
 

@@ -25,7 +25,8 @@ class MilestoneService {
           .maybeSingle();
 
       return result != null;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('MilestoneService: hasBeenShown check failed: $e');
       return true; // Assume shown on error
     }
   }

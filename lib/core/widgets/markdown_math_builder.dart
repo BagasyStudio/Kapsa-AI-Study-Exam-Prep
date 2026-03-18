@@ -73,7 +73,8 @@ class MathBuilder extends MarkdownElementBuilder {
         textStyle: style,
         onErrorFallback: (_) => _fallback(latex, style),
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('MathBuilder: render failed: $e');
       return _fallback(latex, style);
     }
   }
@@ -122,7 +123,8 @@ class BlockMathBuilder extends MarkdownElementBuilder {
           ),
         ),
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('BlockMathBuilder: render failed: $e');
       return _fallback(latex, style);
     }
   }

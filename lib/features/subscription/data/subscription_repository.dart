@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/app_limits.dart';
 
@@ -22,7 +23,8 @@ class SubscriptionRepository {
           .eq('id', userId)
           .single();
       return data['is_pro'] == true || data['pro_override'] == true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('SubscriptionRepository: getIsPro failed: $e');
       return false;
     }
   }

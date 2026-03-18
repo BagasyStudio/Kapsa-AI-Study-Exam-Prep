@@ -114,7 +114,8 @@ class _ConceptMapExerciseState extends State<ConceptMapExercise>
       for (int i = 0; i < _hiddenConnections.length; i++) {
         _userAnswers[i] = null;
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ConceptMapExercise: parseData failed: $e');
       _centralConcept = '';
       _nodes = [];
       _connections = [];

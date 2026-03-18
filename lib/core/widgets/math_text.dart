@@ -187,7 +187,8 @@ class MathText extends StatelessWidget {
         ),
         onErrorFallback: (err) => _fallbackWidget(latex, baseStyle),
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('MathText: render failed: $e');
       return _fallbackWidget(latex, baseStyle);
     }
   }

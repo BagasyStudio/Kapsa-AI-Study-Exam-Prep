@@ -307,8 +307,9 @@ final aiEnhancedStudyPlanProvider = FutureProvider<List<StudyTask>>((ref) async 
     enhancedTasks.sort((a, b) => a.priority.compareTo(b.priority));
 
     return enhancedTasks;
-  } catch (_) {
+  } catch (e) {
     // AI failed — return local tasks
+    debugPrint('StudyPlanProvider: AI enhance failed: $e');
     return localTasks;
   }
 });

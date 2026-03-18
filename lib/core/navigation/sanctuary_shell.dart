@@ -105,8 +105,9 @@ class _KapsaShellState extends ConsumerState<KapsaShell>
 
       await Supabase.instance.client.auth.refreshSession();
       ref.invalidate(profileProvider);
-    } catch (_) {
+    } catch (e) {
       // Best-effort — don't crash the app
+      debugPrint('KapsaShell: refreshSessionOnResume failed: $e');
     }
   }
 

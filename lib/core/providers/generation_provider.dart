@@ -81,7 +81,8 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
         if (!isPro) {
           effectiveCount = (effectiveCount ?? 30).clamp(1, 30);
         }
-      } catch (_) {
+      } catch (e) {
+        debugPrint('GenerationNotifier: pro status check failed: $e');
         effectiveCount = (effectiveCount ?? 30).clamp(1, 30);
       }
 
@@ -236,8 +237,9 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
       _ref.invalidate(dailyUsageProvider);
       _ref.invalidate(remainingCreditsProvider);
       _ref.invalidate(creditsUsedTodayProvider);
-    } catch (_) {
+    } catch (e) {
       // Non-critical — don't fail the generation
+      debugPrint('GenerationNotifier: recordUsage failed: $e');
     }
   }
 }

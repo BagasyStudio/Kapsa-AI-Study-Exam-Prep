@@ -77,7 +77,8 @@ class _CompareContrastExerciseState extends State<CompareContrastExercise>
       for (int i = 0; i < _traits.length; i++) {
         _placements[i] = null;
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('CompareContrastExercise: parseData failed: $e');
       _traits = [];
       _shuffledOrder = [];
     }

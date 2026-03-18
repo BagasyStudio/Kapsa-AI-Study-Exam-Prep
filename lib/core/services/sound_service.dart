@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -77,8 +78,9 @@ class SoundService {
     try {
       await _player.stop(); // Stop any currently playing sound
       await _player.play(AssetSource('sounds/$file'));
-    } catch (_) {
+    } catch (e) {
       // Silently fail — sound effects are non-critical
+      debugPrint('SoundService: play failed: $e');
     }
   }
 }

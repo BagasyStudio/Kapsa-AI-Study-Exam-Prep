@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models/month_review_model.dart';
@@ -106,7 +107,8 @@ class MonthReviewRepository {
         'lateNight': lateNight,
         'earlyMorning': earlyMorning,
       };
-    } catch (_) {
+    } catch (e) {
+      debugPrint('MonthReviewRepository: getXpData failed: $e');
       return {'total': 0, 'sessions': 0, 'activeDays': 0, 'lateNight': 0, 'earlyMorning': 0};
     }
   }
@@ -120,7 +122,8 @@ class MonthReviewRepository {
           .gte('reviewed_at', start)
           .lt('reviewed_at', end);
       return (reviews as List).length;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('MonthReviewRepository: getCardData failed: $e');
       return 0;
     }
   }
@@ -143,7 +146,8 @@ class MonthReviewRepository {
       final avg = scores.reduce((a, b) => a + b) / scores.length * 100;
 
       return {'count': tests.length, 'avgScore': avg};
-    } catch (_) {
+    } catch (e) {
+      debugPrint('MonthReviewRepository: getQuizData failed: $e');
       return {'count': 0, 'avgScore': 0.0};
     }
   }
@@ -177,7 +181,8 @@ class MonthReviewRepository {
           .maybeSingle();
 
       return course?['title'] as String? ?? 'Your Courses';
-    } catch (_) {
+    } catch (e) {
+      debugPrint('MonthReviewRepository: getTopCourse failed: $e');
       return 'Your Courses';
     }
   }

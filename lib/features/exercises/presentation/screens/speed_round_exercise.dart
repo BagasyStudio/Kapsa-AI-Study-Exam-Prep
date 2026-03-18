@@ -89,7 +89,8 @@ class _SpeedRoundExerciseState extends State<SpeedRoundExercise>
     try {
       final list = widget.data as List;
       _items = list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('SpeedRoundExercise: parseData failed: $e');
       _items = [];
     }
   }

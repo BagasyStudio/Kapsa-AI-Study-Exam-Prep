@@ -95,7 +95,8 @@ class _ChatInputBarState extends State<ChatInputBar>
           }
         },
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ChatInputBar: initSpeech failed: $e');
       _speechAvailable = false;
     }
     if (mounted) setState(() {});

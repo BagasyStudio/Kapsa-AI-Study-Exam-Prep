@@ -338,7 +338,8 @@ Set<String> _loadCompleted(SharedPreferences prefs, String courseId) {
   try {
     final list = (jsonDecode(raw) as List).cast<String>();
     return list.toSet();
-  } catch (_) {
+  } catch (e) {
+    debugPrint('JourneyProvider: loadCompleted failed: $e');
     return {};
   }
 }
@@ -350,7 +351,8 @@ Map<String, DateTime> _loadCompletedDates(
   try {
     final map = jsonDecode(raw) as Map<String, dynamic>;
     return map.map((k, v) => MapEntry(k, DateTime.parse(v as String)));
-  } catch (_) {
+  } catch (e) {
+    debugPrint('JourneyProvider: loadCompletedDates failed: $e');
     return {};
   }
 }
@@ -361,7 +363,8 @@ Map<String, int> _loadScores(SharedPreferences prefs, String courseId) {
   try {
     final map = jsonDecode(raw) as Map<String, dynamic>;
     return map.map((k, v) => MapEntry(k, v as int));
-  } catch (_) {
+  } catch (e) {
+    debugPrint('JourneyProvider: loadScores failed: $e');
     return {};
   }
 }
@@ -481,7 +484,8 @@ final activeJourneyNodeProvider =
   if (nodes == null || nodes.isEmpty) return null;
   try {
     return nodes.firstWhere((n) => n.state == JourneyNodeState.active);
-  } catch (_) {
+  } catch (e) {
+    debugPrint('JourneyProvider: activeJourneyNode lookup failed: $e');
     return null;
   }
 });

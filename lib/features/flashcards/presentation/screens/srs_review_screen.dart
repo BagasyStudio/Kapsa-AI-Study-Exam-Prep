@@ -494,8 +494,9 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
           .read(courseRepositoryProvider)
           .recalculateProgress(widget.courseId!);
       ref.invalidate(coursesProvider);
-    } catch (_) {
+    } catch (e) {
       // Best-effort
+      debugPrint('SrsReviewScreen: recalculateCourseProgress failed: $e');
     }
   }
 

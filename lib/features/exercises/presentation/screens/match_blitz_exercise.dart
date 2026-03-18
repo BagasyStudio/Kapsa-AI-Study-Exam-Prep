@@ -115,7 +115,8 @@ class _MatchBlitzExerciseState extends State<MatchBlitzExercise>
       final rng = Random();
       _shuffledConcepts = List.from(_pairs)..shuffle(rng);
       _shuffledDefinitions = List.from(_pairs)..shuffle(rng);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('MatchBlitzExercise: parseData failed: $e');
       _pairs = [];
     }
   }

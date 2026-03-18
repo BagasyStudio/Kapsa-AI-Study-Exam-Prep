@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../test_results/data/test_repository.dart';
 import '../../../test_results/data/models/test_question_model.dart';
@@ -216,7 +217,8 @@ class InlineQuizNotifier extends StateNotifier<InlineQuizState> {
         mistakesExplanation: data,
         isLoadingMistakes: false,
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('InlineQuizProvider: loadMistakesExplanation failed: $e');
       state = state.copyWith(isLoadingMistakes: false);
     }
   }
