@@ -24,31 +24,41 @@ abstract final class AppLimits {
 
   // ── Free tier: unified credit pool ──
   //
-  // Free users get 50 credits/day. Each feature costs 1-8 credits
-  // based on API cost. Cheap text-only features cost less,
-  // expensive vision/audio models cost more.
+  // Free users get 100 credits/day — enough for a meaningful daily
+  // study session (1 flashcard gen + 1 quiz + a few chats/snaps).
+  // This keeps users engaged and coming back daily while still
+  // incentivizing Pro for power users who study more.
 
   /// Total credits available per day for free users.
-  static const int freeCreditsPerDay = 50;
+  static const int freeCreditsPerDay = 100;
 
   /// Credit cost per feature use.
   ///
-  /// Calibrated so free users get ~3-5 AI actions per day.
-  /// Examples of a typical day:
-  ///   1 flashcard gen (15) + 1 quiz (15) + 2 snap solves (16) = 46/50
-  ///   1 OCR (25) + 1 summary (15) + 1 chat (10) = 50/50
-  ///   3 chats (30) + 1 flashcard gen (15) = 45/50
+  /// Calibrated for a generous free tier that lets users experience
+  /// real value every day. Typical daily sessions for free users:
+  ///
+  ///   Standard day:
+  ///     1 flashcard gen (15) + 1 quiz (15) + 3 chats (15)
+  ///     + 2 snap solves (10) + 1 summary (15) = 70/100
+  ///
+  ///   Heavy day:
+  ///     2 flashcard gens (30) + 1 quiz (15) + 1 PDF upload (20)
+  ///     + 3 chats (15) + 2 snap solves (10) = 90/100
+  ///
+  ///   Power user (hits limit):
+  ///     2 flashcard gens (30) + 2 quizzes (30) + 1 PDF (20)
+  ///     + 1 summary (15) + 1 chat (5) = 100/100
   static const Map<String, int> creditCost = {
-    'chat': 10, // ~5 messages/day max
-    'oracle': 10, // ~5 questions/day max
-    'snap_solve': 8, // ~6 snaps/day max
-    'glossary': 10, // ~5/day max
-    'flashcards': 15, // ~3 generations/day max
-    'quiz': 15, // ~3 quizzes/day max
-    'summary': 15, // ~3 summaries/day max
-    'audio_summary': 15, // ~3/day max
-    'whisper': 25, // ~2 audio files/day max
-    'ocr': 25, // ~2 PDFs/day max
+    'chat': 5, // ~20 messages/day
+    'oracle': 5, // ~20 questions/day
+    'snap_solve': 5, // ~20 snaps/day
+    'glossary': 10, // ~10/day
+    'flashcards': 15, // ~6 generations/day
+    'quiz': 15, // ~6 quizzes/day
+    'summary': 15, // ~6 summaries/day
+    'audio_summary': 15, // ~6/day
+    'whisper': 20, // ~5 audio files/day
+    'ocr': 20, // ~5 PDFs/day
   };
 
   // ── Pro tier daily limits (per-feature safety net) ──
