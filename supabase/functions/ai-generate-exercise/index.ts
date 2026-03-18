@@ -288,8 +288,8 @@ Deno.serve(async (req: Request) => {
     if (!content) {
       // Fetch materials for this course
       const { data: materials } = await supabase
-        .from("materials")
-        .select("content, display_title")
+        .from("course_materials")
+        .select("content, title")
         .eq("course_id", courseId)
         .limit(3);
 
@@ -301,7 +301,7 @@ Deno.serve(async (req: Request) => {
       }
 
       content = materials
-        .map((m: any) => `## ${m.display_title}\n${(m.content || "").substring(0, 3000)}`)
+        .map((m: any) => `## ${m.title}\n${(m.content || "").substring(0, 3000)}`)
         .join("\n\n");
     }
 

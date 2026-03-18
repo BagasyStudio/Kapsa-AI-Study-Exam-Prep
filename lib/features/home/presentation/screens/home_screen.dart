@@ -36,7 +36,6 @@ import '../providers/flashcard_quick_access_provider.dart';
 import '../widgets/flashcard_quick_access_section.dart';
 import '../widgets/journey_hero_widget.dart';
 import '../widgets/seasonal_event_banner.dart';
-import '../widgets/seasonal_event_card.dart';
 import '../providers/journey_provider.dart';
 import '../../../gamification/data/models/achievement_model.dart';
 import '../../../gamification/presentation/providers/achievement_provider.dart';
@@ -361,38 +360,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
 
-            // Daily Digest (shows once per day)
-            const DailyDigestCard(),
-            const SizedBox(height: AppSpacing.sm),
-
-            // Daily Quests
-            const DailyQuestCard(),
-            const SizedBox(height: AppSpacing.sm),
-
-            // Seasonal Event Banner (time-limited challenges)
-            const SeasonalEventBanner(),
-            const SizedBox(height: AppSpacing.sm),
-
-            // Seasonal Event Card (month-based themed challenges)
-            const SeasonalEventCard(),
-            const SizedBox(height: AppSpacing.sm),
-
-            // 2. Journey Hero — primary study continuation surface
-            const JourneyHeroWidget(),
-            const SizedBox(height: AppSpacing.lg),
-
-            // 3. Hero Card (contextual: generation/quiz/due cards)
-            const HomeHeroCard(),
-            const SizedBox(height: AppSpacing.lg),
-
-            // 4. Quick Actions Row (reduced opacity during generation)
+            // 2. Quick Actions Row (moved up for quick access)
             Opacity(
               opacity: hasRunningGeneration ? 0.6 : 1.0,
               child: const QuickActionsRow(),
             ),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
 
-            // 5. Focus Flow Carousel or compact link during generation
+            // 3. Daily Digest (shows once per day)
+            const DailyDigestCard(),
+            const SizedBox(height: AppSpacing.md),
+
+            // 4. Daily Quests
+            const DailyQuestCard(),
+            const SizedBox(height: AppSpacing.md),
+
+            // 5. Seasonal Event (consolidated — shows banner OR card, not both)
+            const SeasonalEventBanner(),
+            const SizedBox(height: AppSpacing.md),
+
+            // 6. Journey Hero — primary study continuation surface
+            const JourneyHeroWidget(),
+            const SizedBox(height: AppSpacing.md),
+
+            // 7. Hero Card (contextual: generation/quiz/due cards)
+            const HomeHeroCard(),
+            const SizedBox(height: AppSpacing.md),
+
+            // 8. Focus Flow Carousel or compact link during generation
             if (hasRunningGeneration)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
@@ -420,13 +415,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             else
               const FocusFlowCarousel(),
 
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
 
-            // 6. Flashcard Quick Access (auto-hides if no decks)
+            // 9. Flashcard Quick Access (auto-hides if no decks)
             const FlashcardQuickAccessSection(),
 
             // Usage Limit Banner — only when credits < 20%
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
             const _ConditionalUsageBanner(),
           ],
         ),
@@ -502,7 +497,7 @@ class _HomeShimmerState extends State<_HomeShimmer>
             children: [
               const SizedBox(height: AppSpacing.md),
 
-              // Greeting placeholder
+              // 1. Greeting placeholder
               _ShimmerRect(
                 width: 180,
                 height: 24,
@@ -516,18 +511,9 @@ class _HomeShimmerState extends State<_HomeShimmer>
                 borderRadius: 8,
                 shimmerValue: _shimmerController.value,
               ),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.md),
 
-              // Hero card area: rounded rectangle (200px tall)
-              _ShimmerRect(
-                width: double.infinity,
-                height: 200,
-                borderRadius: 20,
-                shimmerValue: _shimmerController.value,
-              ),
-              const SizedBox(height: AppSpacing.xl),
-
-              // Quick actions: row of 4 circles (48px)
+              // 2. Quick actions: row of 4 circles
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: List.generate(
@@ -551,9 +537,27 @@ class _HomeShimmerState extends State<_HomeShimmer>
                   ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.md),
 
-              // Section header placeholder
+              // 3. Compact digest strip
+              _ShimmerRect(
+                width: double.infinity,
+                height: 40,
+                borderRadius: 10,
+                shimmerValue: _shimmerController.value,
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              // 4. Hero card area
+              _ShimmerRect(
+                width: double.infinity,
+                height: 200,
+                borderRadius: 20,
+                shimmerValue: _shimmerController.value,
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              // 5. Section header
               _ShimmerRect(
                 width: 140,
                 height: 16,
@@ -562,7 +566,7 @@ class _HomeShimmerState extends State<_HomeShimmer>
               ),
               const SizedBox(height: AppSpacing.md),
 
-              // Flashcard carousel area: row of 3 card-shaped rectangles (160x100)
+              // 6. Flashcard carousel
               SizedBox(
                 height: 100,
                 child: Row(

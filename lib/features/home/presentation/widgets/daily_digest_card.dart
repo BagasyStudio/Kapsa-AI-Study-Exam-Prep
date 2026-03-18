@@ -243,122 +243,80 @@ class _DailyDigestCardState extends ConsumerState<DailyDigestCard>
           ),
           child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-          child: Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: AppColors.immersiveCard,
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(color: AppColors.immersiveBorder),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header row with title + dismiss
-                Row(
-                  children: [
-                    const Text('\u{1F4CA}', style: TextStyle(fontSize: 18)),
-                    const SizedBox(width: AppSpacing.xs),
-                    Expanded(
-                      child: Text(
-                        'Daily Digest',
-                        style: AppTypography.labelLarge.copyWith(
-                          color: AppColors.textPrimaryDark,
-                          fontWeight: FontWeight.w700,
-                        ),
+          child: TapScale(
+            onTap: _todayDueCards > 0
+                ? () {
+                    _dismiss();
+                    context.push(Routes.quickReview);
+                  }
+                : null,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.immersiveCard,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColors.immersiveBorder),
+              ),
+              child: Row(
+                children: [
+                  // Summary text
+                  Expanded(
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          if (_yesterdayCards > 0 || _yesterdayQuizzes > 0) ...[
+                            TextSpan(
+                              text: _buildYesterdayText(),
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.textSecondaryDark,
+                              ),
+                            ),
+                            if (_todayDueCards > 0)
+                              TextSpan(
+                                text: '  \u00b7  ',
+                                style: AppTypography.caption.copyWith(
+                                  color: Colors.white24,
+                                ),
+                              ),
+                          ],
+                          if (_todayDueCards > 0)
+                            TextSpan(
+                              text: '$_todayDueCards due today',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          if (_streakDays > 0) ...[
+                            TextSpan(
+                              text: '  \u{1F525} $_streakDays',
+                              style: AppTypography.caption.copyWith(
+                                color: const Color(0xFFF97316),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: _dismiss,
-                      child: Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: 0.08),
-                        ),
-                        child: const Icon(
-                          Icons.close_rounded,
-                          size: 14,
-                          color: Colors.white38,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: AppSpacing.sm),
-
-                // Yesterday stats
-                if (_yesterdayCards > 0 || _yesterdayQuizzes > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                    child: Text(
-                      _buildYesterdayText(),
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondaryDark,
-                      ),
-                    ),
-                  ),
-
-                // Today plan
-                if (_todayDueCards > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: Text(
-                      'Today: $_todayDueCards cards due for review',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondaryDark,
-                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-
-                // Streak
-                if (_streakDays > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: Row(
-                      children: [
-                        const Text('\u{1F525}',
-                            style: TextStyle(fontSize: 14)),
-                        const SizedBox(width: 4),
-                        Text(
-                          '$_streakDays day streak',
-                          style: AppTypography.caption.copyWith(
-                            color: const Color(0xFFF97316),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+                  const SizedBox(width: AppSpacing.xs),
+                  // Dismiss button
+                  GestureDetector(
+                    onTap: _dismiss,
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 16,
+                      color: Colors.white30,
                     ),
                   ),
-
-                // Start button
-                if (_todayDueCards > 0)
-                  TapScale(
-                    onTap: () {
-                      _dismiss();
-                      context.push(Routes.quickReview);
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      padding:
-                          const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Start Reviewing',
-                          style: AppTypography.labelMedium.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

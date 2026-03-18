@@ -13,6 +13,7 @@ const WHISPER_VERSION = "3ab86df6c8f54c11309d4d1f930ac292bad43ace52d10c80d87eb25
 // ── Deadline protection — Supabase kills at 60s ─────────────────
 const HARD_DEADLINE_MS = 50_000; // 50s (10s buffer)
 const MAX_POLL_ATTEMPTS = 50;
+const MAX_PDF_PAGES = 50;
 let REQUEST_START = 0;
 
 function isDeadlineClose(): boolean {
@@ -159,19 +160,41 @@ async function runWhisper(apiKey: string, audioUrl: string): Promise<string> {
   return typeof result.output === "string" ? result.output : String(result.output);
 }
 
+// ── Timeout helper ────────────────────────────────────────────────
+function withTimeout<T>(promise: Promise<T>, ms: number, msg: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(msg)), ms)),
+  ]);
+}
+
 // ── PDF text extraction (no AI needed) ───────────────────────────
 async function extractPdfText(fileUrl: string): Promise<string> {
-  const res = await fetch(fileUrl);
+  const res = await withTimeout(
+    fetch(fileUrl),
+    15_000,
+    "PDF download timed out. Please try a smaller file."
+  );
   if (!res.ok) {
     throw new Error("Could not download the PDF. Please try uploading again.");
   }
 
   const buffer = await res.arrayBuffer();
   const pdf = await getDocumentProxy(new Uint8Array(buffer));
-  const { text } = await extractText(pdf, { mergePages: true });
+
+  // Check page count
+  if (pdf.numPages > MAX_PDF_PAGES) {
+    throw new Error(`PDF has ${pdf.numPages} pages (max ${MAX_PDF_PAGES}). Please split it into smaller files.`);
+  }
+
+  const { text } = await withTimeout(
+    extractText(pdf, { mergePages: true }),
+    15_000,
+    "PDF text extraction timed out. The file may be too complex."
+  );
 
   if (!text || (typeof text === "string" && text.trim().length === 0)) {
-    throw new Error("No text found in the PDF. Make sure it contains selectable text, not just scanned images.");
+    throw new Error("No selectable text found in the PDF. This usually means it contains scanned images. Try uploading as an image instead.");
   }
 
   return typeof text === "string" ? text : (text as string[]).join("\n");
@@ -301,7 +324,10 @@ Deno.serve(async (req: Request) => {
       error.message.includes("timed out") ||
       error.message.includes("failed. Please") ||
       error.message.includes("No text found") ||
-      error.message.includes("Could not download")
+      error.message.includes("No selectable text") ||
+      error.message.includes("Could not download") ||
+      error.message.includes("timed out") ||
+      error.message.includes("pages (max")
     ) ? error.message : sanitizeErrorMessage(error);
 
     return new Response(JSON.stringify({ error: message }), {

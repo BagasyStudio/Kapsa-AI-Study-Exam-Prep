@@ -84,11 +84,13 @@ class GreetingHeader extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            StreakPill(
-              days: streakDays,
-              onTap: () => _showStreakModal(context),
-            ),
-            const SizedBox(height: 6),
+            if (streakDays > 0) ...[
+              StreakPill(
+                days: streakDays,
+                onTap: () => _showStreakModal(context),
+              ),
+              const SizedBox(height: 6),
+            ],
             const XpLevelBadge(),
           ],
         ),
