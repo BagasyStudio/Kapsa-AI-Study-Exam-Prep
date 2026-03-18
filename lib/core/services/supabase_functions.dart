@@ -141,7 +141,8 @@ class SupabaseFunctions {
     }
   }
 
-  /// Refresh the JWT if it expires within 2 minutes.
+  /// Refresh the JWT if it expires within 5 minutes.
+  /// Uses a wider window (5 min instead of 2) to catch more edge cases.
   Future<void> _ensureFreshToken() async {
     try {
       final session = _client.auth.currentSession;
@@ -151,14 +152,13 @@ class SupabaseFunctions {
         final expiresIn = DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000)
             .difference(DateTime.now())
             .inSeconds;
-        if (expiresIn < 120) {
+        if (expiresIn < 300) {
           debugPrint('[SupabaseFunctions] Refreshing JWT (expires in ${expiresIn}s)');
           await _client.auth.refreshSession();
         }
       }
     } catch (e) {
       debugPrint('[SupabaseFunctions] Token refresh failed: $e');
-      // Continue anyway — the 401 retry logic will handle it
     }
   }
 }

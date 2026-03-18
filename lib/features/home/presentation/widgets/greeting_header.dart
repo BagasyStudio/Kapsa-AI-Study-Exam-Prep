@@ -5,7 +5,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/widgets/feature_tooltip.dart';
 import '../../../../core/widgets/global_search_sheet.dart';
 import '../../../gamification/presentation/widgets/xp_level_badge.dart';
 import 'streak_pill.dart';
@@ -56,11 +55,7 @@ class GreetingHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        FeatureTooltip(
-          featureId: 'global_search',
-          message: 'Search courses, decks & materials',
-          showAbove: false,
-          child: GestureDetector(
+        GestureDetector(
             onTap: () => GlobalSearchSheet.show(context),
             child: Container(
               width: 36,
@@ -79,7 +74,6 @@ class GreetingHeader extends StatelessWidget {
               ),
             ),
           ),
-        ),
         const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
