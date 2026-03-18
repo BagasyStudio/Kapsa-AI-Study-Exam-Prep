@@ -110,9 +110,15 @@ class AppErrorHandler {
             serverMsg.contains('Upload') ||
             serverMsg.contains('upload') ||
             serverMsg.contains('No text found') ||
+            serverMsg.contains('No selectable text') ||
             serverMsg.contains('not found') ||
             serverMsg.contains('timed out') ||
-            serverMsg.contains('unavailable');
+            serverMsg.contains('unavailable') ||
+            serverMsg.contains('pages (max') ||
+            serverMsg.contains('too long') ||
+            serverMsg.contains('split it') ||
+            serverMsg.contains('credit limit') ||
+            serverMsg.contains('Please try');
         return isActionable ? serverMsg : 'AI service error: $serverMsg';
       }
       return 'AI service is temporarily unavailable. Please try again.';
