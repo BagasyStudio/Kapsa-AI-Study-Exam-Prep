@@ -45,6 +45,14 @@ class RevenueCatService {
 
     // Listen for customer info changes (e.g. subscription renewals/expirations)
     Purchases.addCustomerInfoUpdateListener(_onCustomerInfoUpdated);
+
+    // Sync Pro status on launch — catches expired subscriptions that
+    // expired while the app was closed (listener wouldn't have fired).
+    if (user != null) {
+      _syncProStatus().catchError((e) {
+        debugPrint('RevenueCatService: launch sync failed: $e');
+      });
+    }
   }
 
   /// Log in to RevenueCat with the Supabase user ID.

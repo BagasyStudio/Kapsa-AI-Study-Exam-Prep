@@ -72,8 +72,11 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
 
     final task = _createTask(GenerationType.flashcards, courseId, courseName);
 
-    // Fire-and-forget — resolve pro status + generate
+    // Fire-and-forget — check credits, resolve pro status, generate
     () async {
+      // Check credits before starting (prevents bypass via concurrent requests)
+      if (!await _checkCredits('flashcards', task.id)) return;
+
       // Cap free users to 30 cards regardless of requested count
       var effectiveCount = count;
       try {
@@ -108,15 +111,18 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
 
     final task = _createTask(GenerationType.quiz, courseId, courseName);
 
-    _retryWithBackoff(() => _ref
-        .read(testRepositoryProvider)
-        .generateQuiz(courseId: courseId, focusTopics: focusTopics))
-        .then((result) {
-      _recordUsage('quiz');
-      _completeTask(task.id, Routes.quizSessionPath(result.test.id));
-    }).catchError((Object e) {
-      _failTask(task.id, e);
-    });
+    () async {
+      if (!await _checkCredits('quiz', task.id)) return;
+      try {
+        final result = await _retryWithBackoff(() => _ref
+            .read(testRepositoryProvider)
+            .generateQuiz(courseId: courseId, focusTopics: focusTopics));
+        _recordUsage('quiz');
+        _completeTask(task.id, Routes.quizSessionPath(result.test.id));
+      } catch (e) {
+        _failTask(task.id, e);
+      }
+    }();
 
     return true;
   }
@@ -127,16 +133,19 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
 
     final task = _createTask(GenerationType.summary, courseId, courseName);
 
-    _retryWithBackoff(() => _ref
-        .read(summaryRepositoryProvider)
-        .generateSummary(courseId: courseId))
-        .then((summary) {
-      _recordUsage('summary');
-      _ref.invalidate(courseSummariesProvider(courseId));
-      _completeTask(task.id, Routes.summaryPath(summary.id));
-    }).catchError((Object e) {
-      _failTask(task.id, e);
-    });
+    () async {
+      if (!await _checkCredits('summary', task.id)) return;
+      try {
+        final summary = await _retryWithBackoff(() => _ref
+            .read(summaryRepositoryProvider)
+            .generateSummary(courseId: courseId));
+        _recordUsage('summary');
+        _ref.invalidate(courseSummariesProvider(courseId));
+        _completeTask(task.id, Routes.summaryPath(summary.id));
+      } catch (e) {
+        _failTask(task.id, e);
+      }
+    }();
 
     return true;
   }
@@ -147,16 +156,19 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
 
     final task = _createTask(GenerationType.glossary, courseId, courseName);
 
-    _retryWithBackoff(() => _ref
-        .read(glossaryRepositoryProvider)
-        .generateGlossary(courseId: courseId))
-        .then((terms) {
-      _recordUsage('glossary');
-      _ref.invalidate(glossaryTermsProvider(courseId));
-      _completeTask(task.id, Routes.glossaryPath(courseId));
-    }).catchError((Object e) {
-      _failTask(task.id, e);
-    });
+    () async {
+      if (!await _checkCredits('glossary', task.id)) return;
+      try {
+        await _retryWithBackoff(() => _ref
+            .read(glossaryRepositoryProvider)
+            .generateGlossary(courseId: courseId));
+        _recordUsage('glossary');
+        _ref.invalidate(glossaryTermsProvider(courseId));
+        _completeTask(task.id, Routes.glossaryPath(courseId));
+      } catch (e) {
+        _failTask(task.id, e);
+      }
+    }();
 
     return true;
   }
@@ -193,6 +205,30 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
     );
     state = [...state, task];
     return task;
+  }
+
+  /// Check if user has enough credits before starting generation.
+  /// Returns false and fails the task if credits are insufficient.
+  Future<bool> _checkCredits(String feature, String taskId) async {
+    try {
+      final user = _ref.read(currentUserProvider);
+      if (user == null) {
+        _failTask(taskId, Exception('Not authenticated'));
+        return false;
+      }
+      final canUse = await _ref
+          .read(subscriptionRepositoryProvider)
+          .checkCanUseFeature(user.id, feature);
+      if (!canUse) {
+        _failTask(taskId, Exception('Daily credit limit reached. Credits reset tomorrow.'));
+        return false;
+      }
+      return true;
+    } catch (e) {
+      // If credit check fails, allow generation (fail open for Pro users)
+      debugPrint('GenerationNotifier: credit check failed, allowing: $e');
+      return true;
+    }
   }
 
   void _completeTask(String taskId, String resultRoute) {

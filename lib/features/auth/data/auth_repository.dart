@@ -138,11 +138,20 @@ class AuthRepository {
     await _client.auth.resetPasswordForEmail(email);
   }
 
+  /// Check if user has an active Pro subscription (for deletion warning).
+  Future<bool> hasActiveSubscription() async {
+    return await _revenueCat.isPro();
+  }
+
   /// Delete the current user's account and all associated data.
   ///
   /// Calls the delete-user-data Edge Function which handles
   /// cascading deletion of all user data before removing the auth user.
+  /// Also logs out of RevenueCat to detach the subscription identity.
   Future<void> deleteAccount() async {
+    // Detach RevenueCat identity before deletion so the anonymous
+    // fallback doesn't retain Pro access.
+    await _revenueCat.logout();
     await _functions.invoke('delete-user-data');
     await _client.auth.signOut();
   }

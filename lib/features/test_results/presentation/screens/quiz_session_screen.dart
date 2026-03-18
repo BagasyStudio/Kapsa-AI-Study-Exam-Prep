@@ -188,19 +188,34 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen>
 
   // ── Auto-save ───────────────────────────────────────────────────────
 
-  /// Save a single answer to the database (fire-and-forget).
+  /// Save a single answer to the database with retry on failure.
   void _autoSaveAnswer(List<TestQuestionModel> questions, int index) {
     final answer = _answers[index];
     if (answer == null || answer.isEmpty) return;
     if (index >= questions.length) return;
 
     final question = questions[index];
+    _persistAnswerWithRetry(question.id, answer, _currentIndex);
+  }
+
+  /// Persist quiz answer with up to 3 retries on network failure.
+  void _persistAnswerWithRetry(String questionId, String answer, int currentIndex, [int attempt = 1]) {
     ref.read(testRepositoryProvider).saveQuestionAnswer(
       testId: widget.testId,
-      questionId: question.id,
+      questionId: questionId,
       answer: answer,
-      currentIndex: _currentIndex,
-    ).catchError((_) {/* fire-and-forget, best-effort */});
+      currentIndex: currentIndex,
+    ).catchError((Object e) {
+      if (attempt < 3) {
+        final delay = Duration(seconds: 2 * attempt);
+        debugPrint('QuizSession: answer save retry $attempt/3 after ${delay.inSeconds}s: $e');
+        Future.delayed(delay, () {
+          if (mounted) _persistAnswerWithRetry(questionId, answer, currentIndex, attempt + 1);
+        });
+      } else {
+        debugPrint('QuizSession: answer save failed after 3 attempts: $e');
+      }
+    });
   }
 
   // ── Instant feedback ────────────────────────────────────────────────

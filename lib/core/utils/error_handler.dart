@@ -59,12 +59,19 @@ class AppErrorHandler {
 
       // Extract server message from response body.
       // `details` can be Map (parsed JSON), String (raw body), or null.
+      // Supabase gateway may return HTML error pages on 502/504 — detect and ignore.
       String? serverMsg;
       if (details is Map) {
         serverMsg = details['error']?.toString() ??
             details['message']?.toString();
       } else if (details is String && details.isNotEmpty) {
-        serverMsg = details;
+        // Detect HTML responses (gateway errors, CDN errors)
+        final trimmed = details.trim();
+        if (trimmed.startsWith('<') || trimmed.contains('<!DOCTYPE')) {
+          serverMsg = null; // Ignore HTML — use generic fallback
+        } else {
+          serverMsg = details;
+        }
       }
 
       // Only treat 401 as session expired if the message **explicitly**

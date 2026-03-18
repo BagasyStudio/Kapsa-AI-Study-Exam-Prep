@@ -21,9 +21,21 @@ class DeleteAccountScreen extends ConsumerStatefulWidget {
 class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
   final _controller = TextEditingController();
   bool _isDeleting = false;
+  bool _hasSubscription = false;
   String? _error;
 
   bool get _canDelete => _controller.text.trim().toUpperCase() == 'DELETE';
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSubscription();
+  }
+
+  Future<void> _checkSubscription() async {
+    final hasSub = await ref.read(authRepositoryProvider).hasActiveSubscription();
+    if (mounted) setState(() => _hasSubscription = hasSub);
+  }
 
   @override
   void dispose() {
@@ -115,6 +127,35 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
               _BulletPoint('Test results and analytics'),
               _BulletPoint('Calendar events and study plans'),
               _BulletPoint('Your profile and account data'),
+
+              if (_hasSubscription) ...[
+                const SizedBox(height: AppSpacing.md),
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFBBF24).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFFFBBF24).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: Color(0xFFFBBF24), size: 20),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          'You have an active Pro subscription. Please cancel it in your device Settings > Subscriptions before deleting your account to avoid future charges.',
+                          style: AppTypography.caption.copyWith(
+                            color: const Color(0xFFFBBF24),
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               const SizedBox(height: AppSpacing.xl),
 
