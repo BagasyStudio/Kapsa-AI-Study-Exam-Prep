@@ -378,8 +378,50 @@ class _CreateDeckBottomSheetState
   // ── Generate (with optional document pipeline) ──
 
   Future<void> _generate() async {
-    if (_selectedCourseId == null) return;
     HapticFeedback.mediumImpact();
+
+    // If no course selected, auto-create one from the uploaded file name
+    if (_selectedCourseId == null) {
+      if (_fileBytes == null) {
+        // No course AND no file → show hint
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please select a course or upload a document first.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Auto-create course from file name
+      setState(() => _isProcessing = true);
+      try {
+        final user = ref.read(currentUserProvider);
+        if (user == null) throw Exception('Not authenticated');
+
+        final courseName = _fileName != null
+            ? _fileName!.replaceAll(RegExp(r'\.(pdf|jpg|png|jpeg)$', caseSensitive: false), '')
+            : 'New Course';
+
+        final course = await ref.read(courseRepositoryProvider).createCourse(
+              userId: user.id,
+              title: courseName,
+            );
+        _selectedCourseId = course.id;
+        _selectedCourseName = course.title;
+        ref.invalidate(coursesProvider);
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isProcessing = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not create course: $e')),
+          );
+        }
+        return;
+      }
+    }
 
     // No document → generate directly
     if (_fileBytes == null) {
@@ -767,14 +809,27 @@ class _CreateDeckBottomSheetState
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
               overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
             ),
-            child: Slider(
-              value: _cardCount,
-              min: 10,
-              max: 50,
-              divisions: 8,
-              onChanged: (v) {
-                HapticFeedback.selectionClick();
-                setState(() => _cardCount = v);
+            child: Builder(
+              builder: (context) {
+                final isPro = ref.watch(isProProvider).valueOrNull ?? false;
+                final maxCards = isPro ? 250.0 : 30.0;
+                final divisions = isPro ? 24 : 4;
+                // Clamp current value to max if user was Pro and lost it
+                if (_cardCount > maxCards) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) setState(() => _cardCount = maxCards);
+                  });
+                }
+                return Slider(
+                  value: _cardCount.clamp(10, maxCards),
+                  min: 10,
+                  max: maxCards,
+                  divisions: divisions,
+                  onChanged: (v) {
+                    HapticFeedback.selectionClick();
+                    setState(() => _cardCount = v);
+                  },
+                );
               },
             ),
           ),
