@@ -56,6 +56,24 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     )..repeat(reverse: true);
   }
 
+  /// Ensure the Supabase JWT is fresh before storage operations.
+  /// Storage SDK doesn't auto-refresh like the Functions wrapper does.
+  Future<void> _ensureFreshToken() async {
+    final session = ref.read(supabaseClientProvider).auth.currentSession;
+    if (session == null) return;
+    // Refresh if token expires within 2 minutes
+    final expiresAt = session.expiresAt;
+    if (expiresAt != null) {
+      final expiresIn = DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000)
+          .difference(DateTime.now())
+          .inSeconds;
+      if (expiresIn < 120) {
+        debugPrint('CaptureSheet: refreshing JWT (expires in ${expiresIn}s)');
+        await ref.read(supabaseClientProvider).auth.refreshSession();
+      }
+    }
+  }
+
   @override
   void dispose() {
     _pulseController.dispose();
@@ -108,6 +126,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
 
     try {
       final imageBytes = await image.readAsBytes();
+
+      // Ensure fresh JWT before storage upload
+      await _ensureFreshToken();
 
       // Upload to Supabase Storage
       final client = ref.read(supabaseClientProvider);
@@ -197,6 +218,8 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
           'Audio too large. Maximum size is ${AppLimits.maxFileSizeMB} MB.',
         );
       }
+
+      await _ensureFreshToken();
 
       final client = ref.read(supabaseClientProvider);
       final user = ref.read(currentUserProvider);
@@ -314,6 +337,8 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     });
 
     try {
+      await _ensureFreshToken();
+
       final client = ref.read(supabaseClientProvider);
       final user = ref.read(currentUserProvider);
       if (user == null) throw Exception('Not authenticated');
