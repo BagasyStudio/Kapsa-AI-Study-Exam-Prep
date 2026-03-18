@@ -101,12 +101,12 @@ class _FeatureTooltipState extends State<FeatureTooltip>
       children: [
         widget.child,
         Positioned(
-          left: 0,
-          right: 0,
+          // Don't constrain width to parent (search button is only 36px).
+          // Let the tooltip size itself naturally with min-content.
           bottom: widget.showAbove ? 0 : null,
           top: widget.showAbove ? null : 0,
-          child: Transform.translate(
-            offset: Offset(0, widget.showAbove ? -8 : 44),
+          child: FractionalTranslation(
+            translation: Offset(-0.3, widget.showAbove ? -1.2 : 1.2),
             child: tooltip,
           ),
         ),
