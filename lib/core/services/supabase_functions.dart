@@ -105,13 +105,18 @@ class SupabaseFunctions {
           throw const SessionExpiredException();
         }
 
-        // ── Step 2: Retry with fresh token ──
+        // ── Step 2: Retry with FRESH token explicitly in headers ──
         if (refreshSucceeded) {
+          final freshToken = _client.auth.currentSession?.accessToken;
+          final retryHeaders = <String, String>{
+            if (headers != null) ...headers,
+            if (freshToken != null) 'Authorization': 'Bearer $freshToken',
+          };
           try {
             return await _client.functions
                 .invoke(
                   functionName,
-                  headers: headers,
+                  headers: retryHeaders,
                   body: body,
                   method: method,
                 )
