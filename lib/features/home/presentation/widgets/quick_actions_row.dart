@@ -199,67 +199,73 @@ class _DarkAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return TapScale(
       onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              // Main circle — dark immersive style
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.immersiveCard,
-                  border: Border.all(
-                    color: data.colors[0].withValues(alpha: 0.15),
+      child: SizedBox(
+        width: 72,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // Main circle
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.immersiveCard,
+                    border: Border.all(
+                      color: data.colors[0].withValues(alpha: 0.12),
+                    ),
                   ),
-                ),
-                child: Center(
-                  child: CustomPaint(
-                    size: const Size(20, 20),
-                    painter: data.painterBuilder(
-                      data.colors[0].withValues(alpha: 0.7),
+                  child: Center(
+                    child: CustomPaint(
+                      size: const Size(20, 20),
+                      painter: data.painterBuilder(
+                        data.colors[0].withValues(alpha: 0.7),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              // Badge
-              if (badgeCount != null)
-                Positioned(
-                  top: -4,
-                  right: -4,
-                  child: _NotificationBadge(count: badgeCount!),
-                ),
-              // Low-credits warning dot
-              if (showWarningDot)
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF59E0B),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color: AppColors.immersiveBg, width: 1.5),
+                // Badge
+                if (badgeCount != null)
+                  Positioned(
+                    top: -4,
+                    right: -4,
+                    child: _NotificationBadge(count: badgeCount!),
+                  ),
+                // Low-credits warning dot
+                if (showWarningDot)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF59E0B),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: AppColors.immersiveBg, width: 1.5),
+                      ),
                     ),
                   ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            data.label,
-            style: AppTypography.caption.copyWith(
-              color: Colors.white60,
-              fontWeight: FontWeight.w600,
-              fontSize: 11,
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              data.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: AppTypography.caption.copyWith(
+                color: Colors.white54,
+                fontWeight: FontWeight.w500,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -261,7 +261,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.primary.withValues(alpha: 0.06),
+                    AppColors.primary.withValues(alpha: 0.03),
                     Colors.transparent,
                   ],
                   radius: 1.2,
@@ -279,7 +279,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFF1E40AF).withValues(alpha: 0.04),
+                    const Color(0xFF1E40AF).withValues(alpha: 0.02),
                     Colors.transparent,
                   ],
                   radius: 1.0,

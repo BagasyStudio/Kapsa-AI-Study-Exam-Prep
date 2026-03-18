@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -191,19 +192,11 @@ class _SeasonalEventBannerState extends ConsumerState<SeasonalEventBanner>
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: AppColors.immersiveCard,
               borderRadius: BorderRadius.circular(AppRadius.lg),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.25),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+              border: Border.all(
+                color: const Color(0xFF8B5CF6).withValues(alpha: 0.2),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,7 +219,7 @@ class _SeasonalEventBannerState extends ConsumerState<SeasonalEventBanner>
                           Text(
                             event.name,
                             style: AppTypography.labelLarge.copyWith(
-                              color: Colors.white,
+                              color: AppColors.textPrimaryDark,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -236,14 +229,14 @@ class _SeasonalEventBannerState extends ConsumerState<SeasonalEventBanner>
                               Icon(
                                 Icons.schedule_rounded,
                                 size: 12,
-                                color: Colors.white.withValues(alpha: 0.7),
+                                color: Colors.white.withValues(alpha: 0.5),
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 event.timeRemainingLabel,
                                 style: AppTypography.caption.copyWith(
                                   color:
-                                      Colors.white.withValues(alpha: 0.7),
+                                      Colors.white.withValues(alpha: 0.5),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -278,25 +271,19 @@ class _SeasonalEventBannerState extends ConsumerState<SeasonalEventBanner>
                     vertical: AppSpacing.xs,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
+                    color: Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${event.description} \u2192 ${event.reward}',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    '${event.description} \u2192 ${event.reward}',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
 
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: 10),
 
                 // ── Progress bar ──
                 Row(
@@ -306,11 +293,11 @@ class _SeasonalEventBannerState extends ConsumerState<SeasonalEventBanner>
                         borderRadius: BorderRadius.circular(100),
                         child: LinearProgressIndicator(
                           value: progressFraction,
-                          minHeight: 6,
+                          minHeight: 4,
                           backgroundColor:
-                              Colors.white.withValues(alpha: 0.2),
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            Colors.white,
+                              Colors.white.withValues(alpha: 0.08),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            const Color(0xFF8B5CF6).withValues(alpha: 0.8),
                           ),
                         ),
                       ),
@@ -319,9 +306,9 @@ class _SeasonalEventBannerState extends ConsumerState<SeasonalEventBanner>
                     Text(
                       '$_progress/${event.goal}',
                       style: AppTypography.caption.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
+                        color: Colors.white54,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
                       ),
                     ),
                   ],

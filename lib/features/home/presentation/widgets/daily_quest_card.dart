@@ -137,7 +137,7 @@ class _DailyQuestCardState extends ConsumerState<DailyQuestCard>
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
           child: Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
             decoration: BoxDecoration(
               color: AppColors.immersiveCard,
               borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -149,46 +149,32 @@ class _DailyQuestCardState extends ConsumerState<DailyQuestCard>
                 // Header row
                 Row(
                   children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.primary.withValues(alpha: 0.3),
-                            AppColors.primary.withValues(alpha: 0.1),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.bolt_rounded,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
+                    Icon(
+                      Icons.bolt_rounded,
+                      size: 18,
+                      color: AppColors.primary.withValues(alpha: 0.8),
                     ),
-                    const SizedBox(width: AppSpacing.xs),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Daily Quests',
                         style: AppTypography.labelLarge.copyWith(
                           color: AppColors.textPrimaryDark,
                           fontWeight: FontWeight.w700,
+                          fontSize: 15,
                         ),
                       ),
                     ),
                     // Completed count pill
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
+                        horizontal: 10,
+                        vertical: 3,
                       ),
                       decoration: BoxDecoration(
                         color: _allComplete
-                            ? AppColors.success.withValues(alpha: 0.15)
-                            : Colors.white.withValues(alpha: 0.08),
+                            ? AppColors.success.withValues(alpha: 0.12)
+                            : Colors.white.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(100),
                       ),
                       child: Text(
@@ -196,7 +182,7 @@ class _DailyQuestCardState extends ConsumerState<DailyQuestCard>
                         style: AppTypography.caption.copyWith(
                           color: _allComplete
                               ? AppColors.success
-                              : Colors.white38,
+                              : Colors.white30,
                           fontWeight: FontWeight.w600,
                           fontSize: 11,
                         ),
@@ -205,24 +191,14 @@ class _DailyQuestCardState extends ConsumerState<DailyQuestCard>
                   ],
                 ),
 
-                const SizedBox(height: AppSpacing.sm),
-
-                // Progress bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: _kQuests.isEmpty
-                        ? 0
-                        : _completedCount / _kQuests.length,
-                    minHeight: 4,
-                    backgroundColor: Colors.white.withValues(alpha: 0.06),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      _allComplete ? AppColors.success : AppColors.primary,
-                    ),
+                // Subtle divider
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Container(
+                    height: 1,
+                    color: Colors.white.withValues(alpha: 0.06),
                   ),
                 ),
-
-                const SizedBox(height: AppSpacing.sm),
 
                 // Quest list
                 ...List.generate(_kQuests.length, (index) {

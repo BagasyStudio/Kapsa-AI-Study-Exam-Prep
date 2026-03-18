@@ -15,8 +15,6 @@ class XpLevelBadge extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final xp = ref.watch(xpTotalProvider).whenOrNull(data: (v) => v) ?? 0;
     final level = ref.watch(xpLevelProvider);
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
     final progress = XpConfig.progressToNextLevel(xp);
 
     return Container(
@@ -26,14 +24,6 @@ class XpLevelBadge extends ConsumerWidget {
           colors: [Color(0xFFF59E0B), Color(0xFFF97316)],
         ),
         borderRadius: BorderRadius.circular(100),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFF59E0B)
-                .withValues(alpha: isDark ? 0.3 : 0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
