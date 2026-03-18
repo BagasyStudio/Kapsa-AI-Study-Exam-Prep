@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/providers/supabase_provider.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Exercise Data Provider — calls edge function to generate exercises
@@ -12,9 +12,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 final exerciseDataProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>, ({String courseId, String exerciseType})>(
         (ref, params) async {
-  final supabase = Supabase.instance.client;
+  final functions = ref.watch(supabaseFunctionsProvider);
 
-  final response = await supabase.functions.invoke(
+  final response = await functions.invoke(
     'ai-generate-exercise',
     body: {
       'exerciseType': params.exerciseType,
@@ -22,16 +22,19 @@ final exerciseDataProvider = FutureProvider.autoDispose
     },
   );
 
-  if (response.status != 200) {
-    throw Exception('Failed to generate exercise');
-  }
-
   final data = response.data;
   if (data is Map<String, dynamic>) {
+    if (data.containsKey('error')) {
+      throw Exception(data['error'] as String);
+    }
     return data;
   }
   if (data is String) {
-    return jsonDecode(data) as Map<String, dynamic>;
+    final parsed = jsonDecode(data) as Map<String, dynamic>;
+    if (parsed.containsKey('error')) {
+      throw Exception(parsed['error'] as String);
+    }
+    return parsed;
   }
   throw Exception('Invalid response format');
 });

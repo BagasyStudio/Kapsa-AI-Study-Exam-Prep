@@ -247,7 +247,7 @@ final aiEnhancedStudyPlanProvider = FutureProvider<List<StudyTask>>((ref) async 
 
   // Try AI enhancement
   try {
-    final client = ref.read(supabaseClientProvider);
+    final functions = ref.read(supabaseFunctionsProvider);
 
     // Send local tasks as context for the AI
     final taskPayload = localTasks.map((t) {
@@ -261,15 +261,13 @@ final aiEnhancedStudyPlanProvider = FutureProvider<List<StudyTask>>((ref) async 
       };
     }).toList();
 
-    final response = await client.functions.invoke(
+    final response = await functions.invoke(
       'ai-assistant',
       body: {
         'mode': 'generate_study_path',
         'tasks': taskPayload,
       },
     );
-
-    if (response.status != 200) return localTasks;
 
     final data = response.data is String
         ? jsonDecode(response.data as String) as Map<String, dynamic>
