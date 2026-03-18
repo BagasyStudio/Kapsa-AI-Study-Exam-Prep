@@ -10,6 +10,7 @@ class PulseGlow extends StatefulWidget {
   final Color glowColor;
   final double maxBlurRadius;
   final Duration duration;
+  final bool enabled;
 
   const PulseGlow({
     super.key,
@@ -17,6 +18,7 @@ class PulseGlow extends StatefulWidget {
     this.glowColor = AppColors.primary,
     this.maxBlurRadius = 24,
     this.duration = const Duration(milliseconds: 2000),
+    this.enabled = true,
   });
 
   @override
@@ -34,11 +36,26 @@ class _PulseGlowState extends State<PulseGlow>
     _controller = AnimationController(
       vsync: this,
       duration: widget.duration,
-    )..repeat(reverse: true);
+    );
 
     _glowAnimation = Tween<double>(begin: 0.15, end: 0.45).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
+
+    if (widget.enabled) {
+      _controller.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(PulseGlow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.enabled && !oldWidget.enabled) {
+      _controller.repeat(reverse: true);
+    } else if (!widget.enabled && oldWidget.enabled) {
+      _controller.stop();
+      _controller.reset();
+    }
   }
 
   @override
@@ -49,6 +66,9 @@ class _PulseGlowState extends State<PulseGlow>
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.enabled) {
+      return widget.child;
+    }
     return AnimatedBuilder(
       animation: _glowAnimation,
       builder: (context, child) {

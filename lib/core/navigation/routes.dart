@@ -32,11 +32,13 @@ abstract final class Routes {
   static const joinGroup = '/groups/join';
   static const knowledgeScore = '/knowledge-score';
   static const monthReview = '/month-review';
+  static const summariesList = '/summaries/:courseId';
   static const summary = '/summary/:summaryId';
   static const glossary = '/glossary/:courseId';
   static const studyPath = '/study-path';
   static const journey = '/journey/:courseId';
   static const quickReview = '/quick-review';
+  static const exercise = '/exercise/:courseId/:exerciseType';
 
   // ── Legal & Compliance ──
   static const terms = '/terms';
@@ -49,6 +51,12 @@ abstract final class Routes {
   // ── First Deck Wizard ──
   static const firstDeckWizard = '/first-deck-wizard';
 
+  // ── Cram Mode (rapid-fire review) ──
+  static const cramMode = '/cram/:deckId';
+
+  // ── Typing Mode (type-the-answer review) ──
+  static const flashcardTyping = '/flashcard-typing/:deckId';
+
   // ── Deck Detail (parent deck with subdecks) ──
   static const deckDetail = '/deck-detail/:deckId';
 
@@ -57,7 +65,8 @@ abstract final class Routes {
   static String flashcardSessionPath(String sessionId) =>
       '/flashcards/$sessionId';
   static String deckListPath(String courseId) => '/decks/$courseId';
-  static String srsReviewPath(String courseId) => '/srs-review/$courseId';
+  static String srsReviewPath(String courseId, {bool reverse = false}) =>
+      reverse ? '/srs-review/$courseId?reverse=true' : '/srs-review/$courseId';
   static String chatPath(String courseId) => '/chat/$courseId';
   static String quizSessionPath(String testId) => '/quiz-session/$testId';
   static String testResultsPath(String testId) => '/test-results/$testId';
@@ -70,8 +79,13 @@ abstract final class Routes {
   static String occlusionEditorPath(String courseId) =>
       '/occlusion-editor/$courseId';
   static String groupDetailPath(String groupId) => '/groups/$groupId';
+  static String summariesListPath(String courseId) => '/summaries/$courseId';
   static String summaryPath(String summaryId) => '/summary/$summaryId';
   static String glossaryPath(String courseId) => '/glossary/$courseId';
+  static String cramModePath(String deckId) => '/cram/$deckId';
+  static String flashcardTypingPath(String deckId) => '/flashcard-typing/$deckId';
   static String deckDetailPath(String deckId) => '/deck-detail/$deckId';
   static String journeyPath(String courseId) => '/journey/$courseId';
+  static String exercisePath(String courseId, String exerciseType) =>
+      '/exercise/$courseId/$exerciseType';
 }

@@ -66,6 +66,10 @@ class SoundService {
   /// Tab switch in bottom navigation.
   static Future<void> playTabSwitch() => _play('tab_switch.mp3');
 
+  /// Achievement / badge unlocked.
+  static Future<void> playAchievementUnlock() =>
+      _play('achievement_unlock.mp3');
+
   // ── Internal ────────────────────────────────────────────────
 
   static Future<void> _play(String file) async {

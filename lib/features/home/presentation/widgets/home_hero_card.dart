@@ -126,9 +126,9 @@ class _GenerationHero extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Show the most relevant task: first running, then first completed/error
-    final task = runningTasks.isNotEmpty
-        ? runningTasks.first
-        : completedTasks.first;
+    final allTasks = [...runningTasks, ...completedTasks];
+    if (allTasks.isEmpty) return const SizedBox.shrink();
+    final task = allTasks.first;
 
     final accentColor = task.isRunning
         ? task.typeColor
@@ -189,18 +189,29 @@ class _GenerationHero extends ConsumerWidget {
                     ],
                   ),
                 ),
-                // Dismiss for completed/error
-                if (!task.isRunning)
-                  GestureDetector(
-                    onTap: () => ref
+                // Dismiss for any status (including running)
+                GestureDetector(
+                  onTap: () {
+                    final wasRunning = task.isRunning;
+                    ref
                         .read(generationProvider.notifier)
-                        .dismiss(task.id),
-                    child: const Icon(
-                      Icons.close_rounded,
-                      size: 18,
-                      color: Colors.white60,
-                    ),
+                        .dismiss(task.id);
+                    if (wasRunning) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Generation dismissed'),
+                          duration: Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+                  child: const Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: Colors.white60,
                   ),
+                ),
               ],
             ),
 
@@ -321,7 +332,16 @@ class _GenerationHero extends ConsumerWidget {
   }
 
   String _subtitle(GenerationTask task) {
-    if (task.isRunning) return task.displayCourseName;
+    if (task.isRunning) {
+      final elapsed = DateTime.now().difference(task.startedAt).inSeconds;
+      if (elapsed > 30) {
+        return '${task.displayCourseName} \u00b7 Taking longer than usual...';
+      }
+      if (elapsed > 10) {
+        return '${task.displayCourseName} \u00b7 ${elapsed}s';
+      }
+      return task.displayCourseName;
+    }
     if (task.isCompleted) return task.displayCourseName;
     return task.displayCourseName;
   }
@@ -445,6 +465,16 @@ class _DueCardsHero extends StatelessWidget {
 
   const _DueCardsHero({required this.count});
 
+  // UX-08: Estimate study time — 15 seconds per card
+  static String _estimateTime(int cards) {
+    if (cards <= 0) return '';
+    final totalSeconds = cards * 15;
+    final minutes = (totalSeconds / 60).ceil();
+    if (minutes < 1) return '< 1 min';
+    if (minutes >= 60) return '~${minutes ~/ 60}h ${minutes % 60}min';
+    return '~$minutes min';
+  }
+
   @override
   Widget build(BuildContext context) {
     final accentColor = const Color(0xFFF59E0B); // amber
@@ -507,7 +537,7 @@ class _DueCardsHero extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Review $count due card${count != 1 ? 's' : ''}',
+                    'Time to review!',
                     style: AppTypography.labelLarge.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -515,9 +545,8 @@ class _DueCardsHero extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    count > 30
-                        ? 'Large backlog \u2014 tackle 20 to stay on track'
-                        : 'Quick review to keep your memory fresh',
+                    // UX-08: Time estimation — 15s per card
+                    '$count card${count != 1 ? 's' : ''} due · ${_estimateTime(count)}',
                     style: AppTypography.bodySmall.copyWith(
                       color: Colors.white60,
                     ),

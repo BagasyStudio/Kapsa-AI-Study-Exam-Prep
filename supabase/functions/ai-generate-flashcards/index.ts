@@ -17,8 +17,8 @@ const MIN_TOTAL_CARDS = 5;
 const MAX_CONCURRENT = 4;         // parallel Replicate calls
 const CHUNK_SIZE = 5000;          // larger chunks = fewer batches
 const POLL_INTERVAL_MS = 500;     // poll every 500ms instead of 1000ms
-const MAX_POLL_ATTEMPTS = 180;    // 180 * 500ms = 90 seconds max per call
-const GLOBAL_DEADLINE_MS = 130_000; // 130s — return before Supabase kills us at ~150s
+const MAX_POLL_ATTEMPTS = 90;     // 90 * 500ms = 45 seconds max per call
+const GLOBAL_DEADLINE_MS = 50_000; // 50s — return before Supabase kills us at 60s
 
 // ── Input validation helpers ──────────────────────────────────────
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

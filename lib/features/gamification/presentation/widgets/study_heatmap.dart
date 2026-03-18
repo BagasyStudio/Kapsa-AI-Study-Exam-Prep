@@ -123,12 +123,54 @@ class StudyHeatmap extends ConsumerWidget {
   }
 }
 
-class _HeatmapGrid extends StatelessWidget {
+class _HeatmapGrid extends StatefulWidget {
   final Map<String, int> dailyXp;
 
   const _HeatmapGrid({
     required this.dailyXp,
   });
+
+  @override
+  State<_HeatmapGrid> createState() => _HeatmapGridState();
+}
+
+class _HeatmapGridState extends State<_HeatmapGrid>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  bool _hasAnimated = false;
+
+  /// Total number of cells in the grid (13 weeks x 7 days).
+  static const _totalCells = 13 * 7;
+
+  /// Stagger delay per cell in milliseconds.
+  static const _staggerMs = 15;
+
+  /// Duration for each individual cell's scale animation.
+  static const _cellAnimMs = 350;
+
+  /// Total animation duration covers the last cell's stagger + its animation.
+  static final _totalDuration = Duration(
+    milliseconds: (_totalCells - 1) * _staggerMs + _cellAnimMs,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: _totalDuration,
+    );
+    // Start the entrance animation on first build
+    _controller.forward().then((_) {
+      _hasAnimated = true;
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +182,8 @@ class _HeatmapGrid extends StatelessWidget {
     final startDate = startOfWeek.subtract(const Duration(days: 12 * 7));
 
     // Find max XP for intensity scaling
-    final maxXp = dailyXp.values.fold<int>(0, (a, b) => a > b ? a : b);
+    final maxXp =
+        widget.dailyXp.values.fold<int>(0, (a, b) => a > b ? a : b);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -150,15 +193,25 @@ class _HeatmapGrid extends StatelessWidget {
 
         return SizedBox(
           height: cellSize * 7 + cellGap * 6,
-          child: CustomPaint(
-            size: Size(totalWidth, cellSize * 7 + cellGap * 6),
-            painter: _HeatmapPainter(
-              startDate: startDate,
-              dailyXp: dailyXp,
-              maxXp: maxXp,
-              cellSize: cellSize,
-              cellGap: cellGap,
-            ),
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              return CustomPaint(
+                size: Size(totalWidth, cellSize * 7 + cellGap * 6),
+                painter: _HeatmapPainter(
+                  startDate: startDate,
+                  dailyXp: widget.dailyXp,
+                  maxXp: maxXp,
+                  cellSize: cellSize,
+                  cellGap: cellGap,
+                  animationProgress: _controller.value,
+                  totalDurationMs: _totalDuration.inMilliseconds,
+                  staggerMs: _staggerMs,
+                  cellAnimMs: _cellAnimMs,
+                  hasAnimated: _hasAnimated,
+                ),
+              );
+            },
           ),
         );
       },
@@ -172,6 +225,11 @@ class _HeatmapPainter extends CustomPainter {
   final int maxXp;
   final double cellSize;
   final double cellGap;
+  final double animationProgress;
+  final int totalDurationMs;
+  final int staggerMs;
+  final int cellAnimMs;
+  final bool hasAnimated;
 
   _HeatmapPainter({
     required this.startDate,
@@ -179,6 +237,11 @@ class _HeatmapPainter extends CustomPainter {
     required this.maxXp,
     required this.cellSize,
     required this.cellGap,
+    required this.animationProgress,
+    required this.totalDurationMs,
+    required this.staggerMs,
+    required this.cellAnimMs,
+    required this.hasAnimated,
   });
 
   @override
@@ -186,6 +249,8 @@ class _HeatmapPainter extends CustomPainter {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final radius = Radius.circular(cellSize * 0.2);
+
+    int cellIndex = 0;
 
     for (int week = 0; week < 13; week++) {
       for (int day = 0; day < 7; day++) {
@@ -195,6 +260,39 @@ class _HeatmapPainter extends CustomPainter {
         final key =
             '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
         final xp = dailyXp[key] ?? 0;
+
+        final cx = week * (cellSize + cellGap) + cellSize / 2;
+        final cy = day * (cellSize + cellGap) + cellSize / 2;
+
+        // Calculate per-cell scale based on stagger
+        final double scale;
+        if (hasAnimated) {
+          scale = 1.0;
+        } else {
+          final cellStartMs = cellIndex * staggerMs;
+          final cellEndMs = cellStartMs + cellAnimMs;
+          final currentMs = animationProgress * totalDurationMs;
+
+          if (currentMs <= cellStartMs) {
+            scale = 0.0;
+          } else if (currentMs >= cellEndMs) {
+            scale = 1.0;
+          } else {
+            // Normalize to 0..1 for this cell's animation window
+            final t = (currentMs - cellStartMs) / cellAnimMs;
+            // Apply easeOutBack curve manually for slight bounce
+            scale = _easeOutBack(t);
+          }
+        }
+
+        cellIndex++;
+
+        if (scale <= 0.0) continue;
+
+        canvas.save();
+        canvas.translate(cx, cy);
+        canvas.scale(scale);
+        canvas.translate(-cx, -cy);
 
         final x = week * (cellSize + cellGap);
         final y = day * (cellSize + cellGap);
@@ -215,8 +313,18 @@ class _HeatmapPainter extends CustomPainter {
             ..strokeWidth = 0.5;
           canvas.drawRRect(rrect, borderPaint);
         }
+
+        canvas.restore();
       }
     }
+  }
+
+  /// Manual easeOutBack curve: slight overshoot then settle.
+  /// Matches Curves.easeOutBack behaviour.
+  double _easeOutBack(double t) {
+    const s = 1.70158;
+    final t1 = t - 1.0;
+    return t1 * t1 * ((s + 1) * t1 + s) + 1.0;
   }
 
   Color _colorForIntensity(int xp) {
@@ -240,6 +348,7 @@ class _HeatmapPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _HeatmapPainter old) {
-    return old.dailyXp != dailyXp;
+    return old.dailyXp != dailyXp ||
+        old.animationProgress != animationProgress;
   }
 }

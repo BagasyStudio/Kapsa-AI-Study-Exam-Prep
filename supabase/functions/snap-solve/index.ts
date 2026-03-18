@@ -61,6 +61,15 @@ function parseJsonObject(raw: string): any {
   return JSON.parse(sanitized);
 }
 
+// ── Deadline protection — Supabase kills at 60s ─────────────────
+const HARD_DEADLINE_MS = 50_000; // 50s (10s buffer)
+const MAX_POLL_ATTEMPTS = 50;
+let REQUEST_START = 0;
+
+function isDeadlineClose(): boolean {
+  return Date.now() - REQUEST_START > HARD_DEADLINE_MS;
+}
+
 // ── AI solve function ────────────────────────────────────────────
 async function solveWithVisionModel(apiKey: string, imageUrl: string): Promise<any> {
   const langInstruction = detectLanguageFromPrompt();
@@ -127,7 +136,10 @@ Important rules:
   const prediction = await createRes.json();
   let result = prediction;
   let attempts = 0;
-  while (result.status !== "succeeded" && result.status !== "failed" && attempts < 120) {
+  while (result.status !== "succeeded" && result.status !== "failed" && attempts < MAX_POLL_ATTEMPTS) {
+    if (isDeadlineClose()) {
+      throw new Error("Request timeout: AI processing took too long. Please try again.");
+    }
     await new Promise((resolve) => setTimeout(resolve, 1500));
     const pollRes = await fetch(result.urls.get, {
       headers: { "Authorization": `Bearer ${apiKey}` },
@@ -226,7 +238,10 @@ Format:
   const prediction = await createRes.json();
   let result = prediction;
   let attempts = 0;
-  while (result.status !== "succeeded" && result.status !== "failed" && attempts < 120) {
+  while (result.status !== "succeeded" && result.status !== "failed" && attempts < MAX_POLL_ATTEMPTS) {
+    if (isDeadlineClose()) {
+      throw new Error("Request timeout: AI processing took too long. Please try again.");
+    }
     await new Promise((resolve) => setTimeout(resolve, 1500));
     const pollRes = await fetch(result.urls.get, {
       headers: { "Authorization": `Bearer ${apiKey}` },
@@ -253,6 +268,8 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  REQUEST_START = Date.now();
 
   // Early check: is the AI service configured?
   const replicateKey = Deno.env.get("REPLICATE_API_KEY");

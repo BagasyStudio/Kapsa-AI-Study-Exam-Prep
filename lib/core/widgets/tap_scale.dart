@@ -19,6 +19,9 @@ class TapScale extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
 
+  /// Optional long-press callback (e.g. for bulk selection).
+  final VoidCallback? onLongPress;
+
   /// Scale factor when pressed (default 0.97, lower = more dramatic).
   final double scaleDown;
 
@@ -29,6 +32,7 @@ class TapScale extends StatefulWidget {
     super.key,
     required this.child,
     this.onTap,
+    this.onLongPress,
     this.scaleDown = 0.97,
     this.enableHaptics = true,
   });
@@ -62,6 +66,7 @@ class _TapScaleState extends State<TapScale> {
       onTapDown: _onTapDown,
       onTapUp: _onTapUp,
       onTapCancel: _onTapCancel,
+      onLongPress: widget.onLongPress,
       behavior: HitTestBehavior.opaque,
       child: AnimatedScale(
         scale: _isPressed ? widget.scaleDown : 1.0,

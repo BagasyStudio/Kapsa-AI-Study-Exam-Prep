@@ -25,6 +25,9 @@ class FlashcardModel {
   final DateTime? due;
   final DateTime? lastReview;
 
+  // ── Bookmark ──
+  final bool isBookmarked;
+
   // ── Image Occlusion fields ──
   final String cardType; // 'text' or 'image_occlusion'
   final String? imageUrl;
@@ -49,6 +52,7 @@ class FlashcardModel {
     this.srsState = 0,
     this.due,
     this.lastReview,
+    this.isBookmarked = false,
     this.cardType = 'text',
     this.imageUrl,
     this.occlusionData,
@@ -80,6 +84,7 @@ class FlashcardModel {
       lastReview: json['last_review'] != null
           ? DateTime.parse(json['last_review'] as String)
           : null,
+      isBookmarked: (json['is_bookmarked'] as bool?) ?? false,
       cardType: json['card_type'] as String? ?? 'text',
       imageUrl: json['image_url'] as String?,
       occlusionData: json['occlusion_data'] != null
@@ -141,6 +146,7 @@ class FlashcardModel {
     int? srsState,
     DateTime? due,
     DateTime? lastReview,
+    bool? isBookmarked,
     String? cardType,
     String? imageUrl,
     List<Map<String, dynamic>>? occlusionData,
@@ -164,6 +170,7 @@ class FlashcardModel {
       srsState: srsState ?? this.srsState,
       due: due ?? this.due,
       lastReview: lastReview ?? this.lastReview,
+      isBookmarked: isBookmarked ?? this.isBookmarked,
       cardType: cardType ?? this.cardType,
       imageUrl: imageUrl ?? this.imageUrl,
       occlusionData: occlusionData ?? this.occlusionData,

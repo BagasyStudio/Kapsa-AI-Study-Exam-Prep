@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../data/models/material_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -517,8 +520,11 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
   }
 }
 
-/// Materials tab with AI insight and material list.
-class _MaterialsTab extends ConsumerWidget {
+/// Sort modes for the materials list.
+enum _MaterialSortMode { recent, nameAz, type }
+
+/// Materials tab with AI insight, search/filter, and material list.
+class _MaterialsTab extends ConsumerStatefulWidget {
   final String courseId;
   final AsyncValue materialsAsync;
 
@@ -527,6 +533,87 @@ class _MaterialsTab extends ConsumerWidget {
     required this.materialsAsync,
   });
 
+  @override
+  ConsumerState<_MaterialsTab> createState() => _MaterialsTabState();
+}
+
+class _MaterialsTabState extends ConsumerState<_MaterialsTab> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _selectedFilter = 'All';
+  _MaterialSortMode _sortMode = _MaterialSortMode.recent;
+  Timer? _debounce;
+
+  static const _filterOptions = ['All', 'PDF', 'Audio', 'Notes', 'Paste'];
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() => _searchQuery = _searchController.text.trim());
+      }
+    });
+  }
+
+  List<MaterialModel> _filterMaterials(List<MaterialModel> materials) {
+    var filtered = List<MaterialModel>.from(materials);
+
+    // Filter by type
+    if (_selectedFilter != 'All') {
+      final filterType = _selectedFilter.toLowerCase();
+      filtered = filtered.where((m) => m.type == filterType).toList();
+    }
+
+    // Filter by search query
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      filtered = filtered
+          .where((m) =>
+              m.title.toLowerCase().contains(query) ||
+              m.displayTitle.toLowerCase().contains(query))
+          .toList();
+    }
+
+    // Apply sort
+    switch (_sortMode) {
+      case _MaterialSortMode.recent:
+        filtered.sort((a, b) {
+          final aDate = a.createdAt ?? DateTime(2000);
+          final bDate = b.createdAt ?? DateTime(2000);
+          return bDate.compareTo(aDate);
+        });
+      case _MaterialSortMode.nameAz:
+        filtered.sort((a, b) =>
+            a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
+      case _MaterialSortMode.type:
+        // Define type ordering: PDF, Audio, Notes, Paste
+        const typeOrder = {'pdf': 0, 'audio': 1, 'notes': 2, 'paste': 3};
+        filtered.sort((a, b) {
+          final aOrder = typeOrder[a.type] ?? 99;
+          final bOrder = typeOrder[b.type] ?? 99;
+          if (aOrder != bOrder) return aOrder.compareTo(bOrder);
+          // Within same type, sort by name
+          return a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase());
+        });
+    }
+
+    return filtered;
+  }
+
   void _openCapture(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -534,7 +621,72 @@ class _MaterialsTab extends ConsumerWidget {
       useRootNavigator: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.3),
-      builder: (_) => CaptureSheet(courseId: courseId),
+      builder: (_) => CaptureSheet(courseId: widget.courseId),
+    );
+  }
+
+  Widget _buildSortChips() {
+    const sortData = <_MaterialSortMode, (String, IconData)>{
+      _MaterialSortMode.recent: ('Recent', Icons.schedule_rounded),
+      _MaterialSortMode.nameAz: ('A-Z', Icons.sort_by_alpha_rounded),
+      _MaterialSortMode.type: ('Type', Icons.category_rounded),
+    };
+
+    return Row(
+      children: [
+        Icon(Icons.sort_rounded, size: 14, color: Colors.white38),
+        const SizedBox(width: AppSpacing.xs),
+        ...sortData.entries.map((entry) {
+          final isSelected = _sortMode == entry.key;
+          return Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() => _sortMode = entry.key);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColors.primary.withValues(alpha: 0.15)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppColors.primary.withValues(alpha: 0.4)
+                        : Colors.white.withValues(alpha: 0.08),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      entry.value.$2,
+                      size: 12,
+                      color: isSelected ? AppColors.primary : Colors.white38,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      entry.value.$1,
+                      style: AppTypography.caption.copyWith(
+                        color: isSelected ? AppColors.primary : Colors.white60,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ],
     );
   }
 
@@ -546,7 +698,7 @@ class _MaterialsTab extends ConsumerWidget {
     String? materialId,
   }) {
     final notifier = ref.read(generationProvider.notifier);
-    if (notifier.isRunning(type, courseId)) {
+    if (notifier.isRunning(type, widget.courseId)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Already generating ${type.name}...'),
@@ -556,18 +708,18 @@ class _MaterialsTab extends ConsumerWidget {
       return;
     }
 
-    final course = ref.read(courseProvider(courseId)).valueOrNull;
+    final course = ref.read(courseProvider(widget.courseId)).valueOrNull;
     final courseName = course?.displayTitle ?? 'Course';
 
     switch (type) {
       case GenerationType.flashcards:
-        notifier.generateFlashcards(courseId, courseName, materialId: materialId);
+        notifier.generateFlashcards(widget.courseId, courseName, materialId: materialId);
       case GenerationType.quiz:
-        notifier.generateQuiz(courseId, courseName);
+        notifier.generateQuiz(widget.courseId, courseName);
       case GenerationType.summary:
-        notifier.generateSummary(courseId, courseName);
+        notifier.generateSummary(widget.courseId, courseName);
       case GenerationType.glossary:
-        notifier.generateGlossary(courseId, courseName);
+        notifier.generateGlossary(widget.courseId, courseName);
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -588,7 +740,7 @@ class _MaterialsTab extends ConsumerWidget {
     if (!canUse || !context.mounted) return;
 
     final notifier = ref.read(generationProvider.notifier);
-    if (notifier.isRunning(GenerationType.flashcards, courseId)) {
+    if (notifier.isRunning(GenerationType.flashcards, widget.courseId)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Already generating flashcards...'),
@@ -598,8 +750,8 @@ class _MaterialsTab extends ConsumerWidget {
       return;
     }
 
-    final course = ref.read(courseProvider(courseId)).valueOrNull;
-    notifier.generateFlashcards(courseId, course?.displayTitle ?? 'Course');
+    final course = ref.read(courseProvider(widget.courseId)).valueOrNull;
+    notifier.generateFlashcards(widget.courseId, course?.displayTitle ?? 'Course');
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -611,13 +763,15 @@ class _MaterialsTab extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final bool isFiltering = _searchQuery.isNotEmpty || _selectedFilter != 'All';
+
     return StaggeredColumn(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Course Stats Banner
         CourseStatsBanner(
-          courseId: courseId,
+          courseId: widget.courseId,
           onGenerateTap: () => _generateFromBanner(context, ref),
         ),
 
@@ -669,8 +823,114 @@ class _MaterialsTab extends ConsumerWidget {
 
         const SizedBox(height: AppSpacing.md),
 
-        // Material list
-        materialsAsync.when(
+        // Search bar
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.immersiveCard,
+            borderRadius: AppRadius.borderRadiusLg,
+            border: Border.all(color: AppColors.immersiveBorder),
+          ),
+          child: TextField(
+            controller: _searchController,
+            style: AppTypography.bodySmall.copyWith(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Search materials...',
+              hintStyle: AppTypography.bodySmall.copyWith(color: Colors.white38),
+              prefixIcon: const Icon(Icons.search_rounded, color: Colors.white38, size: 20),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear_rounded, color: Colors.white38, size: 18),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    )
+                  : null,
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: AppSpacing.sm),
+
+        // Filter chips with counts
+        widget.materialsAsync.when(
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (materials) {
+            // Calculate counts per type
+            final typeCounts = <String, int>{};
+            for (final m in materials) {
+              final label = m.type == 'pdf'
+                  ? 'PDF'
+                  : m.type == 'audio'
+                      ? 'Audio'
+                      : m.type == 'notes'
+                          ? 'Notes'
+                          : m.type == 'paste'
+                              ? 'Paste'
+                              : m.type.toUpperCase();
+              typeCounts[label] = (typeCounts[label] ?? 0) + 1;
+            }
+
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _filterOptions.map((filter) {
+                  final isSelected = _selectedFilter == filter;
+                  final count = filter == 'All'
+                      ? materials.length
+                      : typeCounts[filter] ?? 0;
+
+                  // Hide chips with 0 items (except "All")
+                  if (filter != 'All' && count == 0) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(
+                        '$filter ($count)',
+                        style: AppTypography.caption.copyWith(
+                          color: isSelected ? Colors.white : Colors.white60,
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w500,
+                        ),
+                      ),
+                      selected: isSelected,
+                      selectedColor: AppColors.primary,
+                      backgroundColor: AppColors.immersiveCard,
+                      side: BorderSide(
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.immersiveBorder,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      onSelected: (_) {
+                        HapticFeedback.selectionClick();
+                        setState(() => _selectedFilter = filter);
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+            );
+          },
+        ),
+
+        const SizedBox(height: AppSpacing.sm),
+
+        // Sort chips
+        _buildSortChips(),
+
+        const SizedBox(height: AppSpacing.md),
+
+        // Material list with animated transitions
+        widget.materialsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Text(AppErrorHandler.friendlyMessage(e)),
           data: (materials) {
@@ -679,73 +939,58 @@ class _MaterialsTab extends ConsumerWidget {
                 onAddMaterial: () => _openCapture(context),
               );
             }
-            // Use ListView.builder for efficient rendering of long lists
-            return ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: materials.length,
-              itemBuilder: (context, index) {
-                final material = materials[index];
-                return EntranceAnimation(
-                  index: index,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                    child: MaterialListItem(
-                    title: material.displayTitle,
-                    timeLabel: material.sizeLabel,
-                    typeLabel: material.typeLabel,
-                    kind: _kindFromType(material.type),
-                    isReviewed: material.isReviewed,
-                    onTap: () {
-                      context.push(
-                        Routes.materialViewerPath(courseId, material.id),
-                      );
-                    },
-                    onGenerateQuiz: () async {
-                      final canUse = await checkFeatureAccess(
-                        ref: ref,
-                        feature: 'flashcards',
-                        context: context,
-                      );
-                      if (!canUse || !context.mounted) return;
-                      _launchBackground(context, ref, GenerationType.flashcards,
-                          materialId: material.id);
-                    },
-                    onGenerateFlashcards: () async {
-                      final canUse = await checkFeatureAccess(
-                        ref: ref,
-                        feature: 'flashcards',
-                        context: context,
-                      );
-                      if (!canUse || !context.mounted) return;
-                      _launchBackground(context, ref, GenerationType.flashcards,
-                          materialId: material.id);
-                    },
-                    onAudioSummary: () {
-                      context.push(
-                        Routes.audioPlayerPath(
-                            material.id, courseId, material.displayTitle),
-                      );
-                    },
-                    onPracticeQuiz: () async {
-                      final canUse = await checkFeatureAccess(
-                        ref: ref,
-                        feature: 'quiz',
-                        context: context,
-                      );
-                      if (!canUse || !context.mounted) return;
-                      _launchBackground(context, ref, GenerationType.quiz);
-                    },
-                    onDelete: () async {
-                      await ref
-                          .read(materialRepositoryProvider)
-                          .deleteMaterial(material.id);
-                      ref.invalidate(courseMaterialsProvider(courseId));
-                    },
-                  ),
-                  ),
+
+            final filtered = _filterMaterials(materials);
+
+            // Animated transition when filter changes
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
                 );
               },
+              child: KeyedSubtree(
+                key: ValueKey('$_selectedFilter-$_searchQuery-${filtered.length}'),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (isFiltering)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: Text(
+                          '${filtered.length} material${filtered.length == 1 ? '' : 's'} found',
+                          style: AppTypography.caption.copyWith(
+                            color: Colors.white38,
+                          ),
+                        ),
+                      ),
+
+                    if (filtered.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: AppSpacing.xl),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Icon(Icons.search_off_rounded, size: 40, color: Colors.white24),
+                              const SizedBox(height: AppSpacing.sm),
+                              Text(
+                                'No materials match your search',
+                                style: AppTypography.bodySmall.copyWith(color: Colors.white38),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      // Use ListView.builder for efficient rendering of long lists
+                      ..._buildMaterialList(filtered),
+                  ],
+                ),
+              ),
             );
           },
         ),
@@ -755,15 +1000,181 @@ class _MaterialsTab extends ConsumerWidget {
     );
   }
 
+  /// Build the material list, inserting type headers when grouped by type.
+  List<Widget> _buildMaterialList(List<MaterialModel> filtered) {
+    final widgets = <Widget>[];
+
+    if (_sortMode == _MaterialSortMode.type) {
+      // Insert type group headers
+      String? lastType;
+      for (var i = 0; i < filtered.length; i++) {
+        final material = filtered[i];
+        if (material.type != lastType) {
+          lastType = material.type;
+          final count = filtered.where((m) => m.type == material.type).length;
+          widgets.add(
+            Padding(
+              padding: EdgeInsets.only(
+                top: i == 0 ? 0 : AppSpacing.md,
+                bottom: AppSpacing.xs,
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    _iconForType(material.type),
+                    size: 14,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    material.typeLabel,
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '($count)',
+                    style: AppTypography.caption.copyWith(
+                      color: Colors.white38,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Container(
+                      height: 1,
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        widgets.add(_buildMaterialItem(material, i));
+      }
+    } else {
+      for (var i = 0; i < filtered.length; i++) {
+        widgets.add(_buildMaterialItem(filtered[i], i));
+      }
+    }
+
+    return widgets;
+  }
+
+  Widget _buildMaterialItem(MaterialModel material, int index) {
+    return EntranceAnimation(
+      index: index,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.md),
+        child: MaterialListItem(
+          title: material.displayTitle,
+          timeLabel: material.sizeLabel,
+          typeLabel: material.typeLabel,
+          kind: _kindFromType(material.type),
+          isReviewed: material.isReviewed,
+          wordCount: _estimateWordCount(material),
+          readingTimeMinutes: _estimateReadingTime(material),
+          fileSize: material.fileSize,
+          durationSeconds: material.durationSeconds,
+          onTap: () {
+            context.push(
+              Routes.materialViewerPath(widget.courseId, material.id),
+            );
+          },
+          onGenerateQuiz: () async {
+            final canUse = await checkFeatureAccess(
+              ref: ref,
+              feature: 'flashcards',
+              context: context,
+            );
+            if (!canUse || !mounted) return;
+            _launchBackground(context, ref, GenerationType.flashcards,
+                materialId: material.id);
+          },
+          onGenerateFlashcards: () async {
+            final canUse = await checkFeatureAccess(
+              ref: ref,
+              feature: 'flashcards',
+              context: context,
+            );
+            if (!canUse || !mounted) return;
+            _launchBackground(context, ref, GenerationType.flashcards,
+                materialId: material.id);
+          },
+          onGenerateSummary: () async {
+            final canUse = await checkFeatureAccess(
+              ref: ref,
+              feature: 'summary',
+              context: context,
+            );
+            if (!canUse || !mounted) return;
+            _launchBackground(context, ref, GenerationType.summary);
+          },
+          onAudioSummary: () {
+            context.push(
+              Routes.audioPlayerPath(
+                  material.id, widget.courseId, material.displayTitle),
+            );
+          },
+          onPracticeQuiz: () async {
+            final canUse = await checkFeatureAccess(
+              ref: ref,
+              feature: 'quiz',
+              context: context,
+            );
+            if (!canUse || !mounted) return;
+            _launchBackground(context, ref, GenerationType.quiz);
+          },
+          onDelete: () async {
+            await ref
+                .read(materialRepositoryProvider)
+                .deleteMaterial(material.id);
+            ref.invalidate(courseMaterialsProvider(widget.courseId));
+          },
+        ),
+      ),
+    );
+  }
+
+  IconData _iconForType(String type) {
+    switch (type) {
+      case 'pdf':
+        return Icons.picture_as_pdf_rounded;
+      case 'audio':
+        return Icons.headphones_rounded;
+      case 'notes':
+        return Icons.note_rounded;
+      case 'paste':
+        return Icons.content_paste_rounded;
+      default:
+        return Icons.description_rounded;
+    }
+  }
+
+  int? _estimateWordCount(MaterialModel material) {
+    if (material.content == null || material.content!.trim().isEmpty) return null;
+    return material.content!.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
+  }
+
+  int? _estimateReadingTime(MaterialModel material) {
+    final wordCount = _estimateWordCount(material);
+    if (wordCount == null || wordCount == 0) return null;
+    final minutes = (wordCount / 200).ceil();
+    return minutes < 1 ? 1 : minutes;
+  }
+
   CourseMaterialKind _kindFromType(String type) {
     switch (type) {
       case 'pdf':
         return CourseMaterialKind.pdf;
       case 'audio':
         return CourseMaterialKind.audio;
-      case 'notes':
       case 'paste':
-        return CourseMaterialKind.notes;
+        return CourseMaterialKind.paste;
+      case 'notes':
       default:
         return CourseMaterialKind.notes;
     }
@@ -1293,35 +1704,38 @@ class _EmptyMaterials extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.primary.withValues(alpha: 0.08),
+              Text(
+                'Get started in 3 steps',
+                style: AppTypography.h4.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
                 ),
-                child: Icon(
-                  Icons.note_add_rounded,
-                  size: 30,
-                  color: AppColors.primary.withValues(alpha: 0.6),
-                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              const _StepRow(
+                number: 1,
+                emoji: '📄',
+                title: 'Upload Material',
+                subtitle: 'PDFs, scans, audio, or paste notes',
+                color: Color(0xFF3B82F6),
               ),
               const SizedBox(height: AppSpacing.md),
-              Text(
-                'No materials yet',
-                style: AppTypography.labelLarge.copyWith(
-                  color: Colors.white60,
-                ),
+              const _StepRow(
+                number: 2,
+                emoji: '🧠',
+                title: 'AI Generates Study Tools',
+                subtitle: 'Flashcards, quizzes & summaries — automatically',
+                color: Color(0xFF8B5CF6),
               ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                'Tap here to upload PDFs, scan pages, record audio, or paste notes',
-                style: AppTypography.bodySmall.copyWith(
-                  color: Colors.white38,
-                ),
-                textAlign: TextAlign.center,
+              const SizedBox(height: AppSpacing.md),
+              const _StepRow(
+                number: 3,
+                emoji: '🎯',
+                title: 'Study & Review',
+                subtitle: 'Master content with spaced repetition',
+                color: Color(0xFF22C55E),
               ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.xl),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -1519,6 +1933,66 @@ class _FlashcardCountSelectorState extends State<_FlashcardCountSelector> {
           ),
         ],
       ),
+    );
+  }
+}
+
+// =============================================================================
+// Step Row for Empty Materials Guide
+// =============================================================================
+
+class _StepRow extends StatelessWidget {
+  final int number;
+  final String emoji;
+  final String title;
+  final String subtitle;
+  final Color color;
+
+  const _StepRow({
+    required this.number,
+    required this.emoji,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Center(
+            child: Text(emoji, style: const TextStyle(fontSize: 18)),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: AppTypography.labelLarge.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: AppTypography.caption.copyWith(
+                  color: Colors.white38,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

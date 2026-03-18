@@ -34,12 +34,16 @@ import '../../features/groups/presentation/screens/create_group_screen.dart';
 import '../../features/groups/presentation/screens/join_group_screen.dart';
 import '../../features/sharing/presentation/screens/knowledge_score_screen.dart';
 import '../../features/sharing/presentation/screens/month_review_screen.dart';
+import '../../features/summaries/presentation/screens/summaries_list_screen.dart';
 import '../../features/summaries/presentation/screens/summary_screen.dart';
 import '../../features/glossary/presentation/screens/glossary_screen.dart';
 import '../../features/home/presentation/screens/study_path_screen.dart';
 import '../../features/home/presentation/screens/journey_screen.dart';
 import '../../features/home/presentation/screens/first_deck_wizard.dart';
 import '../../features/flashcards/presentation/screens/deck_detail_screen.dart';
+import '../../features/flashcards/presentation/screens/flashcard_cram_screen.dart';
+import '../../features/flashcards/presentation/screens/flashcard_typing_screen.dart';
+import '../../features/exercises/presentation/screens/exercise_screen.dart';
 import '../theme/app_animations.dart';
 import 'routes.dart';
 import 'sanctuary_shell.dart';
@@ -116,6 +120,54 @@ CustomTransitionPage<void> _fadeIn(Widget child) {
     reverseTransitionDuration: AppAnimations.durationMedium,
     transitionsBuilder: (_, animation, __, child) {
       return FadeTransition(opacity: animation, child: child);
+    },
+  );
+}
+
+/// Study/immersive page transition: Fade + subtle scale (0.95 → 1.0).
+///
+/// Used for SRS review, quiz, exercises, cram, and flashcard sessions —
+/// routes that enter a focused study mode.
+CustomTransitionPage<void> _studyImmersive(Widget child) {
+  return CustomTransitionPage<void>(
+    child: child,
+    transitionDuration: const Duration(milliseconds: 300),
+    reverseTransitionDuration: const Duration(milliseconds: 300),
+    transitionsBuilder: (_, animation, __, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOut,
+      );
+      return FadeTransition(
+        opacity: curved,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.95, end: 1.0).animate(curved),
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
+/// Utility page transition: Slide from bottom.
+///
+/// Used for settings, profile, chat, and other utility overlays.
+CustomTransitionPage<void> _slideFromBottom(Widget child) {
+  return CustomTransitionPage<void>(
+    child: child,
+    transitionDuration: AppAnimations.durationSlow,
+    reverseTransitionDuration: AppAnimations.durationSlow,
+    transitionsBuilder: (_, animation, __, child) {
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 1),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: animation,
+          curve: AppAnimations.curveStandard,
+        )),
+        child: child,
+      );
     },
   );
 }
@@ -301,14 +353,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.flashcardSession,
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => CustomTransitionPage(
-          child: FlashcardSessionScreen(
+        pageBuilder: (context, state) => _studyImmersive(
+          FlashcardSessionScreen(
             sessionId: state.pathParameters['sessionId'] ?? '',
           ),
-          transitionDuration: AppAnimations.durationSlow,
-          reverseTransitionDuration: AppAnimations.durationSlow,
-          transitionsBuilder: (_, animation, __, child) =>
-              FadeTransition(opacity: animation, child: child),
         ),
       ),
 
@@ -335,33 +383,30 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.srsReview,
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => CustomTransitionPage(
-          child: SrsReviewScreen(
-            courseId: state.pathParameters['courseId'] ?? '',
-          ),
-          transitionDuration: AppAnimations.durationSlow,
-          reverseTransitionDuration: AppAnimations.durationSlow,
-          transitionsBuilder: (_, animation, __, child) =>
-              FadeTransition(opacity: animation, child: child),
-        ),
+        pageBuilder: (context, state) {
+          final reverseMode =
+              state.uri.queryParameters['reverse'] == 'true';
+          return _studyImmersive(
+            SrsReviewScreen(
+              courseId: state.pathParameters['courseId'] ?? '',
+              reverseMode: reverseMode,
+            ),
+          );
+        },
       ),
 
       GoRoute(
         path: Routes.quickReview,
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => CustomTransitionPage(
-          child: const SrsReviewScreen(), // no courseId → all courses
-          transitionDuration: AppAnimations.durationSlow,
-          reverseTransitionDuration: AppAnimations.durationSlow,
-          transitionsBuilder: (_, animation, __, child) =>
-              FadeTransition(opacity: animation, child: child),
+        pageBuilder: (context, state) => _studyImmersive(
+          const SrsReviewScreen(), // no courseId → all courses
         ),
       ),
 
       GoRoute(
         path: Routes.chat,
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => _slideFromRight(
+        pageBuilder: (context, state) => _slideFromBottom(
           ChatScreen(
             courseId: state.pathParameters['courseId'] ?? '',
           ),
@@ -375,17 +420,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final timeLimit = state.uri.queryParameters['timeLimit'];
           final isPracticeExam =
               state.uri.queryParameters['isPracticeExam'] == 'true';
-          return CustomTransitionPage(
-            child: QuizSessionScreen(
+          final examMode = state.uri.queryParameters['examMode'];
+          return _studyImmersive(
+            QuizSessionScreen(
               testId: state.pathParameters['testId'] ?? '',
               timeLimitMinutes:
                   timeLimit != null ? int.tryParse(timeLimit) : null,
               isPracticeExam: isPracticeExam,
+              examMode: examMode,
             ),
-            transitionDuration: AppAnimations.durationSlow,
-            reverseTransitionDuration: AppAnimations.durationSlow,
-            transitionsBuilder: (_, animation, __, child) =>
-                FadeTransition(opacity: animation, child: child),
           );
         },
       ),
@@ -518,6 +561,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(
+        path: Routes.summariesList,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _slideFromRight(
+          SummariesListScreen(
+            courseId: state.pathParameters['courseId'] ?? '',
+          ),
+        ),
+      ),
+
+      GoRoute(
         path: Routes.summary,
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) => _slideFromRight(
@@ -552,10 +605,41 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(
+        path: Routes.exercise,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _studyImmersive(
+          ExerciseScreen(
+            courseId: state.pathParameters['courseId'] ?? '',
+            exerciseType: state.pathParameters['exerciseType'] ?? '',
+          ),
+        ),
+      ),
+
+      GoRoute(
         path: Routes.firstDeckWizard,
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) => _slideFromRight(
           const FirstDeckWizard(),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.cramMode,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _studyImmersive(
+          FlashcardCramScreen(
+            deckId: state.pathParameters['deckId'] ?? '',
+          ),
+        ),
+      ),
+
+      GoRoute(
+        path: Routes.flashcardTyping,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _studyImmersive(
+          FlashcardTypingScreen(
+            deckId: state.pathParameters['deckId'] ?? '',
+          ),
         ),
       ),
 
@@ -587,7 +671,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.oracle,
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => _slideFromRight(
+        pageBuilder: (context, state) => _slideFromBottom(
           const GlobalChatScreen(),
         ),
       ),
@@ -640,7 +724,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.deleteAccount,
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => _slideFromRight(
+        pageBuilder: (context, state) => _slideFromBottom(
           const DeleteAccountScreen(),
         ),
       ),

@@ -7,7 +7,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
 
 /// Type of course material for icon/color differentiation.
-enum CourseMaterialKind { pdf, audio, notes }
+enum CourseMaterialKind { pdf, audio, notes, paste }
 
 /// A material list item card for the Course Detail materials tab.
 ///
@@ -20,10 +20,16 @@ class MaterialListItem extends StatelessWidget {
   final bool isReviewed;
   final int cardCount;
   final int quizCount;
+  final int? wordCount;
+  final int? readingTimeMinutes;
+  final int? fileSize;
+  final int? durationSeconds;
+  final int? pageCount;
   final VoidCallback? onTap;
   final VoidCallback? onGenerateQuiz;
   final VoidCallback? onDelete;
   final VoidCallback? onGenerateFlashcards;
+  final VoidCallback? onGenerateSummary;
   final VoidCallback? onAudioSummary;
   final VoidCallback? onPracticeQuiz;
 
@@ -36,10 +42,16 @@ class MaterialListItem extends StatelessWidget {
     this.isReviewed = false,
     this.cardCount = 0,
     this.quizCount = 0,
+    this.wordCount,
+    this.readingTimeMinutes,
+    this.fileSize,
+    this.durationSeconds,
+    this.pageCount,
     this.onTap,
     this.onGenerateQuiz,
     this.onDelete,
     this.onGenerateFlashcards,
+    this.onGenerateSummary,
     this.onAudioSummary,
     this.onPracticeQuiz,
   });
@@ -99,6 +111,16 @@ class MaterialListItem extends StatelessWidget {
                   onTap: () {
                     Navigator.pop(ctx);
                     onGenerateFlashcards?.call();
+                  },
+                ),
+              if (onGenerateSummary != null)
+                _ContextMenuItem(
+                  icon: Icons.auto_stories_rounded,
+                  label: 'Generate Summary',
+                  color: const Color(0xFFA855F7),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    onGenerateSummary?.call();
                   },
                 ),
               if (onAudioSummary != null)
@@ -218,15 +240,14 @@ class MaterialListItem extends StatelessWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Type icon
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: _iconBgColor,
-                          borderRadius: AppRadius.borderRadiusLg,
-                        ),
-                        child: Icon(_icon, color: _iconColor, size: 24),
+                      // Material type thumbnail (large, colored)
+                      _MaterialThumbnail(
+                        kind: kind,
+                        iconColor: _iconColor,
+                        icon: _icon,
+                        pageCount: pageCount,
+                        fileSize: fileSize,
+                        durationSeconds: durationSeconds,
                       ),
                       const SizedBox(width: AppSpacing.md),
 
@@ -266,6 +287,38 @@ class MaterialListItem extends StatelessWidget {
                                   color: _iconColor,
                                 ),
 
+                                // File size for PDFs
+                                if (kind == CourseMaterialKind.pdf && fileSize != null)
+                                  _StatusChip(
+                                    icon: Icons.straighten_rounded,
+                                    label: _formatFileSize(fileSize!),
+                                    color: Colors.white38,
+                                  ),
+
+                                // Duration for audio
+                                if (kind == CourseMaterialKind.audio && durationSeconds != null)
+                                  _StatusChip(
+                                    icon: Icons.access_time_rounded,
+                                    label: _formatDuration(durationSeconds!),
+                                    color: const Color(0xFF3B82F6),
+                                  ),
+
+                                // Word count for text materials
+                                if (wordCount != null)
+                                  _StatusChip(
+                                    icon: Icons.text_fields_rounded,
+                                    label: '${_formatWordCount(wordCount!)} words',
+                                    color: Colors.white38,
+                                  ),
+
+                                // Reading time estimate for text materials
+                                if (readingTimeMinutes != null)
+                                  _StatusChip(
+                                    icon: Icons.timer_outlined,
+                                    label: '~$readingTimeMinutes min read',
+                                    color: const Color(0xFF14B8A6),
+                                  ),
+
                                 // Flashcard count chip
                                 if (cardCount > 0)
                                   _StatusChip(
@@ -283,6 +336,44 @@ class MaterialListItem extends StatelessWidget {
                                   ),
                               ],
                             ),
+
+                            // Quick action icons (only if actions available)
+                            if (onGenerateFlashcards != null || onGenerateSummary != null || onAudioSummary != null || onPracticeQuiz != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: AppSpacing.sm),
+                                child: Row(
+                                  children: [
+                                    if (onGenerateFlashcards != null)
+                                      _QuickActionIcon(
+                                        icon: Icons.style_rounded,
+                                        color: const Color(0xFF3B82F6),
+                                        tooltip: 'Flashcards',
+                                        onTap: () => onGenerateFlashcards?.call(),
+                                      ),
+                                    if (onGenerateSummary != null)
+                                      _QuickActionIcon(
+                                        icon: Icons.auto_stories_rounded,
+                                        color: const Color(0xFFA855F7),
+                                        tooltip: 'Summary',
+                                        onTap: () => onGenerateSummary?.call(),
+                                      ),
+                                    if (onAudioSummary != null)
+                                      _QuickActionIcon(
+                                        icon: Icons.headphones_rounded,
+                                        color: const Color(0xFF14B8A6),
+                                        tooltip: 'Audio',
+                                        onTap: () => onAudioSummary?.call(),
+                                      ),
+                                    if (onPracticeQuiz != null)
+                                      _QuickActionIcon(
+                                        icon: Icons.quiz_rounded,
+                                        color: const Color(0xFF22C55E),
+                                        tooltip: 'Quiz',
+                                        onTap: () => onPracticeQuiz?.call(),
+                                      ),
+                                  ],
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -382,23 +473,160 @@ class MaterialListItem extends StatelessWidget {
     );
   }
 
-  Color get _iconBgColor => switch (kind) {
-        CourseMaterialKind.pdf => AppColors.pdfRed.withValues(alpha: 0.12),
-        CourseMaterialKind.audio => AppColors.audioPurple.withValues(alpha: 0.12),
-        CourseMaterialKind.notes => AppColors.notesBlue.withValues(alpha: 0.12),
-      };
+  /// Format word count with K suffix for large numbers.
+  String _formatWordCount(int count) {
+    if (count >= 1000) {
+      return '${(count / 1000).toStringAsFixed(1)}K';
+    }
+    return '$count';
+  }
 
+  /// Accent color for the material type.
   Color get _iconColor => switch (kind) {
         CourseMaterialKind.pdf => AppColors.pdfRed,
-        CourseMaterialKind.audio => AppColors.audioPurple,
-        CourseMaterialKind.notes => AppColors.notesBlue,
+        CourseMaterialKind.audio => const Color(0xFF3B82F6), // blue accent
+        CourseMaterialKind.notes => const Color(0xFF10B981), // green accent
+        CourseMaterialKind.paste => const Color(0xFFA855F7), // purple accent
       };
 
+  /// Icon for the material type thumbnail.
   IconData get _icon => switch (kind) {
-        CourseMaterialKind.pdf => Icons.picture_as_pdf,
-        CourseMaterialKind.audio => Icons.headset,
-        CourseMaterialKind.notes => Icons.edit_note,
+        CourseMaterialKind.pdf => Icons.picture_as_pdf_rounded,
+        CourseMaterialKind.audio => Icons.graphic_eq_rounded,
+        CourseMaterialKind.notes => Icons.note_alt_rounded,
+        CourseMaterialKind.paste => Icons.content_paste_rounded,
       };
+
+  /// Format file size in human-readable form.
+  String _formatFileSize(int bytes) {
+    if (bytes >= 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / 1024).toStringAsFixed(0)} KB';
+  }
+
+  /// Format duration from seconds to a readable string.
+  String _formatDuration(int seconds) {
+    if (seconds >= 3600) {
+      final h = seconds ~/ 3600;
+      final m = (seconds % 3600) ~/ 60;
+      return '${h}h ${m}m';
+    }
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+    if (m == 0) return '${s}s';
+    return '${m}m ${s}s';
+  }
+}
+
+/// Large visual thumbnail for material type differentiation.
+///
+/// Displays a 56x56 rounded container with a colored background gradient,
+/// a large 28px icon, and an extension badge (e.g. "PDF", "MP3", "TXT").
+class _MaterialThumbnail extends StatelessWidget {
+  final CourseMaterialKind kind;
+  final Color iconColor;
+  final IconData icon;
+  final int? pageCount;
+  final int? fileSize;
+  final int? durationSeconds;
+
+  const _MaterialThumbnail({
+    required this.kind,
+    required this.iconColor,
+    required this.icon,
+    this.pageCount,
+    this.fileSize,
+    this.durationSeconds,
+  });
+
+  String get _extensionLabel => switch (kind) {
+        CourseMaterialKind.pdf => 'PDF',
+        CourseMaterialKind.audio => 'MP3',
+        CourseMaterialKind.notes => 'TXT',
+        CourseMaterialKind.paste => 'CLIP',
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 56,
+      height: 56,
+      child: Stack(
+        children: [
+          // Main icon container
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  iconColor.withValues(alpha: 0.20),
+                  iconColor.withValues(alpha: 0.08),
+                ],
+              ),
+              border: Border.all(
+                color: iconColor.withValues(alpha: 0.15),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: iconColor, size: 28),
+                if (kind == CourseMaterialKind.pdf && pageCount != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 1),
+                    child: Text(
+                      '$pageCount pg',
+                      style: AppTypography.caption.copyWith(
+                        color: iconColor,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          // Extension badge
+          Positioned(
+            right: -2,
+            bottom: -2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 4,
+                vertical: 2,
+              ),
+              decoration: BoxDecoration(
+                color: iconColor,
+                borderRadius: BorderRadius.circular(5),
+                boxShadow: [
+                  BoxShadow(
+                    color: iconColor.withValues(alpha: 0.4),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Text(
+                _extensionLabel,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 7,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Compact status chip for material metadata.
@@ -435,6 +663,43 @@ class _StatusChip extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Small circular action icon for quick-access actions on the material card.
+class _QuickActionIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  const _QuickActionIcon({
+    required this.icon,
+    required this.color,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Tooltip(
+        message: tooltip,
+        child: TapScale(
+          onTap: onTap,
+          child: Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 14, color: color),
+          ),
+        ),
       ),
     );
   }

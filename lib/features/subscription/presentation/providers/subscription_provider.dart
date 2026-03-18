@@ -22,7 +22,9 @@ final isProProvider = FutureProvider.autoDispose<bool>((ref) async {
   try {
     final rcPro = await ref.watch(revenueCatProProvider.future);
     if (rcPro) return true;
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('Subscription: RevenueCat check failed: $e');
+  }
 
   // Supabase: admin override (pro_override) or cached is_pro
   final user = ref.watch(currentUserProvider);

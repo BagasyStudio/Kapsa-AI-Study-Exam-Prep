@@ -26,6 +26,7 @@ import '../../../sharing/presentation/widgets/flashcard_share_card.dart';
 import '../../../sharing/data/milestone_service.dart';
 import '../../../sharing/presentation/widgets/micro_cards/course_mastery_card.dart';
 import '../../../../core/services/review_service.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 
 class FlashcardSessionScreen extends ConsumerStatefulWidget {
   final String sessionId;
@@ -137,11 +138,8 @@ class _FlashcardSessionScreenState
       SoundService.playWrongAnswer();
     }
 
-    // Persist SRS update in background (catch errors silently — non-critical)
-    ref
-        .read(flashcardRepositoryProvider)
-        .updateCardAfterReview(updatedCard, result.log)
-        .catchError((_) {/* silent — mastery sync is best-effort */});
+    // Persist SRS update in background with retry
+    _persistReviewWithRetry(updatedCard, result.log);
 
     final nextIndex = _currentIndex + 1;
 
@@ -216,17 +214,37 @@ class _FlashcardSessionScreenState
           daysToMaster: DateTime.now()
               .difference(course.createdAt ?? DateTime.now())
               .inDays,
-          userName: profile?.firstName ?? 'Student',
+          userName: profile?.firstName ?? AppLocalizations.of(context)!.homeDefaultName,
           xpLevel: xpLevel,
         ),
         shareType: 'course_mastery',
         referenceId: courseId,
       );
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('FlashcardSession: check course mastery failed: $e');
+    }
   }
 
   void _onSwipeProgress(double progress) {
     setState(() => _swipeProgress = progress);
+  }
+
+  /// Persist a card review with up to 3 retries on network failure.
+  void _persistReviewWithRetry(FlashcardModel card, ReviewLog log, [int attempt = 1]) {
+    ref
+        .read(flashcardRepositoryProvider)
+        .updateCardAfterReview(card, log)
+        .catchError((Object e) {
+      if (attempt < 3) {
+        final delay = Duration(seconds: 2 * attempt);
+        debugPrint('FlashcardSession: review save retry $attempt/3 after ${delay.inSeconds}s: $e');
+        Future.delayed(delay, () {
+          if (mounted) _persistReviewWithRetry(card, log, attempt + 1);
+        });
+      } else {
+        debugPrint('FlashcardSession: review save failed after 3 attempts: $e');
+      }
+    });
   }
 
   @override
@@ -256,7 +274,7 @@ class _FlashcardSessionScreenState
                     size: 48, color: Colors.white38),
                 const SizedBox(height: AppSpacing.md),
                 Text(
-                  'Could not load flashcards',
+                  AppLocalizations.of(context)!.flashcardLoadError,
                   style: AppTypography.h3.copyWith(
                     color: Colors.white,
                   ),
@@ -272,7 +290,7 @@ class _FlashcardSessionScreenState
                 const SizedBox(height: AppSpacing.xl),
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(JourneyResult.cancelled),
-                  child: const Text('Go Back'),
+                  child: Text(AppLocalizations.of(context)!.quizGoBack),
                 ),
               ],
             ),
@@ -292,14 +310,14 @@ class _FlashcardSessionScreenState
                           color: Colors.white38),
                       const SizedBox(height: AppSpacing.md),
                       Text(
-                        'No flashcards yet',
+                        AppLocalizations.of(context)!.flashcardNoCards,
                         style: AppTypography.h3.copyWith(
                           color: Colors.white,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'Generate flashcards from your course materials first.',
+                        AppLocalizations.of(context)!.flashcardNoCardsHint,
                         style: AppTypography.bodySmall.copyWith(
                           color: Colors.white38,
                         ),
@@ -308,7 +326,7 @@ class _FlashcardSessionScreenState
                       const SizedBox(height: AppSpacing.xl),
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(JourneyResult.cancelled),
-                        child: const Text('Go Back'),
+                        child: Text(AppLocalizations.of(context)!.quizGoBack),
                       ),
                     ],
                   ),
@@ -330,16 +348,16 @@ class _FlashcardSessionScreenState
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.immersiveCard,
-        title: const Text('Leave session?', style: TextStyle(color: Colors.white)),
-        content: const Text('Your progress in this session will be lost.', style: TextStyle(color: Colors.white60)),
+        title: Text(AppLocalizations.of(context)!.flashcardLeaveTitle, style: const TextStyle(color: Colors.white)),
+        content: Text(AppLocalizations.of(context)!.flashcardLeaveMessage, style: const TextStyle(color: Colors.white60)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Stay', style: TextStyle(color: Colors.white70)),
+            child: Text(AppLocalizations.of(context)!.flashcardStay, style: const TextStyle(color: Colors.white70)),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Leave', style: TextStyle(color: Colors.white70)),
+            child: Text(AppLocalizations.of(context)!.flashcardLeave, style: const TextStyle(color: Colors.white70)),
           ),
         ],
       ),
@@ -352,6 +370,18 @@ class _FlashcardSessionScreenState
     final displayIndex =
         (_currentIndex % totalCards) + 1;
     final currentCard = cards[_currentIndex % totalCards];
+
+    // Build related cards list (same topic, excluding current)
+    final relatedCards = cards
+        .where((c) =>
+            c.id != currentCard.id &&
+            c.topic.toLowerCase() == currentCard.topic.toLowerCase())
+        .map((c) => RelatedCardInfo(
+              keyword: c.keyword,
+              questionPreview:
+                  '${c.questionBefore}${c.keyword}${c.questionAfter}',
+            ))
+        .toList();
 
     return Stack(
       children: [
@@ -431,7 +461,7 @@ class _FlashcardSessionScreenState
                 child: SessionProgressBar(
                   current: displayIndex,
                   total: totalCards,
-                  courseLabel: 'Flashcards',
+                  courseLabel: _courseName,
                   onClose: () => Navigator.of(context).pop(JourneyResult.cancelled),
                 ),
               ),
@@ -462,14 +492,15 @@ class _FlashcardSessionScreenState
                           answer: currentCard.answer,
                           isRevealed: _isRevealed,
                           isSpeaking: _isSpeaking,
+                          relatedCards: relatedCards,
                           onTap: _onTapCard,
                           onSpeak: TtsService.instance.isEnabled
                               ? () => _speakCurrentCard(cards)
                               : null,
                           onBookmark: () {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Card bookmarked')),
+                              SnackBar(
+                                  content: Text(AppLocalizations.of(context)!.flashcardBookmarked)),
                             );
                           },
                         ),
@@ -526,12 +557,12 @@ class _FlashcardSessionScreenState
                   _isSpeaking = false;
                 });
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Cards reshuffled')),
+                  SnackBar(content: Text(AppLocalizations.of(context)!.flashcardReshuffled)),
                 );
               },
               onEdit: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Edit cards coming soon')),
+                  SnackBar(content: Text(AppLocalizations.of(context)!.flashcardEditComingSoon)),
                 );
               },
               onShare: () async {
@@ -569,7 +600,7 @@ class _FlashcardSessionScreenState
   Widget _buildCompletionOverlay(List<FlashcardModel> cards) {
     final profile = ref.watch(profileProvider).whenOrNull(data: (p) => p);
     final xpLevel = ref.watch(xpLevelProvider);
-    final userName = profile?.firstName ?? 'Student';
+    final userName = profile?.firstName ?? AppLocalizations.of(context)!.homeDefaultName;
     final streakDays = profile?.streakDays ?? 0;
     final totalCards = cards.length;
     final masteryRate = totalCards > 0
@@ -607,7 +638,7 @@ class _FlashcardSessionScreenState
                   children: [
                     // Title
                     Text(
-                      '\u{1f389} Session Complete!',
+                      '\u{1f389} ${AppLocalizations.of(context)!.flashcardSessionComplete}',
                       style: AppTypography.h2.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
@@ -615,7 +646,7 @@ class _FlashcardSessionScreenState
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '$totalCards cards reviewed',
+                      AppLocalizations.of(context)!.flashcardCardsReviewed(totalCards),
                       style: AppTypography.bodyMedium.copyWith(
                         color: Colors.white60,
                       ),
@@ -629,21 +660,21 @@ class _FlashcardSessionScreenState
                         _CompletionStat(
                           icon: Icons.check_circle,
                           value: '$_masteredCount',
-                          label: 'Mastered',
+                          label: AppLocalizations.of(context)!.flashcardMastered,
                           color: const Color(0xFF10B981),
                         ),
                         const SizedBox(width: 32),
                         _CompletionStat(
                           icon: Icons.refresh,
                           value: '$_againCount',
-                          label: 'Again',
+                          label: AppLocalizations.of(context)!.flashcardAgain,
                           color: const Color(0xFFF97316),
                         ),
                         const SizedBox(width: 32),
                         _CompletionStat(
                           icon: Icons.percent,
                           value: '${masteryRate.round()}%',
-                          label: 'Mastery',
+                          label: AppLocalizations.of(context)!.flashcardMasteryLabel,
                           color: AppColors.primary,
                         ),
                       ],
@@ -693,7 +724,7 @@ class _FlashcardSessionScreenState
                                 color: Colors.white, size: 18),
                             const SizedBox(width: 8),
                             Text(
-                              'Share Results',
+                              AppLocalizations.of(context)!.flashcardShareResults,
                               style: AppTypography.labelLarge.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w700,
@@ -721,7 +752,7 @@ class _FlashcardSessionScreenState
                         ),
                         child: Center(
                           child: Text(
-                            'Continue Reviewing',
+                            AppLocalizations.of(context)!.flashcardContinueReviewing,
                             style: AppTypography.labelLarge.copyWith(
                               color: Colors.white70,
                               fontWeight: FontWeight.w600,
@@ -744,7 +775,7 @@ class _FlashcardSessionScreenState
                         ),
                         child: Center(
                           child: Text(
-                            'Done',
+                            AppLocalizations.of(context)!.flashcardDone,
                             style: AppTypography.labelLarge.copyWith(
                               color: Colors.white38,
                               fontWeight: FontWeight.w600,

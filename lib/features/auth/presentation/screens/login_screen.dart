@@ -12,6 +12,7 @@ import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/staggered_list.dart';
 import '../../../../core/utils/error_handler.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_text_field.dart';
 
@@ -60,7 +61,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter your email first')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.authEnterEmailFirst)),
       );
       return;
     }
@@ -69,7 +70,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref.read(authRepositoryProvider).resetPassword(email);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password reset email sent!')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.authResetSent)),
       );
     } catch (e) {
       if (!mounted) return;
@@ -97,6 +98,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: AuroraBackground(
@@ -145,7 +147,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: AppSpacing.xs),
 
                     Text(
-                      'Welcome back, scholar',
+                      l.authWelcomeBack,
                       style: AppTypography.bodyMedium.copyWith(
                         color: Colors.white60,
                       ),
@@ -156,16 +158,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     // Email field
                     AuthTextField(
                       controller: _emailController,
-                      hintText: 'Email',
+                      hintText: l.authEmail,
                       prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Email is required';
+                          return l.authEmailRequired;
                         }
                         if (!value.contains('@') || !value.contains('.')) {
-                          return 'Enter a valid email';
+                          return l.authValidEmail;
                         }
                         return null;
                       },
@@ -176,7 +178,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     // Password field
                     AuthTextField(
                       controller: _passwordController,
-                      hintText: 'Password',
+                      hintText: l.authPassword,
                       prefixIcon: Icons.lock_outline,
                       obscureText: _obscurePassword,
                       textInputAction: TextInputAction.done,
@@ -194,7 +196,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Password is required';
+                          return l.authPasswordRequired;
                         }
                         return null;
                       },
@@ -212,7 +214,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             vertical: AppSpacing.xs,
                           ),
                           child: Text(
-                            'Forgot Password?',
+                            l.authForgotPassword,
                             style: AppTypography.bodySmall.copyWith(
                               color: AppColors.primary,
                               fontWeight: FontWeight.w500,
@@ -236,7 +238,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           )
                         : PrimaryButton(
-                            label: 'Sign In',
+                            label: l.authSignIn,
                             onPressed: _handleSignIn,
                           ),
 
@@ -256,7 +258,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             horizontal: AppSpacing.md,
                           ),
                           child: Text(
-                            'or',
+                            l.authOr,
                             style: AppTypography.bodySmall.copyWith(
                               color: Colors.white38,
                             ),
@@ -293,14 +295,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 color: Colors.black,
                                 borderRadius: BorderRadius.circular(100),
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.apple, size: 22, color: Colors.white),
-                                  SizedBox(width: 10),
+                                  const Icon(Icons.apple, size: 22, color: Colors.white),
+                                  const SizedBox(width: 10),
                                   Text(
-                                    'Continue with Apple',
-                                    style: TextStyle(
+                                    l.authContinueWithApple,
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
@@ -318,7 +320,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          "Don't have an account? ",
+                          l.authNoAccount,
                           style: AppTypography.bodySmall.copyWith(
                             color: Colors.white60,
                           ),
@@ -326,7 +328,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         TapScale(
                           onTap: () => context.go(Routes.register),
                           child: Text(
-                            'Create Account',
+                            l.authCreateAccount,
                             style: AppTypography.bodySmall.copyWith(
                               color: AppColors.primary,
                               fontWeight: FontWeight.w600,
@@ -345,7 +347,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         TapScale(
                           onTap: () => context.push(Routes.terms),
                           child: Text(
-                            'Terms of Service',
+                            l.authTermsOfService,
                             style: AppTypography.caption.copyWith(
                               color: Colors.white38,
                               fontSize: 11,
@@ -365,7 +367,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         TapScale(
                           onTap: () => context.push(Routes.privacy),
                           child: Text(
-                            'Privacy Policy',
+                            l.authPrivacyPolicy,
                             style: AppTypography.caption.copyWith(
                               color: Colors.white38,
                               fontSize: 11,

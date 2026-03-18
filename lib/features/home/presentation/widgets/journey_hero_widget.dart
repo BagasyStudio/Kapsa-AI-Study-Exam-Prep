@@ -26,11 +26,39 @@ import '../providers/journey_provider.dart';
 /// a mini journey preview, and a prominent CTA.
 ///
 /// Hides when there are no courses with content.
-class JourneyHeroWidget extends ConsumerWidget {
+class JourneyHeroWidget extends ConsumerStatefulWidget {
   const JourneyHeroWidget({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<JourneyHeroWidget> createState() => _JourneyHeroWidgetState();
+}
+
+class _JourneyHeroWidgetState extends ConsumerState<JourneyHeroWidget> {
+  late final PageController _pageController;
+  double _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(viewportFraction: 0.88);
+    _pageController.addListener(_onPageChanged);
+  }
+
+  @override
+  void dispose() {
+    _pageController.removeListener(_onPageChanged);
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onPageChanged() {
+    setState(() {
+      _currentPage = _pageController.page ?? 0;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final courses =
         ref.watch(coursesProvider).whenOrNull(data: (c) => c) ?? [];
     if (courses.isEmpty) return const SizedBox.shrink();
@@ -53,19 +81,65 @@ class JourneyHeroWidget extends ConsumerWidget {
       );
     }
 
-    // Multiple courses — horizontal snap carousel with side peek
-    return SizedBox(
-      height: 340,
-      child: PageView.builder(
-        controller: PageController(viewportFraction: 0.88),
-        itemCount: sorted.length,
-        itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: _JourneyCard(courseId: sorted[index].id),
-          );
-        },
-      ),
+    // Multiple courses — horizontal snap carousel with side peek + dots
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: 340,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: sorted.length,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: _JourneyCard(courseId: sorted[index].id),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        _CarouselDots(
+          count: sorted.length,
+          currentPage: _currentPage,
+        ),
+      ],
+    );
+  }
+}
+
+/// Animated dot indicator for the journey carousel.
+class _CarouselDots extends StatelessWidget {
+  final int count;
+  final double currentPage;
+
+  const _CarouselDots({required this.count, required this.currentPage});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(count, (index) {
+        // Calculate how "active" this dot is (1.0 = fully active, 0.0 = inactive)
+        final distance = (currentPage - index).abs().clamp(0.0, 1.0);
+        final activity = 1.0 - distance;
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.ease,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width: 8 * (1.0 + 0.3 * activity),
+          height: 8 * (1.0 + 0.3 * activity),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Color.lerp(
+              Colors.white24,
+              AppColors.primary,
+              activity,
+            ),
+          ),
+        );
+      }),
     );
   }
 }
@@ -149,6 +223,16 @@ class _ActiveCard extends ConsumerWidget {
       JourneyNodeType.checkpoint => 'Take Checkpoint',
       JourneyNodeType.reward => 'Claim Reward',
       JourneyNodeType.bossExam => 'Start Final Exam',
+      JourneyNodeType.fillGaps => 'Fill the Gaps',
+      JourneyNodeType.speedRound => 'Speed Round',
+      JourneyNodeType.mistakeSpotter => 'Find Mistakes',
+      JourneyNodeType.teachBot => 'Teach the Bot',
+      JourneyNodeType.compareContrast => 'Compare & Contrast',
+      JourneyNodeType.timelineBuilder => 'Build Timeline',
+      JourneyNodeType.caseStudy => 'Case Study',
+      JourneyNodeType.matchBlitz => 'Match Blitz',
+      JourneyNodeType.conceptMapper => 'Concept Map',
+      JourneyNodeType.dailyChallenge => 'Daily Challenge',
     };
   }
 

@@ -12,8 +12,8 @@ const MAX_CONCURRENT = 4;
 const MAX_TOKENS_PER_BATCH = 4096;
 const TERMS_PER_CHUNK = 15;
 const POLL_INTERVAL_MS = 500;
-const MAX_POLL_ATTEMPTS = 180;
-const GLOBAL_DEADLINE_MS = 130_000;
+const MAX_POLL_ATTEMPTS = 50;
+const GLOBAL_DEADLINE_MS = 50_000; // 50s (10s buffer before Supabase kills at 60s)
 
 let globalStart = 0;
 function isDeadlineClose(): boolean {
@@ -62,7 +62,7 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
   // Fallback: poll only if Prefer: wait didn't complete in time (rare)
   let attempts = 0;
   while (result.status !== "succeeded" && result.status !== "failed" && attempts < MAX_POLL_ATTEMPTS) {
-    if (isDeadlineClose()) throw new Error("Global deadline approaching, aborting poll");
+    if (isDeadlineClose()) throw new Error("Request timeout: AI processing took too long. Please try again.");
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
     const pollRes = await fetch(result.urls.get, { headers: { "Authorization": `Bearer ${apiKey}` } });
     if (!pollRes.ok) throw new Error("AI service unavailable during polling");
@@ -114,7 +114,7 @@ async function runWithConcurrency<T>(tasks: (() => Promise<T>)[], max: number): 
     while (nextIndex < tasks.length) {
       if (isDeadlineClose()) {
         const idx = nextIndex++;
-        results[idx] = { status: "rejected", reason: new Error("Global deadline approaching, skipping task") };
+        results[idx] = { status: "rejected", reason: new Error("Request timeout: AI processing took too long. Please try again.") };
         continue;
       }
       const idx = nextIndex++;
@@ -283,7 +283,7 @@ Output ONLY a valid JSON array. No markdown, no explanation.`;
     const message = error instanceof Error && (
       error.message.includes("unavailable") || error.message.includes("timed out") ||
       error.message.includes("failed. Please") || error.message.includes("Failed to extract") ||
-      error.message.includes("Global deadline") || error.message.startsWith("HTTP ")
+      error.message.includes("timeout") || error.message.includes("Global deadline") || error.message.startsWith("HTTP ")
     ) ? error.message : sanitizeErrorMessage(error);
     return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },

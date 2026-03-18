@@ -16,8 +16,8 @@ const MIN_TOTAL_QUESTIONS = 3;
 const MAX_CONCURRENT = 4;
 const CHUNK_SIZE = 5000;           // chars per chunk sent to AI
 const POLL_INTERVAL_MS = 500;
-const MAX_POLL_ATTEMPTS = 180;
-const GLOBAL_DEADLINE_MS = 130_000;
+const MAX_POLL_ATTEMPTS = 50;
+const GLOBAL_DEADLINE_MS = 50_000; // 50s (10s buffer before Supabase kills at 60s)
 
 // ── Global deadline tracking ─────────────────────────────────────
 let globalStart = 0;
@@ -105,7 +105,7 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
   // Fallback: poll only if Prefer: wait didn't complete in time (rare)
   let attempts = 0;
   while (result.status !== "succeeded" && result.status !== "failed" && attempts < MAX_POLL_ATTEMPTS) {
-    if (isDeadlineClose()) throw new Error("Global deadline approaching, aborting poll");
+    if (isDeadlineClose()) throw new Error("Request timeout: AI processing took too long. Please try again.");
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
     const pollRes = await fetch(result.urls.get, {
       headers: { "Authorization": `Bearer ${apiKey}` },
@@ -258,7 +258,7 @@ async function runWithConcurrency<T>(
     while (nextIndex < tasks.length) {
       const idx = nextIndex++;
       if (isDeadlineClose()) {
-        results[idx] = { status: "rejected", reason: new Error("Global deadline approaching, skipping batch") };
+        results[idx] = { status: "rejected", reason: new Error("Request timeout: AI processing took too long. Please try again.") };
         continue;
       }
       try {
@@ -431,7 +431,7 @@ Deno.serve(async (req: Request) => {
 
       const batchResults = await runWithConcurrency(tasks, MAX_CONCURRENT);
 
-      const allQuestions: any[] = [];
+      let allQuestions: any[] = [];
       let failedBatches = 0;
 
       for (const result of batchResults) {
@@ -452,6 +452,12 @@ Deno.serve(async (req: Request) => {
 
       if (failedBatches > 0) {
         console.warn(`${failedBatches}/${chunkQuestions.length} batches failed, got ${allQuestions.length} questions`);
+      }
+
+      // ── Trim to exact requested count ─────────────────────────
+      if (allQuestions.length > totalQuestions) {
+        console.log(`Trimming ${allQuestions.length} questions down to ${totalQuestions}`);
+        allQuestions = allQuestions.slice(0, totalQuestions);
       }
 
       // ── Create test ────────────────────────────────────────────
@@ -808,6 +814,7 @@ IMPORTANT: Output ONLY the JSON object. No markdown code blocks, no explanation 
       error.message.includes("timed out") ||
       error.message.includes("failed. Please") ||
       error.message.includes("Failed to generate") ||
+      error.message.includes("timeout") ||
       error.message.includes("Global deadline") ||
       error.message.startsWith("HTTP ")
     ) ? error.message : sanitizeErrorMessage(error);

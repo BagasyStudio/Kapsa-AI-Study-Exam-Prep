@@ -20,12 +20,14 @@ class ChatState {
   final bool isLoading;
   final String? error;
   final String? sessionId;
+  final Set<String> pinnedMessageIds;
 
   const ChatState({
     this.messages = const [],
     this.isLoading = false,
     this.error,
     this.sessionId,
+    this.pinnedMessageIds = const {},
   });
 
   ChatState copyWith({
@@ -33,12 +35,14 @@ class ChatState {
     bool? isLoading,
     String? error,
     String? sessionId,
+    Set<String>? pinnedMessageIds,
   }) {
     return ChatState(
       messages: messages ?? this.messages,
       isLoading: isLoading ?? this.isLoading,
       error: error,
       sessionId: sessionId ?? this.sessionId,
+      pinnedMessageIds: pinnedMessageIds ?? this.pinnedMessageIds,
     );
   }
 }
@@ -75,6 +79,28 @@ class ChatMessagesNotifier extends StateNotifier<ChatState> {
     } catch (e) {
       state = state.copyWith(isLoading: false, error: AppErrorHandler.friendlyMessage(e));
     }
+  }
+
+  /// Clear all messages in the current session.
+  Future<void> clearMessages() async {
+    if (state.sessionId == null) return;
+    try {
+      await _repo.clearSession(state.sessionId!);
+      state = state.copyWith(messages: [], pinnedMessageIds: {});
+    } catch (e) {
+      state = state.copyWith(error: AppErrorHandler.friendlyMessage(e));
+    }
+  }
+
+  /// Toggle pinned state for a message.
+  void togglePin(String messageId) {
+    final pinned = Set<String>.from(state.pinnedMessageIds);
+    if (pinned.contains(messageId)) {
+      pinned.remove(messageId);
+    } else {
+      pinned.add(messageId);
+    }
+    state = state.copyWith(pinnedMessageIds: pinned);
   }
 
   /// Send a message and get AI response.

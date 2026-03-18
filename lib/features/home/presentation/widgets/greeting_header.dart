@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/feature_tooltip.dart';
+import '../../../../core/widgets/global_search_sheet.dart';
 import '../../../gamification/presentation/widgets/xp_level_badge.dart';
 import 'streak_pill.dart';
 
@@ -18,13 +21,6 @@ class GreetingHeader extends StatelessWidget {
     required this.streakDays,
   });
 
-  String get _greeting {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
-  }
-
   void _showStreakModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -38,12 +34,16 @@ class GreetingHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12 ? l.greetingMorning : hour < 17 ? l.greetingAfternoon : l.greetingEvening;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Text(
-            '$_greeting,\n$userName',
+            '$greeting,\n$userName',
             style: AppTypography.h1.copyWith(
               fontFamily: 'Outfit',
               fontWeight: FontWeight.w600,
@@ -56,6 +56,31 @@ class GreetingHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
+        FeatureTooltip(
+          featureId: 'global_search',
+          message: 'Search courses, decks & materials',
+          showAbove: false,
+          child: GestureDetector(
+            onTap: () => GlobalSearchSheet.show(context),
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.08),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.12),
+                ),
+              ),
+              child: const Icon(
+                Icons.search_rounded,
+                color: Colors.white54,
+                size: 18,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -117,6 +142,7 @@ class _StreakDetailSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ms = _nextMilestone;
+    final l = AppLocalizations.of(context)!;
 
     return Container(
           decoration: BoxDecoration(
@@ -196,7 +222,7 @@ class _StreakDetailSheet extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '${streakDays == 1 ? '1 Day' : '$streakDays Days'} Streak',
+                      streakDays == 1 ? l.streakOneDayStreak : l.streakDaysStreak(streakDays),
                       style: AppTypography.h3.copyWith(
                         color: AppColors.textPrimaryDark,
                         fontWeight: FontWeight.w700,
@@ -211,7 +237,7 @@ class _StreakDetailSheet extends StatelessWidget {
                 _InfoRow(
                   icon: Icons.emoji_events_rounded,
                   iconColor: const Color(0xFFF59E0B),
-                  text: 'Longest streak: $streakDays days',
+                  text: l.streakLongest(streakDays),
                 ),
 
                 const SizedBox(height: AppSpacing.sm),
@@ -221,8 +247,8 @@ class _StreakDetailSheet extends StatelessWidget {
                   icon: Icons.rocket_launch_rounded,
                   iconColor: AppColors.primary,
                   text: streakDays == 0
-                      ? 'Start studying today to begin your streak!'
-                      : 'Keep going! ${ms.remaining} more ${ms.remaining == 1 ? 'day' : 'days'} to your $_milestoneLabel badge!',
+                      ? l.streakStartToday
+                      : l.streakKeepGoing(ms.remaining, ms.remaining == 1 ? l.streakDay : l.streakDays, _milestoneLabel),
                 ),
 
                 const SizedBox(height: AppSpacing.sm),
@@ -231,7 +257,16 @@ class _StreakDetailSheet extends StatelessWidget {
                 _InfoRow(
                   icon: Icons.grid_view_rounded,
                   iconColor: const Color(0xFF10B981),
-                  text: 'Check your Study Heatmap on the home screen',
+                  text: l.streakCheckHeatmap,
+                ),
+
+                const SizedBox(height: AppSpacing.sm),
+
+                // Streak Freeze protection
+                _InfoRow(
+                  icon: Icons.ac_unit_rounded,
+                  iconColor: const Color(0xFF38BDF8),
+                  text: 'Streak Freeze active — 1 remaining this month',
                 ),
 
                 const SizedBox(height: AppSpacing.xl),
@@ -250,7 +285,7 @@ class _StreakDetailSheet extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      'Got it',
+                      l.streakGotIt,
                       style: AppTypography.labelLarge.copyWith(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w600,

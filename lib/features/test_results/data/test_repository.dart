@@ -57,6 +57,7 @@ class TestRepository {
     required String courseId,
     int? count,
     bool isPracticeExam = false,
+    List<String>? focusTopics,
   }) async {
     final response = await _functions.invoke(
       'ai-generate-quiz',
@@ -65,6 +66,8 @@ class TestRepository {
         'courseId': courseId,
         if (count != null) 'count': count,
         'isPracticeExam': isPracticeExam,
+        if (focusTopics != null && focusTopics.isNotEmpty)
+          'focusTopics': focusTopics,
       },
     );
 
@@ -131,7 +134,10 @@ class TestRepository {
         .from('tests')
         .select()
         .eq('id', testId)
-        .single();
+        .maybeSingle();
+    if (testData == null) {
+      throw Exception('Quiz not found. It may have been deleted.');
+    }
     final questionsData = await _client
         .from('test_questions')
         .select()

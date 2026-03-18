@@ -7,26 +7,32 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../data/models/journey_node_model.dart';
 
 /// Duolingo-style vertical path of connected journey nodes.
 ///
 /// Renders nodes along a sinusoidal wave: completed = check circles,
-/// active = bouncing hero circle, locked = dim numbered circles.
+/// active = bouncing hero circle with mini-preview, locked = dim circles.
+/// Includes animated connectors, difficulty badges, and streak multiplier.
 class JourneyPath extends StatefulWidget {
   final List<JourneyNode> nodes;
   final String courseId;
   final void Function(JourneyNode) onNodeTap;
+  final void Function(JourneyNode)? onCompletedNodeTap;
   final bool isPro;
   final int? gateIndex;
+  final int streakMultiplier;
 
   const JourneyPath({
     super.key,
     required this.nodes,
     required this.courseId,
     required this.onNodeTap,
+    this.onCompletedNodeTap,
     this.isPro = true,
     this.gateIndex,
+    this.streakMultiplier = 1,
   });
 
   @override
@@ -105,10 +111,8 @@ class _JourneyPathState extends State<JourneyPath>
   }
 
   /// Sinusoidal horizontal offset for node at [index].
-  /// Returns value in [-1, 1] range for alignment.
   double _waveOffset(int index, JourneyNode node) {
     if (node.isCentered) return 0.0;
-    // Gentle sine wave with period of 4 nodes
     return math.sin(index * math.pi / 2) * 0.50;
   }
 
@@ -121,7 +125,7 @@ class _JourneyPathState extends State<JourneyPath>
       child: Column(
         children: [
           for (int i = 0; i < widget.nodes.length; i++) ...[
-            // Connector (skip before first node)
+            // Connector
             if (i > 0)
               _ConnectorSegment(
                 fromNode: widget.nodes[i - 1],
@@ -161,7 +165,11 @@ class _JourneyPathState extends State<JourneyPath>
         index: i,
         levelNumber: i + 1,
         onTap: () => widget.onNodeTap(node),
+        onCompletedTap: widget.onCompletedNodeTap != null
+            ? () => widget.onCompletedNodeTap!(node)
+            : null,
         isPremiumGated: premiumGated,
+        streakMultiplier: widget.streakMultiplier,
       ),
     );
   }
@@ -176,21 +184,28 @@ class _NodeRenderer extends StatelessWidget {
   final int index;
   final int levelNumber;
   final VoidCallback onTap;
+  final VoidCallback? onCompletedTap;
   final bool isPremiumGated;
+  final int streakMultiplier;
 
   const _NodeRenderer({
     required this.node,
     required this.index,
     required this.levelNumber,
     required this.onTap,
+    this.onCompletedTap,
     this.isPremiumGated = false,
+    this.streakMultiplier = 1,
   });
 
   @override
   Widget build(BuildContext context) {
     switch (node.state) {
       case JourneyNodeState.completed:
-        return _CompletedCircle(node: node, onTap: onTap);
+        return _CompletedCircle(
+          node: node,
+          onTap: onCompletedTap ?? onTap,
+        );
       case JourneyNodeState.active:
         if (node.type == JourneyNodeType.reward) {
           return _RewardNode(node: node, onTap: onTap);
@@ -198,7 +213,11 @@ class _NodeRenderer extends StatelessWidget {
         if (node.type == JourneyNodeType.bossExam) {
           return _BossNode(node: node, onTap: onTap, isActive: true);
         }
-        return _ActiveCircle(node: node, onTap: onTap);
+        return _ActiveCircle(
+          node: node,
+          onTap: onTap,
+          streakMultiplier: streakMultiplier,
+        );
       case JourneyNodeState.locked:
         if (node.type == JourneyNodeType.reward) {
           return _LockedRewardCircle(
@@ -222,7 +241,7 @@ class _NodeRenderer extends StatelessWidget {
 }
 
 // =============================================================================
-// Completed Circle — solid accent + white check
+// Completed Circle — solid accent + white check + difficulty badge
 // =============================================================================
 
 class _CompletedCircle extends StatelessWidget {
@@ -240,35 +259,84 @@ class _CompletedCircle extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [
-                  accent,
-                  Color.lerp(accent, Colors.white, 0.18)!,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: accent.withValues(alpha: 0.35),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
+          SizedBox(
+            width: 72,
+            height: 72,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Center(
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          accent,
+                          Color.lerp(accent, Colors.white, 0.18)!,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: accent.withValues(alpha: 0.35),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        width: 2,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.check_rounded,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
                 ),
+                // Score badge (if available)
+                if (node.bestScore != null)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5, vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: node.bestScore! >= 80
+                            ? const Color(0xFF10B981)
+                            : node.bestScore! >= 50
+                                ? const Color(0xFFF59E0B)
+                                : const Color(0xFFEF4444),
+                        borderRadius: BorderRadius.circular(100),
+                        border: Border.all(
+                          color: AppColors.immersiveBg,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Text(
+                        '${node.bestScore}%',
+                        style: AppTypography.caption.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 8,
+                        ),
+                      ),
+                    ),
+                  ),
+                // Difficulty stars
+                if (node.difficulty != NodeDifficulty.medium)
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    child: _DifficultyBadge(difficulty: node.difficulty),
+                  ),
               ],
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.15),
-                width: 2,
-              ),
-            ),
-            child: const Icon(
-              Icons.check_rounded,
-              color: Colors.white,
-              size: 30,
             ),
           ),
           const SizedBox(height: 6),
@@ -293,14 +361,19 @@ class _CompletedCircle extends StatelessWidget {
 }
 
 // =============================================================================
-// Active Circle — hero node with breathing glow, asset icon, START CTA
+// Active Circle — hero node with breathing glow, mini-preview, START CTA
 // =============================================================================
 
 class _ActiveCircle extends StatefulWidget {
   final JourneyNode node;
   final VoidCallback onTap;
+  final int streakMultiplier;
 
-  const _ActiveCircle({required this.node, required this.onTap});
+  const _ActiveCircle({
+    required this.node,
+    required this.onTap,
+    this.streakMultiplier = 1,
+  });
 
   @override
   State<_ActiveCircle> createState() => _ActiveCircleState();
@@ -345,6 +418,7 @@ class _ActiveCircleState extends State<_ActiveCircle>
   @override
   Widget build(BuildContext context) {
     final accent = widget.node.accentColor;
+    final l = AppLocalizations.of(context)!;
 
     return AnimatedBuilder(
       animation: _breatheController,
@@ -377,7 +451,7 @@ class _ActiveCircleState extends State<_ActiveCircle>
                     ],
                   ),
                   child: Text(
-                    'UP NEXT',
+                    l.journeyUpNext,
                     style: AppTypography.caption.copyWith(
                       color: AppColors.ctaLimeText,
                       fontWeight: FontWeight.w900,
@@ -440,15 +514,22 @@ class _ActiveCircleState extends State<_ActiveCircle>
                               width: 3,
                             ),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Image.asset(
-                              widget.node.assetPath,
-                              width: 44,
-                              height: 44,
+                          child: Center(
+                            child: Icon(
+                              widget.node.icon,
+                              color: Colors.white,
+                              size: 36,
                             ),
                           ),
                         ),
+                        // Difficulty badge
+                        if (widget.node.difficulty != NodeDifficulty.medium)
+                          Positioned(
+                            right: 4,
+                            top: 4,
+                            child: _DifficultyBadge(
+                                difficulty: widget.node.difficulty),
+                          ),
                       ],
                     ),
                   ),
@@ -458,7 +539,7 @@ class _ActiveCircleState extends State<_ActiveCircle>
 
                 // Title
                 SizedBox(
-                  width: 160,
+                  width: 180,
                   child: Text(
                     widget.node.title,
                     textAlign: TextAlign.center,
@@ -473,11 +554,23 @@ class _ActiveCircleState extends State<_ActiveCircle>
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  widget.node.subtitle,
-                  style: AppTypography.caption.copyWith(
-                    color: Colors.white54,
-                    fontSize: 11,
+
+                // Mini-preview subtitle (Improvement #11)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  child: Text(
+                    widget.node.subtitle,
+                    style: AppTypography.caption.copyWith(
+                      color: accent.withValues(alpha: 0.80),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
 
@@ -499,7 +592,7 @@ class _ActiveCircleState extends State<_ActiveCircle>
                     ],
                   ),
                   child: Text(
-                    'START',
+                    l.journeyStart,
                     style: AppTypography.labelMedium.copyWith(
                       color: AppColors.ctaLimeText,
                       fontWeight: FontWeight.w800,
@@ -509,22 +602,49 @@ class _ActiveCircleState extends State<_ActiveCircle>
                 ),
                 const SizedBox(height: 6),
 
-                // XP pill
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.ctaLime.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: Text(
-                    '+${widget.node.xpReward} XP',
-                    style: AppTypography.caption.copyWith(
-                      color: AppColors.ctaLime,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
+                // XP pill with multiplier
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.ctaLime.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Text(
+                        '+${widget.node.effectiveXp} XP',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.ctaLime,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                        ),
+                      ),
                     ),
-                  ),
+                    if (widget.streakMultiplier > 1) ...[
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFF97316), Color(0xFFF59E0B)],
+                          ),
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Text(
+                          '🔥 x${widget.streakMultiplier}',
+                          style: AppTypography.caption.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 9,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
@@ -565,7 +685,6 @@ class _LockedCircle extends StatelessWidget {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                // Main circle — grey with subtle accent tint
                 Center(
                   child: Container(
                     width: 58,
@@ -586,18 +705,14 @@ class _LockedCircle extends StatelessWidget {
                       ],
                     ),
                     child: Center(
-                      child: Opacity(
-                        opacity: 0.18,
-                        child: Image.asset(
-                          node.assetPath,
-                          width: 28,
-                          height: 28,
-                        ),
+                      child: Icon(
+                        node.icon,
+                        size: 22,
+                        color: Colors.white.withValues(alpha: 0.18),
                       ),
                     ),
                   ),
                 ),
-                // Lock badge or PRO pill
                 Positioned(
                   right: isPremiumGated ? -4 : 4,
                   bottom: 0,
@@ -675,7 +790,7 @@ class _LockedCircle extends StatelessWidget {
 }
 
 // =============================================================================
-// Locked Reward Circle — small locked chest
+// Locked Reward Circle
 // =============================================================================
 
 class _LockedRewardCircle extends StatelessWidget {
@@ -806,6 +921,7 @@ class _RewardNodeState extends State<_RewardNode>
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return TapScale(
       onTap: () {
         HapticFeedback.mediumImpact();
@@ -817,7 +933,6 @@ class _RewardNodeState extends State<_RewardNode>
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Floating chest with gold glow
               AnimatedBuilder(
                 animation: _floatAnimation,
                 builder: (context, child) => Transform.translate(
@@ -846,7 +961,7 @@ class _RewardNodeState extends State<_RewardNode>
               ),
               const SizedBox(height: 8),
               Text(
-                'Reward Chest',
+                l.journeyRewardChest,
                 style: AppTypography.labelLarge.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
@@ -879,7 +994,7 @@ class _RewardNodeState extends State<_RewardNode>
                   ],
                 ),
                 child: Text(
-                  'OPEN',
+                  l.journeyOpen,
                   style: AppTypography.labelMedium.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
@@ -914,6 +1029,8 @@ class _BossNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+
     if (!isActive) {
       return TapScale(
         onTap: onTap,
@@ -1004,7 +1121,7 @@ class _BossNode extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'FINAL EXAM',
+              l.journeyFinalExam.toUpperCase(),
               style: AppTypography.caption.copyWith(
                 color: const Color(0xFFEF4444).withValues(alpha: 0.35),
                 fontWeight: FontWeight.w800,
@@ -1026,7 +1143,6 @@ class _BossNode extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Shield with red glow
           Container(
             width: 100,
             height: 100,
@@ -1048,7 +1164,7 @@ class _BossNode extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Final Exam',
+            l.journeyFinalExam,
             style: AppTypography.labelLarge.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w800,
@@ -1057,7 +1173,7 @@ class _BossNode extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Comprehensive test',
+            l.journeyComprehensiveTest,
             style: AppTypography.caption.copyWith(color: Colors.white54),
           ),
           const SizedBox(height: 4),
@@ -1083,7 +1199,7 @@ class _BossNode extends StatelessWidget {
               ],
             ),
             child: Text(
-              'START EXAM',
+              l.journeyStartExam,
               style: AppTypography.labelMedium.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
@@ -1098,10 +1214,53 @@ class _BossNode extends StatelessWidget {
 }
 
 // =============================================================================
-// Connector Segment — smooth bezier curves between nodes
+// Difficulty Badge
 // =============================================================================
 
-class _ConnectorSegment extends StatelessWidget {
+class _DifficultyBadge extends StatelessWidget {
+  final NodeDifficulty difficulty;
+
+  const _DifficultyBadge({required this.difficulty});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (difficulty) {
+      NodeDifficulty.easy => const Color(0xFF10B981),
+      NodeDifficulty.medium => const Color(0xFFF59E0B),
+      NodeDifficulty.hard => const Color(0xFFEF4444),
+    };
+    final stars = switch (difficulty) {
+      NodeDifficulty.easy => 1,
+      NodeDifficulty.medium => 2,
+      NodeDifficulty.hard => 3,
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.20),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(
+          color: AppColors.immersiveBg,
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(
+          stars,
+          (_) => Icon(Icons.star_rounded, size: 8, color: color),
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Connector Segment — animated bezier curves between nodes
+// =============================================================================
+
+class _ConnectorSegment extends StatefulWidget {
   final JourneyNode fromNode;
   final JourneyNode toNode;
   final double fromOffset;
@@ -1115,34 +1274,80 @@ class _ConnectorSegment extends StatelessWidget {
   });
 
   @override
+  State<_ConnectorSegment> createState() => _ConnectorSegmentState();
+}
+
+class _ConnectorSegmentState extends State<_ConnectorSegment>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _flowController;
+
+  @override
+  void initState() {
+    super.initState();
+    final isCompleted = widget.fromNode.state == JourneyNodeState.completed &&
+        (widget.toNode.state == JourneyNodeState.completed ||
+            widget.toNode.state == JourneyNodeState.active);
+
+    if (isCompleted) {
+      _flowController = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 2000),
+      )..repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _flowController?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isCompleted = fromNode.state == JourneyNodeState.completed &&
-        (toNode.state == JourneyNodeState.completed ||
-            toNode.state == JourneyNodeState.active);
+    final isCompleted = widget.fromNode.state == JourneyNodeState.completed &&
+        (widget.toNode.state == JourneyNodeState.completed ||
+            widget.toNode.state == JourneyNodeState.active);
 
     return SizedBox(
       height: 48,
       width: double.infinity,
-      child: CustomPaint(
-        painter: _ConnectorPainter(
-          isCompleted: isCompleted,
-          fromAlignX: fromOffset,
-          toAlignX: toOffset,
-        ),
-      ),
+      child: _flowController != null
+          ? AnimatedBuilder(
+              animation: _flowController!,
+              builder: (context, _) {
+                return CustomPaint(
+                  painter: _AnimatedConnectorPainter(
+                    isCompleted: isCompleted,
+                    fromAlignX: widget.fromOffset,
+                    toAlignX: widget.toOffset,
+                    flowProgress: _flowController!.value,
+                  ),
+                );
+              },
+            )
+          : CustomPaint(
+              painter: _AnimatedConnectorPainter(
+                isCompleted: isCompleted,
+                fromAlignX: widget.fromOffset,
+                toAlignX: widget.toOffset,
+                flowProgress: 0,
+              ),
+            ),
     );
   }
 }
 
-class _ConnectorPainter extends CustomPainter {
+class _AnimatedConnectorPainter extends CustomPainter {
   final bool isCompleted;
   final double fromAlignX;
   final double toAlignX;
+  final double flowProgress;
 
-  _ConnectorPainter({
+  _AnimatedConnectorPainter({
     required this.isCompleted,
     required this.fromAlignX,
     required this.toAlignX,
+    this.flowProgress = 0,
   });
 
   @override
@@ -1179,6 +1384,35 @@ class _ConnectorPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round;
 
       canvas.drawPath(path, paint);
+
+      // Animated energy particle flowing along the path
+      if (flowProgress > 0) {
+        for (final metric in path.computeMetrics()) {
+          final pos = metric.length * flowProgress;
+          final tangent = metric.getTangentForOffset(pos);
+          if (tangent != null) {
+            final dotPaint = Paint()
+              ..color = AppColors.ctaLime.withValues(alpha: 0.8)
+              ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+            canvas.drawCircle(tangent.position, 3, dotPaint);
+
+            // Trail
+            for (int i = 1; i <= 3; i++) {
+              final trailPos = pos - (i * 8);
+              if (trailPos > 0) {
+                final trailTangent = metric.getTangentForOffset(trailPos);
+                if (trailTangent != null) {
+                  final trailPaint = Paint()
+                    ..color = AppColors.ctaLime
+                        .withValues(alpha: 0.4 - (i * 0.1));
+                  canvas.drawCircle(
+                      trailTangent.position, 2.0 - (i * 0.4), trailPaint);
+                }
+              }
+            }
+          }
+        }
+      }
     } else {
       // Dashed locked connector
       final paint = Paint()
@@ -1201,8 +1435,9 @@ class _ConnectorPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _ConnectorPainter old) =>
+  bool shouldRepaint(covariant _AnimatedConnectorPainter old) =>
       isCompleted != old.isCompleted ||
       fromAlignX != old.fromAlignX ||
-      toAlignX != old.toAlignX;
+      toAlignX != old.toAlignX ||
+      flowProgress != old.flowProgress;
 }

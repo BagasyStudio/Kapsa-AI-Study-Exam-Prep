@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/error_handler.dart';
+import '../../../../core/widgets/kapsa_refresh_indicator.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/staggered_list.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
@@ -13,17 +14,48 @@ import '../providers/flashcard_provider.dart';
 import '../../data/models/deck_model.dart';
 import '../widgets/deck_cover_gradient.dart';
 
+/// Sort modes for the deck list.
+enum _SortMode { recent, nameAz, dueDesc }
+
 /// Screen showing all flashcard decks for a course.
 ///
 /// Users can review past decks or start a new session.
-class DeckListScreen extends ConsumerWidget {
+class DeckListScreen extends ConsumerStatefulWidget {
   final String courseId;
 
   const DeckListScreen({super.key, required this.courseId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final decksAsync = ref.watch(parentDecksProvider(courseId));
+  ConsumerState<DeckListScreen> createState() => _DeckListScreenState();
+}
+
+class _DeckListScreenState extends ConsumerState<DeckListScreen> {
+  _SortMode _sortMode = _SortMode.recent;
+
+  /// Returns a sorted copy of the deck list based on the current sort mode.
+  List<DeckModel> _sortedDecks(List<DeckModel> decks) {
+    final sorted = List<DeckModel>.from(decks);
+    switch (_sortMode) {
+      case _SortMode.recent:
+        // Default order: by created_at descending (newest first).
+        sorted.sort((a, b) {
+          final aDate = a.createdAt ?? DateTime(2000);
+          final bDate = b.createdAt ?? DateTime(2000);
+          return bDate.compareTo(aDate);
+        });
+      case _SortMode.nameAz:
+        sorted.sort((a, b) =>
+            a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
+      case _SortMode.dueDesc:
+        // Use cardCount as proxy for pending workload.
+        sorted.sort((a, b) => b.cardCount.compareTo(a.cardCount));
+    }
+    return sorted;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final decksAsync = ref.watch(parentDecksProvider(widget.courseId));
 
     return Scaffold(
       backgroundColor: AppColors.immersiveBg,
@@ -67,7 +99,7 @@ class DeckListScreen extends ConsumerWidget {
                   ),
                   TapScale(
                     onTap: () =>
-                        context.push(Routes.importDeckPath(courseId)),
+                        context.push(Routes.importDeckPath(widget.courseId)),
                     child: Container(
                       width: 40,
                       height: 40,
@@ -87,7 +119,12 @@ class DeckListScreen extends ConsumerWidget {
               ),
             ),
 
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.md),
+
+            // Sort chip bar
+            _buildSortChips(),
+
+            const SizedBox(height: AppSpacing.md),
 
             // Deck list
             Expanded(
@@ -112,22 +149,30 @@ class DeckListScreen extends ConsumerWidget {
                   if (decks.isEmpty) {
                     return _buildEmptyState(context);
                   }
-                  return SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: EdgeInsets.fromLTRB(
-                      AppSpacing.xl,
-                      0,
-                      AppSpacing.xl,
-                      MediaQuery.of(context).padding.bottom + 24,
-                    ),
-                    child: StaggeredColumn(
-                      children: decks.map((deck) {
-                        return Padding(
-                          padding: const EdgeInsets.only(
-                              bottom: AppSpacing.md),
-                          child: _DeckCard(deck: deck),
-                        );
-                      }).toList(),
+                  final sortedDecks = _sortedDecks(decks);
+                  return KapsaRefreshIndicator(
+                    onRefresh: () async {
+                      ref.invalidate(parentDecksProvider(widget.courseId));
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      padding: EdgeInsets.fromLTRB(
+                        AppSpacing.xl,
+                        0,
+                        AppSpacing.xl,
+                        MediaQuery.of(context).padding.bottom + 24,
+                      ),
+                      child: StaggeredColumn(
+                        children: sortedDecks.map((deck) {
+                          return Padding(
+                            padding: const EdgeInsets.only(
+                                bottom: AppSpacing.md),
+                            child: _DeckCard(deck: deck),
+                          );
+                        }).toList(),
+                      ),
                     ),
                   );
                 },
@@ -135,6 +180,55 @@ class DeckListScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSortChips() {
+    const chipData = <_SortMode, String>{
+      _SortMode.recent: 'Recientes',
+      _SortMode.nameAz: 'A-Z',
+      _SortMode.dueDesc: 'Pendientes \u2193',
+    };
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      child: Row(
+        children: chipData.entries.map((entry) {
+          final isSelected = _sortMode == entry.key;
+          return Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.sm),
+            child: ChoiceChip(
+              label: Text(
+                entry.value,
+                style: AppTypography.caption.copyWith(
+                  color: isSelected ? Colors.white : Colors.white60,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ),
+              selected: isSelected,
+              onSelected: (_) {
+                setState(() => _sortMode = entry.key);
+              },
+              selectedColor: AppColors.primary,
+              backgroundColor: AppColors.immersiveCard,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(
+                  color: isSelected
+                      ? AppColors.primary
+                      : Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+              showCheckmark: false,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: 4,
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

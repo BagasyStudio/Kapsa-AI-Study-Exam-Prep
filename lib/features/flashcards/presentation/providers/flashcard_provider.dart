@@ -84,6 +84,99 @@ final recommendedSubdeckProvider = FutureProvider.autoDispose
       .getRecommendedSubdeck(parentDeckId);
 });
 
+/// Counts bookmarked cards for a parent deck (aggregated from children).
+final bookmarkedCardsCountProvider = FutureProvider.autoDispose
+    .family<int, String>((ref, parentDeckId) async {
+  return ref
+      .watch(flashcardRepositoryProvider)
+      .getBookmarkedCardsCountForParentDeck(parentDeckId);
+});
+
+/// Fetches ALL cards for a parent deck (aggregated from all children).
+/// Falls back to the deck itself for legacy flat decks with no children.
+final allCardsForParentDeckProvider = FutureProvider.autoDispose
+    .family<List<FlashcardModel>, String>((ref, parentDeckId) async {
+  final repo = ref.watch(flashcardRepositoryProvider);
+  final client = ref.watch(supabaseClientProvider);
+
+  // Check for child decks first
+  final childDecks = await client
+      .from('flashcard_decks')
+      .select('id')
+      .eq('parent_deck_id', parentDeckId);
+
+  if ((childDecks as List).isEmpty) {
+    // Legacy flat deck — return its own cards
+    return repo.getCards(parentDeckId);
+  }
+
+  final childIds = childDecks.map((d) => d['id'] as String).toList();
+  final data = await client
+      .from('flashcards')
+      .select()
+      .inFilter('deck_id', childIds)
+      .order('created_at', ascending: true)
+      .limit(500);
+
+  return (data as List).map((e) => FlashcardModel.fromJson(e)).toList();
+});
+
+/// Counts reviews in the last 7 days for a parent deck.
+/// Returns {count, lastReviewedAt} as a map.
+final deckStudyStatsProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>, String>((ref, parentDeckId) async {
+  final client = ref.watch(supabaseClientProvider);
+  final userId = client.auth.currentUser?.id;
+  if (userId == null) return {'count': 0, 'lastReviewedAt': null};
+
+  // Get relevant deck IDs (children or the deck itself)
+  final childDecks = await client
+      .from('flashcard_decks')
+      .select('id')
+      .eq('parent_deck_id', parentDeckId);
+
+  List<String> deckIds;
+  if ((childDecks as List).isEmpty) {
+    deckIds = [parentDeckId];
+  } else {
+    deckIds = childDecks.map((d) => d['id'] as String).toList();
+  }
+
+  // Get card IDs for these decks
+  final cards = await client
+      .from('flashcards')
+      .select('id')
+      .inFilter('deck_id', deckIds);
+
+  if ((cards as List).isEmpty) return {'count': 0, 'lastReviewedAt': null};
+
+  final cardIds = cards.map((c) => c['id'] as String).toList();
+
+  // Count reviews in last 7 days
+  final weekAgo =
+      DateTime.now().subtract(const Duration(days: 7)).toUtc().toIso8601String();
+
+  final reviews = await client
+      .from('card_reviews')
+      .select('reviewed_at')
+      .eq('user_id', userId)
+      .inFilter('card_id', cardIds)
+      .gte('reviewed_at', weekAgo)
+      .order('reviewed_at', ascending: false);
+
+  final reviewList = reviews as List;
+  DateTime? lastReviewedAt;
+  if (reviewList.isNotEmpty) {
+    lastReviewedAt =
+        DateTime.parse(reviewList.first['reviewed_at'] as String);
+  }
+
+  return {
+    'count': reviewList.length,
+    'lastReviewedAt': lastReviewedAt,
+  };
+});
+
 /// Total due cards across ALL user courses (for home screen badge).
 final totalDueCardsProvider = FutureProvider.autoDispose<int>((ref) async {
   final client = ref.watch(supabaseClientProvider);

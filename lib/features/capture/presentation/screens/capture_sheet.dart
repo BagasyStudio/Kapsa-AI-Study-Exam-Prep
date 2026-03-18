@@ -230,7 +230,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
       // Clean up temp file
       try {
         await file.delete();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('CaptureSheet: temp file cleanup failed: $e');
+      }
 
       // Refresh materials lists so new material appears immediately
       ref.invalidate(courseMaterialsProvider(courseId));
@@ -276,7 +278,9 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
     if (fileBytes == null && file.path != null) {
       try {
         fileBytes = await File(file.path!).readAsBytes();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('CaptureSheet: reading PDF bytes failed: $e');
+      }
     }
     if (fileBytes == null) {
       if (mounted) {
@@ -1839,7 +1843,9 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
     if (_filePath != null) {
       try {
         await File(_filePath!).delete();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('CaptureSheet: delete old temp file failed: $e');
+      }
     }
     // Don't auto-start; let user tap Record
   }
@@ -1857,13 +1863,17 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
     if (_isRecording) {
       try {
         await _recorder.stop();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('CaptureSheet: stopping recorder failed: $e');
+      }
     }
     // Delete temp file
     if (_filePath != null) {
       try {
         await File(_filePath!).delete();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('CaptureSheet: delete temp file on cancel failed: $e');
+      }
     }
     if (mounted) Navigator.of(context).pop();
   }

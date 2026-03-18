@@ -29,6 +29,7 @@ class BadgeDefinition {
   final IconData icon;
   final List<Color> gradient;
   final BadgeCategory category;
+  final BadgeRarity rarity;
 
   const BadgeDefinition({
     required this.key,
@@ -37,10 +38,14 @@ class BadgeDefinition {
     required this.icon,
     required this.gradient,
     required this.category,
+    this.rarity = BadgeRarity.common,
   });
 }
 
 enum BadgeCategory { study, streak, review, mastery }
+
+/// Rarity tier for an achievement badge.
+enum BadgeRarity { common, rare, epic, legendary }
 
 /// All available badges in the app.
 ///
@@ -54,6 +59,7 @@ abstract final class Badges {
     icon: Icons.school_rounded,
     gradient: [Color(0xFF3B82F6), Color(0xFF6366F1)],
     category: BadgeCategory.study,
+    rarity: BadgeRarity.common,
   );
 
   static const quiz10 = BadgeDefinition(
@@ -63,6 +69,7 @@ abstract final class Badges {
     icon: Icons.quiz_rounded,
     gradient: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
     category: BadgeCategory.study,
+    rarity: BadgeRarity.rare,
   );
 
   static const quiz50 = BadgeDefinition(
@@ -72,6 +79,7 @@ abstract final class Badges {
     icon: Icons.emoji_events_rounded,
     gradient: [Color(0xFF8B5CF6), Color(0xFFA855F7)],
     category: BadgeCategory.study,
+    rarity: BadgeRarity.epic,
   );
 
   static const perfectScore = BadgeDefinition(
@@ -81,6 +89,7 @@ abstract final class Badges {
     icon: Icons.star_rounded,
     gradient: [Color(0xFFF59E0B), Color(0xFFF97316)],
     category: BadgeCategory.study,
+    rarity: BadgeRarity.legendary,
   );
 
   static const perfect3 = BadgeDefinition(
@@ -90,6 +99,7 @@ abstract final class Badges {
     icon: Icons.auto_awesome_rounded,
     gradient: [Color(0xFFF97316), Color(0xFFEF4444)],
     category: BadgeCategory.study,
+    rarity: BadgeRarity.epic,
   );
 
   // ── Streak ─────────────────────────────────────────────────────────
@@ -100,6 +110,7 @@ abstract final class Badges {
     icon: Icons.local_fire_department_rounded,
     gradient: [Color(0xFFF97316), Color(0xFFEF4444)],
     category: BadgeCategory.streak,
+    rarity: BadgeRarity.rare,
   );
 
   static const streak30 = BadgeDefinition(
@@ -109,6 +120,7 @@ abstract final class Badges {
     icon: Icons.whatshot_rounded,
     gradient: [Color(0xFFEF4444), Color(0xFFEC4899)],
     category: BadgeCategory.streak,
+    rarity: BadgeRarity.epic,
   );
 
   static const streak100 = BadgeDefinition(
@@ -118,6 +130,7 @@ abstract final class Badges {
     icon: Icons.military_tech_rounded,
     gradient: [Color(0xFFEC4899), Color(0xFF8B5CF6)],
     category: BadgeCategory.streak,
+    rarity: BadgeRarity.legendary,
   );
 
   // ── Review ─────────────────────────────────────────────────────────
@@ -128,6 +141,7 @@ abstract final class Badges {
     icon: Icons.style_rounded,
     gradient: [Color(0xFF10B981), Color(0xFF06B6D4)],
     category: BadgeCategory.review,
+    rarity: BadgeRarity.common,
   );
 
   static const review100 = BadgeDefinition(
@@ -137,6 +151,7 @@ abstract final class Badges {
     icon: Icons.layers_rounded,
     gradient: [Color(0xFF06B6D4), Color(0xFF3B82F6)],
     category: BadgeCategory.review,
+    rarity: BadgeRarity.rare,
   );
 
   static const review500 = BadgeDefinition(
@@ -146,6 +161,7 @@ abstract final class Badges {
     icon: Icons.diamond_rounded,
     gradient: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
     category: BadgeCategory.review,
+    rarity: BadgeRarity.epic,
   );
 
   // ── Mastery ────────────────────────────────────────────────────────
@@ -156,6 +172,7 @@ abstract final class Badges {
     icon: Icons.trending_up_rounded,
     gradient: [Color(0xFF10B981), Color(0xFF059669)],
     category: BadgeCategory.mastery,
+    rarity: BadgeRarity.common,
   );
 
   static const level10 = BadgeDefinition(
@@ -165,6 +182,7 @@ abstract final class Badges {
     icon: Icons.workspace_premium_rounded,
     gradient: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
     category: BadgeCategory.mastery,
+    rarity: BadgeRarity.epic,
   );
 
   static const level25 = BadgeDefinition(
@@ -174,6 +192,7 @@ abstract final class Badges {
     icon: Icons.shield_rounded,
     gradient: [Color(0xFFF59E0B), Color(0xFFEF4444)],
     category: BadgeCategory.mastery,
+    rarity: BadgeRarity.legendary,
   );
 
   static const sharer = BadgeDefinition(
@@ -183,6 +202,7 @@ abstract final class Badges {
     icon: Icons.share_rounded,
     gradient: [Color(0xFF06B6D4), Color(0xFF10B981)],
     category: BadgeCategory.mastery,
+    rarity: BadgeRarity.common,
   );
 
   /// All badge definitions, in display order.

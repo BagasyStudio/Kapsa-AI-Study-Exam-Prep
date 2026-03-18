@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/capture/presentation/screens/capture_sheet.dart';
 import '../../features/profile/presentation/providers/profile_provider.dart';
 import '../services/sound_service.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_typography.dart';
 import 'sanctuary_bottom_nav.dart';
 
 /// Main scaffold that wraps the tab navigation.
@@ -26,10 +30,19 @@ class KapsaShell extends ConsumerStatefulWidget {
 
 class _KapsaShellState extends ConsumerState<KapsaShell>
     with WidgetsBindingObserver {
+  static const _fabFirstUsedKey = 'fab_first_used';
+
+  /// Whether the pulsing glow on the Capture FAB should be shown.
+  bool _showPulseGlow = false;
+
+  /// Timestamp when the app was last paused (sent to background).
+  DateTime? _pausedAt;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadFabGlowState();
   }
 
   @override
@@ -38,10 +51,36 @@ class _KapsaShellState extends ConsumerState<KapsaShell>
     super.dispose();
   }
 
+  /// Load whether the FAB has been used before from SharedPreferences.
+  Future<void> _loadFabGlowState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasBeenUsed = prefs.getBool(_fabFirstUsedKey) ?? false;
+    if (mounted) {
+      setState(() {
+        _showPulseGlow = !hasBeenUsed;
+      });
+    }
+  }
+
+  /// Mark the FAB as used and stop the glow permanently.
+  Future<void> _markFabUsed() async {
+    if (!_showPulseGlow) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_fabFirstUsedKey, true);
+    if (mounted) {
+      setState(() {
+        _showPulseGlow = false;
+      });
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.paused) {
+      _pausedAt = DateTime.now();
+    } else if (state == AppLifecycleState.resumed) {
       _refreshSessionOnResume();
+      _showWelcomeBackToastIfNeeded();
     }
   }
 
@@ -71,12 +110,80 @@ class _KapsaShellState extends ConsumerState<KapsaShell>
     }
   }
 
+  /// Show a subtle "Synced" toast if the app was in the background
+  /// for more than 30 seconds.
+  void _showWelcomeBackToastIfNeeded() {
+    final pausedAt = _pausedAt;
+    if (pausedAt == null) return;
+
+    final elapsed = DateTime.now().difference(pausedAt);
+    if (elapsed.inSeconds <= 30) return;
+
+    _pausedAt = null;
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '\u2713 Synced',
+          style: AppTypography.caption.copyWith(
+            color: Colors.white.withValues(alpha: 0.9),
+          ),
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.white.withValues(alpha: 0.08),
+        elevation: 0,
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).size.height - 120,
+          left: 80,
+          right: 80,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  /// Handle long-press on the Capture FAB: show a tooltip snackbar with
+  /// haptic feedback.
+  void _onCaptureLongPress() {
+    HapticFeedback.lightImpact();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Upload materials to start studying',
+          style: AppTypography.bodySmall.copyWith(color: Colors.white),
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.immersiveSurface,
+        margin: const EdgeInsets.only(bottom: 100, left: 40, right: 40),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
       backgroundColor: Colors.transparent,
-      body: widget.navigationShell,
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 250),
+        transitionBuilder: (child, animation) => FadeTransition(
+          opacity: animation,
+          child: child,
+        ),
+        child: KeyedSubtree(
+          key: ValueKey<int>(widget.navigationShell.currentIndex),
+          child: widget.navigationShell,
+        ),
+      ),
       bottomNavigationBar: KapsaBottomNav(
         currentIndex: widget.navigationShell.currentIndex,
         onTap: (index) {
@@ -88,7 +195,12 @@ class _KapsaShellState extends ConsumerState<KapsaShell>
             initialLocation: index == widget.navigationShell.currentIndex,
           );
         },
-        onCaptureTap: () => _showCaptureSheet(context),
+        onCaptureTap: () {
+          _markFabUsed();
+          _showCaptureSheet(context);
+        },
+        onCaptureLongPress: _onCaptureLongPress,
+        showPulseGlow: _showPulseGlow,
       ),
     );
   }

@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/celebration_overlay.dart';
 import '../../../../core/widgets/tap_scale.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../../courses/presentation/providers/course_provider.dart';
 import '../../../gamification/presentation/widgets/xp_popup.dart';
 import '../../../gamification/presentation/providers/xp_provider.dart';
@@ -15,12 +17,13 @@ import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
 import '../../data/models/journey_node_model.dart';
 import '../providers/journey_provider.dart';
+import '../providers/exercise_provider.dart';
 import '../widgets/journey_path.dart';
 
 /// Full-screen gamified learning journey for a specific course.
 ///
 /// Displays a vertical zigzag path of connected nodes representing
-/// study activities (flashcards, quizzes, materials, checkpoints, etc.)
+/// study activities (flashcards, quizzes, materials, exercises, checkpoints)
 /// with sequential unlock progression and XP rewards.
 class JourneyScreen extends ConsumerStatefulWidget {
   final String courseId;
@@ -49,12 +52,32 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
     super.dispose();
   }
 
+  /// Whether a node type is an exercise that navigates to the exercise screen.
+  bool _isExerciseType(JourneyNodeType type) => const {
+        JourneyNodeType.fillGaps,
+        JourneyNodeType.speedRound,
+        JourneyNodeType.mistakeSpotter,
+        JourneyNodeType.teachBot,
+        JourneyNodeType.compareContrast,
+        JourneyNodeType.timelineBuilder,
+        JourneyNodeType.caseStudy,
+        JourneyNodeType.matchBlitz,
+        JourneyNodeType.conceptMapper,
+        JourneyNodeType.dailyChallenge,
+      }.contains(type);
+
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final nodesAsync = ref.watch(journeyNodesProvider(courseId));
+    final streakMultiplier =
+        ref.watch(streakMultiplierProvider.notifier).multiplier;
 
     return Scaffold(
       backgroundColor: AppColors.immersiveBg,
+      floatingActionButton: nodesAsync.whenOrNull(
+        data: (nodes) => nodes.isNotEmpty ? _buildFab(nodes, l) : null,
+      ),
       body: Stack(
         children: [
           // Gradient blobs
@@ -85,11 +108,11 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
 
           SafeArea(
             child: nodesAsync.when(
-              loading: () => _buildLoadingState(),
-              error: (e, _) => _buildErrorState(),
+              loading: () => _buildLoadingState(l),
+              error: (e, _) => _buildErrorState(l),
               data: (nodes) {
-                if (nodes.isEmpty) return _buildEmptyState();
-                return _buildJourney(nodes);
+                if (nodes.isEmpty) return _buildEmptyState(l);
+                return _buildJourney(nodes, streakMultiplier, l);
               },
             ),
           ),
@@ -98,7 +121,56 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
     );
   }
 
-  Widget _buildJourney(List<JourneyNode> nodes) {
+  // ── FAB ──────────────────────────────────────────────────────────────────
+
+  Widget? _buildFab(List<JourneyNode> nodes, AppLocalizations l) {
+    final activeNode = nodes.cast<JourneyNode?>().firstWhere(
+          (n) => n!.state == JourneyNodeState.active,
+          orElse: () => null,
+        );
+    if (activeNode == null) return null;
+
+    return TapScale(
+      onTap: () => _handleNodeTap(activeNode),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.ctaLime,
+          borderRadius: BorderRadius.circular(100),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.ctaLime.withValues(alpha: 0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              activeNode.icon,
+              size: 18,
+              color: AppColors.ctaLimeText,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              l.journeyFabContinue,
+              style: AppTypography.labelLarge.copyWith(
+                color: AppColors.ctaLimeText,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Journey Body ───────────────────────────────────────────────────────
+
+  Widget _buildJourney(
+      List<JourneyNode> nodes, int streakMultiplier, AppLocalizations l) {
     return CustomScrollView(
       physics: const BouncingScrollPhysics(
         parent: AlwaysScrollableScrollPhysics(),
@@ -117,8 +189,10 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
             nodes: nodes,
             courseId: courseId,
             onNodeTap: _handleNodeTap,
+            onCompletedNodeTap: (node) => _showMicroReview(node, l),
             isPro: ref.watch(isProProvider).whenOrNull(data: (v) => v) ?? false,
             gateIndex: ref.watch(firstCheckpointIndexProvider(courseId)),
+            streakMultiplier: streakMultiplier,
           ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 120)),
@@ -126,7 +200,11 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
     );
   }
 
+  // ── Node Tap Handling ────────────────────────────────────────────────────
+
   void _handleNodeTap(JourneyNode node) {
+    final l = AppLocalizations.of(context)!;
+
     // Locked nodes → gated logic
     if (node.state == JourneyNodeState.locked) {
       final isPro =
@@ -135,24 +213,26 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
         final gateIndex =
             ref.read(firstCheckpointIndexProvider(courseId)) ?? 3;
         if (node.position > gateIndex) {
-          // Beyond free zone → paywall
           context.push(Routes.paywall);
           return;
         }
       }
-      // Within free zone (or pro user) but locked by progression
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Complete the previous step first'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(l.journeyCompletePrevious),
+          duration: const Duration(seconds: 2),
         ),
       );
       return;
     }
 
-    // Already completed → allow revisiting without re-awarding
+    // Already completed → revisit (micro-review for exercises)
     if (node.state == JourneyNodeState.completed) {
-      if (node.route != null) context.push(node.route!);
+      if (_isExerciseType(node.type)) {
+        _showMicroReview(node, l);
+      } else if (node.route != null) {
+        context.push(node.route!);
+      }
       return;
     }
 
@@ -162,7 +242,7 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
     if (node.type == JourneyNodeType.reward) {
       CelebrationOverlay.show(
         context,
-        title: 'Reward Chest!',
+        title: l.journeyRewardChest,
         subtitle: '+${node.xpReward} XP',
         icon: Icons.card_giftcard_rounded,
       );
@@ -174,6 +254,17 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
     }
 
     if (node.route == null) return;
+
+    // Exercise types → navigate and wait for score result
+    if (_isExerciseType(node.type)) {
+      context.push<JourneyResult>(node.route!).then((result) {
+        if (!mounted) return;
+        if (result == JourneyResult.completed) {
+          _completeNode(node);
+        }
+      });
+      return;
+    }
 
     // Material, Oracle, Summary → complete if user spent ≥ 5s
     if ({JourneyNodeType.materialReview, JourneyNodeType.oracle, JourneyNodeType.summary}
@@ -200,15 +291,167 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
 
   void _completeNode(JourneyNode node) {
     HapticFeedback.mediumImpact();
-    XpPopup.show(context, xp: node.xpReward, label: node.title);
+    final multiplier =
+        ref.read(streakMultiplierProvider.notifier).multiplier;
+    final effectiveXp = node.xpReward * multiplier;
+    XpPopup.show(context, xp: effectiveXp, label: node.title);
     ref
         .read(journeyCompletionProvider(courseId).notifier)
         .markCompleted(node.id, node.xpReward);
   }
 
-  // ── Loading State ──────────────────────────────────────────────────────────
+  // ── Micro-Review ──────────────────────────────────────────────────────
 
-  Widget _buildLoadingState() {
+  void _showMicroReview(JourneyNode node, AppLocalizations l) {
+    final dateStr = node.completedAt != null
+        ? DateFormat.yMMMd().format(node.completedAt!)
+        : null;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.immersiveCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(100),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Icon + Title
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: node.accentColor.withValues(alpha: 0.15),
+                  ),
+                  child: Icon(node.icon, color: node.accentColor, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        node.title,
+                        style: AppTypography.labelLarge.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (dateStr != null)
+                        Text(
+                          l.journeyMicroReviewCompleted(dateStr),
+                          style: AppTypography.caption.copyWith(
+                            color: Colors.white54,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Score
+            if (node.bestScore != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: (node.bestScore! >= 70
+                                ? AppColors.success
+                                : AppColors.warning)
+                            .withValues(alpha: 0.15),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${node.bestScore}%',
+                          style: AppTypography.labelLarge.copyWith(
+                            color: node.bestScore! >= 70
+                                ? AppColors.success
+                                : AppColors.warning,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        l.journeyMicroReviewScore(node.bestScore!),
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Text(
+                l.journeyMicroReviewNoScore,
+                style: AppTypography.bodySmall.copyWith(color: Colors.white38),
+              ),
+            const SizedBox(height: 20),
+            // Redo button
+            if (node.route != null)
+              TapScale(
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  context.push(node.route!);
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: node.accentColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: node.accentColor.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Text(
+                    l.journeyMicroReviewRedo,
+                    textAlign: TextAlign.center,
+                    style: AppTypography.labelLarge.copyWith(
+                      color: node.accentColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Loading State ──────────────────────────────────────────────────────
+
+  Widget _buildLoadingState(AppLocalizations l) {
     return CustomScrollView(
       physics: const NeverScrollableScrollPhysics(),
       slivers: [
@@ -220,7 +463,6 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Back button placeholder
                 Container(
                   width: 40,
                   height: 40,
@@ -230,18 +472,14 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                // Title shimmer
                 _shimmerBar(200, 28),
                 const SizedBox(height: 8),
                 _shimmerBar(140, 14),
                 const SizedBox(height: AppSpacing.lg),
-                // Progress bar shimmer
                 _shimmerBar(double.infinity, 6),
                 const SizedBox(height: AppSpacing.xxl),
-                // Challenge card shimmer
                 _shimmerBar(double.infinity, 140, radius: 20),
                 const SizedBox(height: AppSpacing.xxl),
-                // Path node shimmers
                 Center(
                   child: Column(
                     children: [
@@ -258,12 +496,11 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xxl),
-                // Loading text
                 Center(
                   child: FadeTransition(
                     opacity: _pulseAnimation,
                     child: Text(
-                      'Generating your learning journey...',
+                      l.journeyGenerating,
                       style: AppTypography.caption.copyWith(
                         color: AppColors.ctaLime,
                         fontWeight: FontWeight.w600,
@@ -314,9 +551,9 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
         ),
       );
 
-  // ── Empty State ────────────────────────────────────────────────────────────
+  // ── Empty State ──────────────────────────────────────────────────────
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations l) {
     return Column(
       children: [
         Padding(
@@ -363,12 +600,12 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   Text(
-                    'No content yet',
+                    l.journeyNoContent,
                     style: AppTypography.h3.copyWith(color: Colors.white),
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'Upload materials to generate your learning journey',
+                    l.journeyUploadMaterials,
                     textAlign: TextAlign.center,
                     style: AppTypography.bodyMedium.copyWith(
                       color: Colors.white60,
@@ -388,7 +625,7 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
                         borderRadius: BorderRadius.circular(100),
                       ),
                       child: Text(
-                        'Upload Material',
+                        l.journeyUploadMaterial,
                         style: AppTypography.labelLarge.copyWith(
                           color: AppColors.ctaLimeText,
                           fontWeight: FontWeight.w700,
@@ -405,12 +642,12 @@ class _JourneyScreenState extends ConsumerState<JourneyScreen>
     );
   }
 
-  // ── Error State ────────────────────────────────────────────────────────────
+  // ── Error State ──────────────────────────────────────────────────────
 
-  Widget _buildErrorState() {
+  Widget _buildErrorState(AppLocalizations l) {
     return Center(
       child: Text(
-        'Could not load journey',
+        l.journeyCouldNotLoad,
         style: AppTypography.bodyMedium.copyWith(color: Colors.white60),
       ),
     );
@@ -428,6 +665,7 @@ class _JourneyHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context)!;
     final course = ref
         .watch(courseProvider(courseId))
         .whenOrNull(data: (c) => c);
@@ -463,7 +701,6 @@ class _JourneyHeader extends ConsumerWidget {
                 ),
               ),
               const Spacer(),
-              // Streak badge
               if (streakDays > 0)
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -487,12 +724,11 @@ class _JourneyHeader extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(width: 3),
-                      const Text('🔥', style: TextStyle(fontSize: 12)),
+                      const Text('\u{1F525}', style: TextStyle(fontSize: 12)),
                     ],
                   ),
                 ),
               const SizedBox(width: 8),
-              // Level badge
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10, vertical: 5,
@@ -505,7 +741,7 @@ class _JourneyHeader extends ConsumerWidget {
                   ),
                 ),
                 child: Text(
-                  'Lvl $level',
+                  l.journeyLevel(level),
                   style: AppTypography.labelMedium.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -517,7 +753,6 @@ class _JourneyHeader extends ConsumerWidget {
 
           const SizedBox(height: AppSpacing.lg),
 
-          // Title
           Text(
             course?.displayTitle ?? 'Course',
             style: AppTypography.h2.copyWith(
@@ -526,7 +761,7 @@ class _JourneyHeader extends ConsumerWidget {
             ),
           ),
           Text(
-            'Learning Journey',
+            l.journeyLearningJourney,
             style: AppTypography.caption.copyWith(
               color: Colors.white60,
             ),
@@ -534,7 +769,6 @@ class _JourneyHeader extends ConsumerWidget {
 
           const SizedBox(height: AppSpacing.lg),
 
-          // Progress bar
           Container(
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
@@ -548,14 +782,14 @@ class _JourneyHeader extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '$progressPercent% JOURNEY',
+                      l.journeyProgress(progressPercent),
                       style: AppTypography.sectionHeader.copyWith(
                         color: Colors.white60,
                         fontSize: 10,
                       ),
                     ),
                     Text(
-                      'LEVEL $level',
+                      l.journeyLevel(level),
                       style: AppTypography.sectionHeader.copyWith(
                         color: Colors.white60,
                         fontSize: 10,
@@ -576,7 +810,6 @@ class _JourneyHeader extends ConsumerWidget {
                     ),
                   ),
                 ),
-                // Exam countdown
                 if (course?.examDate != null) ...[
                   const SizedBox(height: AppSpacing.sm),
                   _ExamCountdown(examDate: course!.examDate!),
@@ -597,10 +830,11 @@ class _ExamCountdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final daysLeft = examDate.difference(DateTime.now()).inDays;
     final text = daysLeft <= 0
-        ? 'Exam is today!'
-        : '$daysLeft day${daysLeft > 1 ? 's' : ''} to exam';
+        ? l.journeyExamToday
+        : l.journeyDaysToExam(daysLeft, daysLeft > 1 ? 's' : '');
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -644,18 +878,18 @@ class _TodaysChallenge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Pick 3 nodes: mix of completed (today's) + next upcoming
+    final l = AppLocalizations.of(context)!;
+
+    // Pick 3 nodes: active + next upcoming
     final challengeNodes = <JourneyNode>[];
     final active = nodes.where((n) => n.state == JourneyNodeState.active);
     final locked = nodes.where((n) => n.state == JourneyNodeState.locked);
-    // Add active node first
     challengeNodes.addAll(active.take(1));
-    // Fill remaining with locked
     challengeNodes.addAll(locked.take(3 - challengeNodes.length));
 
     if (challengeNodes.isEmpty) return const SizedBox.shrink();
 
-    final completedCount = 0; // Today's completed tracked separately
+    final completedCount = 0;
     final totalXp = challengeNodes.fold<int>(0, (sum, n) => sum + n.xpReward);
     final progress = challengeNodes.isEmpty
         ? 0.0
@@ -673,12 +907,11 @@ class _TodaysChallenge extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with counter pill
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "TODAY'S CHALLENGE",
+                  l.journeyTodaysChallenge,
                   style: AppTypography.sectionHeader.copyWith(
                     color: Colors.white70,
                     fontSize: 11,
@@ -704,9 +937,7 @@ class _TodaysChallenge extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            // Challenge rows with checkbox states
-            ...challengeNodes.asMap().entries.map((entry) {
-              final node = entry.value;
+            ...challengeNodes.map((node) {
               final isCompleted = node.state == JourneyNodeState.completed;
               final isActive = node.state == JourneyNodeState.active;
 
@@ -714,7 +945,6 @@ class _TodaysChallenge extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Row(
                   children: [
-                    // Checkbox circle
                     Container(
                       width: 22,
                       height: 22,
@@ -738,17 +968,23 @@ class _TodaysChallenge extends StatelessWidget {
                           : null,
                     ),
                     const SizedBox(width: 10),
-                    // Asset icon
-                    Opacity(
-                      opacity: isCompleted ? 0.5 : 1.0,
-                      child: Image.asset(
-                        node.assetPath,
-                        width: 28,
-                        height: 28,
+                    // Use icon instead of asset to avoid missing images
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: node.accentColor.withValues(alpha: 0.12),
+                      ),
+                      child: Icon(
+                        node.icon,
+                        size: 16,
+                        color: isCompleted
+                            ? node.accentColor.withValues(alpha: 0.5)
+                            : node.accentColor,
                       ),
                     ),
                     const SizedBox(width: 10),
-                    // Title
                     Expanded(
                       child: Text(
                         node.title,
@@ -764,7 +1000,6 @@ class _TodaysChallenge extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    // XP pill
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6, vertical: 2,
@@ -787,7 +1022,6 @@ class _TodaysChallenge extends StatelessWidget {
               );
             }),
             const SizedBox(height: AppSpacing.sm),
-            // Progress bar
             ClipRRect(
               borderRadius: BorderRadius.circular(100),
               child: LinearProgressIndicator(
@@ -800,9 +1034,8 @@ class _TodaysChallenge extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            // Footer
             Text(
-              'Complete all for +$totalXp XP bonus',
+              l.journeyCompleteAll(totalXp),
               style: AppTypography.caption.copyWith(
                 color: AppColors.ctaLime.withValues(alpha: 0.60),
                 fontWeight: FontWeight.w600,

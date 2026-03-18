@@ -10,6 +10,15 @@ const corsHeaders = {
 const GEMMA_VERSION = "c0f0aebe8e578c15a7531e08a62cf01206f5870e9d0a67804b8152822db58c54";
 const WHISPER_VERSION = "3ab86df6c8f54c11309d4d1f930ac292bad43ace52d10c80d87eb258b3c9f79c";
 
+// ── Deadline protection — Supabase kills at 60s ─────────────────
+const HARD_DEADLINE_MS = 50_000; // 50s (10s buffer)
+const MAX_POLL_ATTEMPTS = 50;
+let REQUEST_START = 0;
+
+function isDeadlineClose(): boolean {
+  return Date.now() - REQUEST_START > HARD_DEADLINE_MS;
+}
+
 // ── Input validation helpers ──────────────────────────────────────
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -61,7 +70,10 @@ async function runOCR(apiKey: string, imageUrl: string): Promise<string> {
   const prediction = await createRes.json();
   let result = prediction;
   let attempts = 0;
-  while (result.status !== "succeeded" && result.status !== "failed" && attempts < 120) {
+  while (result.status !== "succeeded" && result.status !== "failed" && attempts < MAX_POLL_ATTEMPTS) {
+    if (isDeadlineClose()) {
+      throw new Error("Request timeout: AI processing took too long. Please try again.");
+    }
     await new Promise((resolve) => setTimeout(resolve, 1500));
     const pollRes = await fetch(result.urls.get, {
       headers: { "Authorization": `Bearer ${apiKey}` },
@@ -117,7 +129,10 @@ async function runWhisper(apiKey: string, audioUrl: string): Promise<string> {
   const prediction = await createRes.json();
   let result = prediction;
   let attempts = 0;
-  while (result.status !== "succeeded" && result.status !== "failed" && attempts < 120) {
+  while (result.status !== "succeeded" && result.status !== "failed" && attempts < MAX_POLL_ATTEMPTS) {
+    if (isDeadlineClose()) {
+      throw new Error("Request timeout: Transcription took too long. Please try again.");
+    }
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const pollRes = await fetch(result.urls.get, {
       headers: { "Authorization": `Bearer ${apiKey}` },
@@ -167,6 +182,8 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  REQUEST_START = Date.now();
 
   // Early check: is the AI service configured?
   const replicateKey = Deno.env.get("REPLICATE_API_KEY");

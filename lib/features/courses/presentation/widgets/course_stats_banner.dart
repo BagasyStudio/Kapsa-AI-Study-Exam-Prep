@@ -1,5 +1,7 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_animations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -84,7 +86,7 @@ class CourseStatsBanner extends ConsumerWidget {
 
               const SizedBox(height: AppSpacing.md),
 
-              // Stats row
+              // Stats row with progress ring
               statsAsync.when(
                 loading: () => const SizedBox(
                   height: 48,
@@ -107,32 +109,46 @@ class CourseStatsBanner extends ConsumerWidget {
                 ),
                 data: (stats) => Row(
                   children: [
-                    _StatChip(
-                      icon: Icons.description_outlined,
-                      value: '${stats.materialCount}',
-                      label: 'Materials',
+                    // Progress ring
+                    _CompletionRing(
+                      completionRate: stats.completionRate,
+                      reviewed: stats.reviewedCount,
+                      total: stats.materialCount,
                     ),
-                    const SizedBox(width: 10),
-                    _StatChip(
-                      icon: Icons.style_outlined,
-                      value: '${stats.deckCount}',
-                      label: 'Decks',
-                    ),
-                    const SizedBox(width: 10),
-                    _StatChip(
-                      icon: Icons.layers_outlined,
-                      value: '${stats.totalCards}',
-                      label: 'Cards',
-                    ),
-                    if (stats.dueCards > 0) ...[
-                      const SizedBox(width: 10),
-                      _StatChip(
-                        icon: Icons.schedule,
-                        value: '${stats.dueCards}',
-                        label: 'Due',
-                        isHighlighted: true,
+                    const SizedBox(width: 12),
+                    // Stat chips
+                    Expanded(
+                      child: Row(
+                        children: [
+                          _StatChip(
+                            icon: Icons.description_outlined,
+                            value: '${stats.materialCount}',
+                            label: 'Materials',
+                          ),
+                          const SizedBox(width: 10),
+                          _StatChip(
+                            icon: Icons.style_outlined,
+                            value: '${stats.deckCount}',
+                            label: 'Decks',
+                          ),
+                          const SizedBox(width: 10),
+                          _StatChip(
+                            icon: Icons.layers_outlined,
+                            value: '${stats.totalCards}',
+                            label: 'Cards',
+                          ),
+                          if (stats.dueCards > 0) ...[
+                            const SizedBox(width: 10),
+                            _StatChip(
+                              icon: Icons.schedule,
+                              value: '${stats.dueCards}',
+                              label: 'Due',
+                              isHighlighted: true,
+                            ),
+                          ],
+                        ],
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
@@ -272,4 +288,114 @@ class _StatChipState extends State<_StatChip>
 
     return Expanded(child: chip);
   }
+}
+
+/// Animated completion ring showing material review progress.
+class _CompletionRing extends StatelessWidget {
+  final double completionRate;
+  final int reviewed;
+  final int total;
+
+  const _CompletionRing({
+    required this.completionRate,
+    required this.reviewed,
+    required this.total,
+  });
+
+  Color get _progressColor {
+    if (completionRate >= 0.7) return AppColors.success;
+    if (completionRate >= 0.4) return AppColors.warning;
+    return AppColors.error;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: completionRate),
+      duration: AppAnimations.durationLong,
+      curve: AppAnimations.curveDecelerate,
+      builder: (context, value, child) {
+        final color = _progressColor;
+        return SizedBox(
+          width: 56,
+          height: 56,
+          child: CustomPaint(
+            painter: _CompletionRingPainter(
+              progress: value,
+              color: color,
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedCounter(
+                    value: (completionRate * 100).round(),
+                    duration: AppAnimations.durationLong,
+                    suffix: '%',
+                    style: AppTypography.labelLarge.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                  Text(
+                    '$reviewed/$total',
+                    style: AppTypography.caption.copyWith(
+                      color: Colors.white38,
+                      fontSize: 9,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Custom painter for the progress ring arc.
+class _CompletionRingPainter extends CustomPainter {
+  final double progress;
+  final Color color;
+
+  _CompletionRingPainter({
+    required this.progress,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.shortestSide / 2) - 3;
+
+    // Background track
+    final bgPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.08)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(center, radius, bgPaint);
+
+    // Progress arc
+    if (progress > 0) {
+      final progressPaint = Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4
+        ..strokeCap = StrokeCap.round;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -math.pi / 2,
+        2 * math.pi * progress,
+        false,
+        progressPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_CompletionRingPainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.color != color;
 }

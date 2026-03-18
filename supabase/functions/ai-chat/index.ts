@@ -8,6 +8,15 @@ const corsHeaders = {
 
 const LLAMA_MODEL = "meta/meta-llama-3-8b-instruct";
 
+// ── Deadline protection — Supabase kills at 60s ─────────────────
+const HARD_DEADLINE_MS = 50_000; // 50s (10s buffer)
+const MAX_POLL_ATTEMPTS = 50;
+let REQUEST_START = 0;
+
+function isDeadlineClose(): boolean {
+  return Date.now() - REQUEST_START > HARD_DEADLINE_MS;
+}
+
 // ── Input validation helpers ──────────────────────────────────────
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -48,7 +57,10 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
   const prediction = await createRes.json();
   let result = prediction;
   let attempts = 0;
-  while (result.status !== "succeeded" && result.status !== "failed" && attempts < 120) {
+  while (result.status !== "succeeded" && result.status !== "failed" && attempts < MAX_POLL_ATTEMPTS) {
+    if (isDeadlineClose()) {
+      throw new Error("Request timeout: AI processing took too long. Please try again.");
+    }
     await new Promise((resolve) => setTimeout(resolve, 1000));
     const pollRes = await fetch(result.urls.get, {
       headers: { "Authorization": `Bearer ${apiKey}` },
@@ -121,6 +133,8 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  REQUEST_START = Date.now();
 
   // Early check: is the AI service configured?
   const replicateKey = Deno.env.get("REPLICATE_API_KEY");
@@ -286,6 +300,7 @@ CRITICAL LANGUAGE RULE: You MUST respond in ${responseLang}. The student's messa
     const message = error instanceof Error && (
       error.message.includes("unavailable") ||
       error.message.includes("timed out") ||
+      error.message.includes("timeout") ||
       error.message.includes("failed. Please")
     ) ? error.message : sanitizeErrorMessage(error);
 

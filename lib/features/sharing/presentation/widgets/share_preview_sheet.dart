@@ -71,7 +71,9 @@ class _SharePreviewSheetState extends ConsumerState<SharePreviewSheet> {
           },
         );
         ref.invalidate(xpTotalProvider);
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('SharePreview: award share XP failed: $e');
+      }
 
       if (mounted) {
         Navigator.of(context).pop();

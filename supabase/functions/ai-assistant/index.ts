@@ -7,9 +7,20 @@ const corsHeaders = {
 };
 
 // ═══════════════════════════════════════════
+// Deadline protection — Supabase kills at 60s
+// ═══════════════════════════════════════════
+const HARD_DEADLINE_MS = 50_000; // 50s (10s buffer before Supabase kills at 60s)
+let REQUEST_START = 0;
+
+function isDeadlineClose(): boolean {
+  return Date.now() - REQUEST_START > HARD_DEADLINE_MS;
+}
+
+// ═══════════════════════════════════════════
 // Replicate API helpers
 // ═══════════════════════════════════════════
 const LLAMA_MODEL = "meta/meta-llama-3-8b-instruct";
+const MAX_POLL_ATTEMPTS = 50;
 
 function buildLlamaPrompt(systemPrompt: string, userPrompt: string): string {
   return `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemPrompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n${userPrompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`;
@@ -40,7 +51,10 @@ async function callReplicate(apiKey: string, systemPrompt: string, userPrompt: s
   // Poll for result
   let result = prediction;
   let attempts = 0;
-  while (result.status !== "succeeded" && result.status !== "failed" && attempts < 120) {
+  while (result.status !== "succeeded" && result.status !== "failed" && attempts < MAX_POLL_ATTEMPTS) {
+    if (isDeadlineClose()) {
+      throw new Error("Request timeout: AI processing took too long. Please try again.");
+    }
     await new Promise((resolve) => setTimeout(resolve, 1000));
     const pollRes = await fetch(result.urls.get, {
       headers: { "Authorization": `Bearer ${apiKey}` },
@@ -125,6 +139,8 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  REQUEST_START = Date.now();
 
   // Early check: is the AI service configured?
   const replicateKey = Deno.env.get("REPLICATE_API_KEY");
@@ -545,7 +561,13 @@ Only use real courseIds from the data provided. If no courseId applies, omit it.
     });
   } catch (error) {
     console.error("ai-assistant error:", error);
-    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
+    const message = error instanceof Error && (
+      error.message.includes("timeout") ||
+      error.message.includes("unavailable") ||
+      error.message.includes("timed out") ||
+      error.message.includes("failed")
+    ) ? error.message : "An internal error occurred. Please try again.";
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

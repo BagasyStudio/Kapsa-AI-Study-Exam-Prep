@@ -2,12 +2,16 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../l10n/generated/app_localizations.dart';
+import '../../../../core/constants/app_limits.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/tap_scale.dart';
+import '../../../subscription/presentation/providers/subscription_provider.dart';
 
 // ---------------------------------------------------------------------------
 // Quick Actions Row — Premium Custom-Painted Icons
@@ -19,42 +23,42 @@ import '../../../../core/widgets/tap_scale.dart';
 ///
 /// [badges] is an optional map of action index -> count. When provided,
 /// a red notification badge is shown on the corresponding action circle.
-class QuickActionsRow extends StatefulWidget {
+class QuickActionsRow extends ConsumerStatefulWidget {
   final Map<int, int>? badges;
 
   const QuickActionsRow({super.key, this.badges});
 
   @override
-  State<QuickActionsRow> createState() => _QuickActionsRowState();
+  ConsumerState<QuickActionsRow> createState() => _QuickActionsRowState();
 }
 
-class _QuickActionsRowState extends State<QuickActionsRow>
+class _QuickActionsRowState extends ConsumerState<QuickActionsRow>
     with TickerProviderStateMixin {
   late List<AnimationController> _entranceControllers;
   late List<Animation<double>> _scaleAnims;
 
-  static final _actions = [
+  static List<_ActionData> _actions(AppLocalizations l) => [
     _ActionData(
       painterBuilder: (color) => _SnapSolveIconPainter(color: color),
-      label: 'Snap Solve',
+      label: l.quickActionSnapSolve,
       colors: const [Color(0xFFF59E0B), Color(0xFFFBBF24)],
       shadowColor: const Color(0xFFF59E0B),
     ),
     _ActionData(
       painterBuilder: (color) => _OracleIconPainter(color: color),
-      label: 'Oracle',
+      label: l.quickActionOracle,
       colors: const [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
       shadowColor: const Color(0xFF8B5CF6),
     ),
     _ActionData(
       painterBuilder: (color) => _GroupsIconPainter(color: color),
-      label: 'Groups',
+      label: l.quickActionGroups,
       colors: const [Color(0xFF3B82F6), Color(0xFF60A5FA)],
       shadowColor: const Color(0xFF3B82F6),
     ),
     _ActionData(
       painterBuilder: (color) => _ExamIconPainter(color: color),
-      label: 'Exam',
+      label: l.quickActionExam,
       colors: const [Color(0xFF10B981), Color(0xFF34D399)],
       shadowColor: const Color(0xFF10B981),
     ),
@@ -104,22 +108,50 @@ class _QuickActionsRowState extends State<QuickActionsRow>
     }
   }
 
+  /// Credit cost keys mapped by action index.
+  /// Index 2 (Groups) has no AI cost, so it is null.
+  static const _creditKeys = <int, String>{
+    0: 'snap_solve',
+    1: 'oracle',
+    // 2: Groups — no credit cost
+    3: 'quiz',
+  };
+
   @override
   Widget build(BuildContext context) {
+    final actions = _actions(AppLocalizations.of(context)!);
+
+    // Watch subscription state for credit warning dots
+    final isPro = ref.watch(isProProvider).valueOrNull ?? false;
+    final remainingCredits =
+        ref.watch(remainingCreditsProvider).valueOrNull ?? AppLimits.freeCreditsPerDay;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: List.generate(4, (i) {
           final badgeCount = widget.badges?[i];
+
+          // Determine whether to show the low-credits warning dot
+          bool showWarningDot = false;
+          if (!isPro) {
+            final key = _creditKeys[i];
+            if (key != null) {
+              final cost = AppLimits.creditCost[key] ?? 0;
+              showWarningDot = remainingCredits < cost;
+            }
+          }
+
           return ScaleTransition(
             scale: _scaleAnims[i],
             child: _DarkAction(
-              data: _actions[i],
+              data: actions[i],
               onTap: () => _onTap(i, context),
               badgeCount: badgeCount != null && badgeCount > 0
                   ? badgeCount
                   : null,
+              showWarningDot: showWarningDot,
             ),
           );
         }),
@@ -154,11 +186,13 @@ class _DarkAction extends StatelessWidget {
   final _ActionData data;
   final VoidCallback onTap;
   final int? badgeCount;
+  final bool showWarningDot;
 
   const _DarkAction({
     required this.data,
     required this.onTap,
     this.badgeCount,
+    this.showWarningDot = false,
   });
 
   @override
@@ -197,6 +231,22 @@ class _DarkAction extends StatelessWidget {
                   top: -4,
                   right: -4,
                   child: _NotificationBadge(count: badgeCount!),
+                ),
+              // Low-credits warning dot
+              if (showWarningDot)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: AppColors.immersiveBg, width: 1.5),
+                    ),
+                  ),
                 ),
             ],
           ),

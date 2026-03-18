@@ -4,17 +4,19 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import 'animated_orb_avatar.dart';
 
-/// Compact horizontal chat header: back arrow | orb + title | settings.
+/// Compact horizontal chat header: back arrow | orb + title | history | settings.
 class OracleHeader extends StatelessWidget {
   final String courseLabel;
   final VoidCallback? onBack;
   final VoidCallback? onSettings;
+  final VoidCallback? onHistory;
 
   const OracleHeader({
     super.key,
     this.courseLabel = 'Biology 101',
     this.onBack,
     this.onSettings,
+    this.onHistory,
   });
 
   @override
@@ -75,6 +77,24 @@ class OracleHeader extends StatelessWidget {
             ),
           ),
 
+          // History button
+          if (onHistory != null)
+            GestureDetector(
+              onTap: onHistory,
+              behavior: HitTestBehavior.opaque,
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: Center(
+                  child: Icon(
+                    Icons.history_rounded,
+                    color: Colors.white38,
+                    size: 22,
+                  ),
+                ),
+              ),
+            ),
+
           // Settings button
           GestureDetector(
             onTap: onSettings,
@@ -84,7 +104,7 @@ class OracleHeader extends StatelessWidget {
               height: 40,
               child: Center(
                 child: Icon(
-                  Icons.more_horiz,
+                  Icons.tune_rounded,
                   color: Colors.white38,
                   size: 22,
                 ),

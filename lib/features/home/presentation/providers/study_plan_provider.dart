@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -72,7 +73,9 @@ final studyPlanProvider = FutureProvider<List<StudyTask>>((ref) async {
         ));
       }
     }
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('StudyPlan: fetch due flashcards failed: $e');
+  }
 
   // ── 2. Courses without recent quizzes — single batched query ──
   try {
@@ -136,7 +139,9 @@ final studyPlanProvider = FutureProvider<List<StudyTask>>((ref) async {
         ));
       }
     }
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('StudyPlan: fetch quiz suggestions failed: $e');
+  }
 
   // ── 3. Today's calendar events (already a single query) ──
   try {
@@ -160,7 +165,9 @@ final studyPlanProvider = FutureProvider<List<StudyTask>>((ref) async {
             : null,
       ));
     }
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('StudyPlan: fetch calendar events failed: $e');
+  }
 
   // ── 4. Courses with low progress (< 30%) — suggest material review ──
   try {
@@ -177,7 +184,9 @@ final studyPlanProvider = FutureProvider<List<StudyTask>>((ref) async {
         ));
       }
     }
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('StudyPlan: check low progress courses failed: $e');
+  }
 
   // Sort by priority (lower number = higher priority)
   tasks.sort((a, b) => a.priority.compareTo(b.priority));

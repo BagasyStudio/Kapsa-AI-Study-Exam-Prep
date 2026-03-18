@@ -17,15 +17,17 @@ import '../../../chat/presentation/widgets/suggestion_chips_row.dart';
 import '../../../chat/presentation/widgets/chat_input_bar.dart';
 import '../../../chat/presentation/widgets/action_card_parser.dart';
 import '../../../chat/presentation/widgets/animated_orb_avatar.dart';
+import '../../../chat/presentation/widgets/chat_preferences_sheet.dart';
 import '../providers/assistant_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 
-const _globalSuggestions = [
-  SuggestionItem(icon: Icons.menu_book, label: 'What should I study today?'),
-  SuggestionItem(icon: Icons.bar_chart, label: 'How am I doing overall?'),
-  SuggestionItem(icon: Icons.psychology, label: 'Explain my weakest topic'),
-  SuggestionItem(icon: Icons.quiz, label: 'Quiz me on this'),
-  SuggestionItem(icon: Icons.summarize, label: 'Summarize the material'),
+List<SuggestionItem> _globalSuggestions(AppLocalizations l) => [
+  SuggestionItem(icon: Icons.menu_book, label: l.chatSuggestStudyToday),
+  SuggestionItem(icon: Icons.bar_chart, label: l.chatSuggestProgress),
+  SuggestionItem(icon: Icons.psychology, label: l.chatSuggestWeakest),
+  SuggestionItem(icon: Icons.quiz, label: l.chatSuggestQuiz),
+  SuggestionItem(icon: Icons.summarize, label: l.chatSuggestSummarize),
 ];
 
 /// Full-screen chat with The Oracle (global AI assistant).
@@ -127,13 +129,10 @@ class _GlobalChatScreenState extends ConsumerState<GlobalChatScreen> {
               children: [
                 // Oracle header
                 OracleHeader(
-                  courseLabel: 'The Oracle',
+                  courseLabel: AppLocalizations.of(context)!.chatTheOracle,
                   onBack: () => Navigator.of(context).pop(),
                   onSettings: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Chat settings coming soon')),
-                    );
+                    showChatPreferencesSheet(context);
                   },
                 ),
 
@@ -182,7 +181,7 @@ class _GlobalChatScreenState extends ConsumerState<GlobalChatScreen> {
                                           ),
                                         ),
                                         child: Text(
-                                          'Today',
+                                          AppLocalizations.of(context)!.chatToday,
                                           style:
                                               AppTypography.caption.copyWith(
                                             fontSize: 11,
@@ -198,7 +197,7 @@ class _GlobalChatScreenState extends ConsumerState<GlobalChatScreen> {
                                 // Typing indicator at the end
                                 if (chatState.isLoading &&
                                     index == messages.length + 1) {
-                                  return const _TypingIndicator();
+                                  return const _ThinkingIndicator();
                                 }
 
                                 // Message grouping logic
@@ -289,7 +288,7 @@ class _GlobalChatScreenState extends ConsumerState<GlobalChatScreen> {
                 // Suggestion chips: only show inline row when messages exist
                 if (messages.isNotEmpty)
                   SuggestionChipsRow(
-                    items: _globalSuggestions,
+                    items: _globalSuggestions(AppLocalizations.of(context)!),
                     onTap: (suggestion) {
                       _textController.text = suggestion;
                     },
@@ -302,6 +301,7 @@ class _GlobalChatScreenState extends ConsumerState<GlobalChatScreen> {
                   controller: _textController,
                   onSend: _sendMessage,
                   isLoading: chatState.isLoading,
+                  autoFocus: true,
                   onStop: () {
                     // For now, no-op -- future: cancel streaming
                   },
@@ -333,7 +333,7 @@ class _EmptyGlobalChatState extends StatelessWidget {
             const AnimatedOrbAvatar(size: 72),
             const SizedBox(height: 20),
             Text(
-              'The Oracle knows everything',
+              AppLocalizations.of(context)!.chatOracleKnows,
               style: AppTypography.h3.copyWith(
                 color: Colors.white60,
               ),
@@ -341,7 +341,7 @@ class _EmptyGlobalChatState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Ask about your courses, scores, weak areas, and upcoming exams.',
+              AppLocalizations.of(context)!.chatOracleKnowsSub,
               style: AppTypography.bodyMedium.copyWith(
                 color: Colors.white38,
               ),
@@ -349,7 +349,7 @@ class _EmptyGlobalChatState extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             SuggestionChipsRow(
-              items: _globalSuggestions,
+              items: _globalSuggestions(AppLocalizations.of(context)!),
               showAsGrid: true,
               onTap: (suggestion) {
                 textController.text = suggestion;
@@ -362,9 +362,36 @@ class _EmptyGlobalChatState extends StatelessWidget {
   }
 }
 
-/// Typing indicator bubble with immersive dark styling.
-class _TypingIndicator extends StatelessWidget {
-  const _TypingIndicator();
+/// Enhanced thinking indicator with pulsing glow animation.
+class _ThinkingIndicator extends StatefulWidget {
+  const _ThinkingIndicator();
+
+  @override
+  State<_ThinkingIndicator> createState() => _ThinkingIndicatorState();
+}
+
+class _ThinkingIndicatorState extends State<_ThinkingIndicator>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 0.08, end: 0.25).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -374,24 +401,38 @@ class _TypingIndicator extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
         child: Align(
           alignment: Alignment.centerLeft,
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.md,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.immersiveCard,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-                bottomLeft: Radius.circular(6),
-                bottomRight: Radius.circular(20),
-              ),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.15),
-              ),
-            ),
-            child: const TypingIndicator(),
+          child: AnimatedBuilder(
+            animation: _pulseAnimation,
+            builder: (context, child) {
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.immersiveCard,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                    bottomLeft: Radius.circular(6),
+                    bottomRight: Radius.circular(20),
+                  ),
+                  border: Border.all(
+                    color: AppColors.primary
+                        .withValues(alpha: _pulseAnimation.value),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary
+                          .withValues(alpha: _pulseAnimation.value * 0.3),
+                      blurRadius: 12,
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
+                child: const TypingIndicator(),
+              );
+            },
           ),
         ),
       ),

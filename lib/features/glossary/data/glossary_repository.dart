@@ -39,6 +39,50 @@ class GlossaryRepository {
         .toList();
   }
 
+  /// Create a new glossary term.
+  Future<GlossaryTermModel> createTerm({
+    required String courseId,
+    required String term,
+    required String definition,
+    List<String> relatedTerms = const [],
+  }) async {
+    final userId = _client.auth.currentUser!.id;
+    final data = await _client.from('glossary_terms').insert({
+      'course_id': courseId,
+      'user_id': userId,
+      'term': term,
+      'definition': definition,
+      'related_terms': relatedTerms,
+    }).select().single();
+    return GlossaryTermModel.fromJson(data);
+  }
+
+  /// Update an existing glossary term.
+  Future<GlossaryTermModel> updateTerm({
+    required String id,
+    required String term,
+    required String definition,
+    List<String>? relatedTerms,
+  }) async {
+    final updates = <String, dynamic>{
+      'term': term,
+      'definition': definition,
+    };
+    if (relatedTerms != null) {
+      updates['related_terms'] = relatedTerms;
+    }
+    final data = await _client
+        .from('glossary_terms')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .maybeSingle();
+    if (data == null) {
+      throw Exception('Term not found. It may have been deleted.');
+    }
+    return GlossaryTermModel.fromJson(data);
+  }
+
   /// Delete a glossary term.
   Future<void> deleteTerm(String id) async {
     await _client.from('glossary_terms').delete().eq('id', id);

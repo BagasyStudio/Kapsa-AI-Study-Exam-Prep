@@ -35,9 +35,9 @@ class XpRepository {
         .from('profiles')
         .select('xp_total')
         .eq('id', _userId)
-        .single();
+        .maybeSingle();
 
-    final newTotal = ((profile['xp_total'] as num?)?.toInt() ?? 0) + amount;
+    final newTotal = ((profile?['xp_total'] as num?)?.toInt() ?? 0) + amount;
     final newLevel = XpConfig.levelFromXp(newTotal);
 
     await _client.from('profiles').update({
@@ -54,8 +54,8 @@ class XpRepository {
         .from('profiles')
         .select('xp_total')
         .eq('id', _userId)
-        .single();
-    return (data['xp_total'] as num?)?.toInt() ?? 0;
+        .maybeSingle();
+    return (data?['xp_total'] as num?)?.toInt() ?? 0;
   }
 
   /// Get XP events for a date range (for heatmap).

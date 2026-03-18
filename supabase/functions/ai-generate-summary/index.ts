@@ -13,8 +13,8 @@ const CHUNK_SIZE = 5000;
 const MAX_CONCURRENT = 4;
 const MAX_TOKENS_PER_BATCH = 4096;
 const POLL_INTERVAL_MS = 500;
-const MAX_POLL_ATTEMPTS = 180;
-const GLOBAL_DEADLINE_MS = 130_000;
+const MAX_POLL_ATTEMPTS = 50;
+const GLOBAL_DEADLINE_MS = 50_000; // 50s (10s buffer before Supabase kills at 60s)
 
 // ── Global deadline tracking ─────────────────────────────────────
 let globalStart = 0;
@@ -78,7 +78,7 @@ async function callReplicate(apiKey: string, prompt: string, systemPrompt: strin
   // Fallback: poll only if Prefer: wait didn't complete in time (rare)
   let attempts = 0;
   while (result.status !== "succeeded" && result.status !== "failed" && attempts < MAX_POLL_ATTEMPTS) {
-    if (isDeadlineClose()) throw new Error("Global deadline approaching, aborting poll");
+    if (isDeadlineClose()) throw new Error("Request timeout: AI processing took too long. Please try again.");
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
     const pollRes = await fetch(result.urls.get, {
       headers: { "Authorization": `Bearer ${apiKey}` },
@@ -367,6 +367,7 @@ IMPORTANT: Output ONLY the JSON object. No markdown code blocks, no extra text.`
       error.message.includes("timed out") ||
       error.message.includes("failed. Please") ||
       error.message.includes("Failed to generate") ||
+      error.message.includes("timeout") ||
       error.message.includes("Global deadline") ||
       error.message.startsWith("HTTP ")
     ) ? error.message : sanitizeErrorMessage(error);

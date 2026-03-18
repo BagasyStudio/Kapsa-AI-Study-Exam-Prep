@@ -305,7 +305,9 @@ void _maybeShowLeaderboardShare(
         shareType: 'leaderboard_position',
         referenceId: groupId,
       );
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('GroupDetail: show leaderboard share failed: $e');
+    }
   });
 }
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -19,8 +21,10 @@ import '../../../../core/widgets/staggered_list.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../core/utils/error_handler.dart';
 import '../../../../core/constants/xp_config.dart';
+import '../../../../core/providers/generation_provider.dart';
 import '../providers/test_provider.dart';
 import '../../data/test_repository.dart';
+import '../../data/models/test_model.dart';
 import '../../data/models/test_question_model.dart';
 import '../../../flashcards/presentation/providers/flashcard_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
@@ -43,6 +47,8 @@ class TestResultsScreen extends ConsumerStatefulWidget {
 class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
   int? _expandedIndex; // null = all collapsed
   bool _confettiShown = false;
+  bool _mistakeAnalysisExpanded = false; // #78: Mistake Analysis card
+  bool _testHistoryExpanded = false; // #79: Test Analytics Dashboard
 
   void _maybeTriggerConfetti(double score) {
     if (!_confettiShown && score >= 60) {
@@ -99,7 +105,9 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
           .eq('id', test.courseId)
           .maybeSingle();
       courseName = course?['title'] as String? ?? 'My Course';
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('TestResults: fetch course name for share failed: $e');
+    }
 
     if (!mounted) return;
 
@@ -132,6 +140,150 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
       shareType: isPracticeExam ? 'practice_exam' : 'quiz',
       referenceId: test.id,
     );
+  }
+
+  Future<void> _retryQuiz(TestWithQuestions result) async {
+    final courseId = result.test.courseId;
+
+    // Fetch course name for the generation banner
+    String courseName = 'My Course';
+    try {
+      final course = await Supabase.instance.client
+          .from('courses')
+          .select('title')
+          .eq('id', courseId)
+          .maybeSingle();
+      courseName = course?['title'] as String? ?? 'My Course';
+    } catch (e) {
+      debugPrint('TestResults: fetch course name for retry failed: $e');
+    }
+
+    if (!mounted) return;
+
+    ref.read(generationProvider.notifier).generateQuiz(courseId, courseName);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Generating new quiz...')),
+    );
+
+    context.go(Routes.home);
+  }
+
+  /// Extract weak topics from wrong answers and generate a focused quiz.
+  Future<void> _smartRetryQuiz(TestWithQuestions result) async {
+    HapticFeedback.mediumImpact();
+    final courseId = result.test.courseId;
+
+    // Extract topics from wrong answers using question text as topic hints
+    final wrongQuestions = result.questions
+        .where((q) => !q.isCorrect)
+        .toList();
+
+    if (wrongQuestions.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No mistakes found — try a regular retry!')),
+      );
+      return;
+    }
+
+    // Use question text as focus topics (the edge function will use them as context)
+    final focusTopics = wrongQuestions
+        .map((q) => q.question)
+        .toList();
+
+    // Fetch course name for the generation banner
+    String courseName = 'My Course';
+    try {
+      final course = await Supabase.instance.client
+          .from('courses')
+          .select('title')
+          .eq('id', courseId)
+          .maybeSingle();
+      courseName = course?['title'] as String? ?? 'My Course';
+    } catch (e) {
+      debugPrint('TestResults: fetch course name for smart retry failed: $e');
+    }
+
+    if (!mounted) return;
+
+    ref.read(generationProvider.notifier).generateQuiz(
+      courseId,
+      courseName,
+      focusTopics: focusTopics,
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Generating smart quiz focused on ${wrongQuestions.length} weak topic${wrongQuestions.length == 1 ? '' : 's'}...',
+        ),
+      ),
+    );
+
+    context.go(Routes.home);
+  }
+
+  /// Create a flashcard deck from wrong answers in this quiz.
+  Future<void> _createFlashcardsFromMistakes(TestWithQuestions result) async {
+    HapticFeedback.mediumImpact();
+
+    final wrongQuestions = result.questions
+        .where((q) => !q.isCorrect)
+        .toList();
+
+    if (wrongQuestions.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No mistakes to create flashcards from!')),
+      );
+      return;
+    }
+
+    try {
+      final repo = ref.read(flashcardRepositoryProvider);
+
+      // Create the deck
+      final deck = await repo.createDeck(
+        courseId: result.test.courseId,
+        title: 'Quiz Mistakes — ${result.test.title ?? 'Review'}',
+      );
+
+      // Create flashcard entries matching the flashcards table schema
+      final cards = wrongQuestions.map((q) => {
+        'deck_id': deck.id,
+        'user_id': result.test.userId,
+        'topic': 'Quiz Mistake',
+        'question_before': q.question,
+        'keyword': q.correctAnswer,
+        'question_after': '',
+        'answer': q.correctAnswer,
+      }).toList();
+
+      await repo.insertCards(cards);
+
+      // Invalidate related providers so they refresh
+      ref.invalidate(flashcardDecksProvider(result.test.courseId));
+      ref.invalidate(parentDecksProvider(result.test.courseId));
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Created deck with ${wrongQuestions.length} flashcard${wrongQuestions.length == 1 ? '' : 's'} from mistakes',
+          ),
+        ),
+      );
+
+      // Navigate to the new deck detail
+      context.push(Routes.deckDetailPath(deck.id));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppErrorHandler.friendlyMessage(e))),
+      );
+    }
   }
 
   @override
@@ -196,6 +348,43 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
                     return Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Share Result button
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                          child: TapScale(
+                            onTap: () => _showShareSheet(result),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.sm,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                border: Border.all(
+                                  color: AppColors.primary.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.share_rounded,
+                                    color: AppColors.primary,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: AppSpacing.xs),
+                                  Text(
+                                    'Share Result',
+                                    style: AppTypography.labelLarge.copyWith(
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                         // Explain Mistakes button (only if there are mistakes)
                         if (result.test.mistakeCount > 0)
                           Padding(
@@ -225,6 +414,130 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
                                     const SizedBox(width: AppSpacing.xs),
                                     Text(
                                       'Explain My Mistakes',
+                                      style: AppTypography.labelLarge.copyWith(
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        // Retry Quiz button
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                          child: TapScale(
+                            onTap: () => _retryQuiz(result),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.sm,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                border: Border.all(
+                                  color: AppColors.primary.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.replay_rounded,
+                                    color: AppColors.primary,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: AppSpacing.xs),
+                                  Text(
+                                    'Retry Quiz',
+                                    style: AppTypography.labelLarge.copyWith(
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Smart Retry button (only if there are mistakes)
+                        if (result.test.mistakeCount > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                            child: TapScale(
+                              onTap: () => _smartRetryQuiz(result),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: AppSpacing.sm,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.ctaLime.withValues(alpha: 0.10),
+                                  borderRadius: BorderRadius.circular(AppRadius.md),
+                                  border: Border.all(
+                                    color: AppColors.ctaLime.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          '\u{1F3AF}',
+                                          style: const TextStyle(fontSize: 16),
+                                        ),
+                                        const SizedBox(width: AppSpacing.xs),
+                                        Text(
+                                          'Smart Retry',
+                                          style: AppTypography.labelLarge.copyWith(
+                                            color: AppColors.ctaLime,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Focus on ${result.test.mistakeCount} weak topic${result.test.mistakeCount == 1 ? '' : 's'}',
+                                      style: AppTypography.caption.copyWith(
+                                        color: AppColors.ctaLime.withValues(alpha: 0.7),
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        // Create Flashcards from Mistakes button (only if there are mistakes)
+                        if (result.test.mistakeCount > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                            child: TapScale(
+                              onTap: () => _createFlashcardsFromMistakes(result),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: AppSpacing.sm,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(AppRadius.md),
+                                  border: Border.all(
+                                    color: AppColors.primary.withValues(alpha: 0.2),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      '\u{1F0CF}',
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
+                                    const SizedBox(width: AppSpacing.xs),
+                                    Text(
+                                      'Create Flashcards from Mistakes',
                                       style: AppTypography.labelLarge.copyWith(
                                         color: AppColors.primary,
                                       ),
@@ -335,7 +648,7 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
               AppSpacing.xl,
               AppSpacing.sm,
               AppSpacing.xl,
-              MediaQuery.of(context).padding.bottom + 100,
+              MediaQuery.of(context).padding.bottom + 260,
             ),
             child: StaggeredColumn(
               children: [
@@ -359,6 +672,13 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+
+                // #78: Mistake Analysis card
+                if (mistakeCount > 0)
+                  _buildMistakeAnalysis(questions),
+
+                // #79: Test Analytics Dashboard
+                _buildTestHistory(test.courseId),
 
                 const SizedBox(height: AppSpacing.xxl),
 
@@ -408,6 +728,400 @@ class _TestResultsScreenState extends ConsumerState<TestResultsScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  // ── #78: Mistake Analysis ──────────────────────────────────────────
+
+  /// Simple string similarity: ratio of common characters to max length.
+  double _stringSimilarity(String a, String b) {
+    if (a.isEmpty && b.isEmpty) return 1.0;
+    if (a.isEmpty || b.isEmpty) return 0.0;
+    final la = a.toLowerCase();
+    final lb = b.toLowerCase();
+    if (la == lb) return 1.0;
+
+    // Count common characters (order-insensitive)
+    final charsA = la.split('');
+    final charsB = lb.split('').toList();
+    int common = 0;
+    for (final c in charsA) {
+      final idx = charsB.indexOf(c);
+      if (idx != -1) {
+        common++;
+        charsB.removeAt(idx);
+      }
+    }
+    final maxLen = la.length > lb.length ? la.length : lb.length;
+    return common / maxLen;
+  }
+
+  Widget _buildMistakeAnalysis(List<TestQuestionModel> questions) {
+    // Categorise incorrect questions
+    int knowledgeGaps = 0;
+    int closeCalls = 0;
+    int skipped = 0;
+
+    for (final q in questions) {
+      if (q.isCorrect) continue;
+
+      final userAnswer = (q.userAnswer ?? '').trim();
+      if (userAnswer.isEmpty || userAnswer == '(no answer)') {
+        skipped++;
+      } else {
+        final similarity = _stringSimilarity(userAnswer, q.correctAnswer);
+        if (similarity > 0.5) {
+          closeCalls++;
+        } else {
+          knowledgeGaps++;
+        }
+      }
+    }
+
+    // Don't show if there's nothing to categorise
+    if (knowledgeGaps == 0 && closeCalls == 0 && skipped == 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.lg),
+      child: GestureDetector(
+        onTap: () => setState(() =>
+            _mistakeAnalysisExpanded = !_mistakeAnalysisExpanded),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.1),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header row
+              Row(
+                children: [
+                  Icon(
+                    Icons.analytics_outlined,
+                    color: Colors.white60,
+                    size: 18,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Text(
+                      'Mistake Analysis',
+                      style: AppTypography.h4.copyWith(
+                        color: Colors.white,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    _mistakeAnalysisExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: Colors.white38,
+                    size: 20,
+                  ),
+                ],
+              ),
+
+              // Expanded content
+              if (_mistakeAnalysisExpanded) ...[
+                const SizedBox(height: AppSpacing.md),
+                if (knowledgeGaps > 0)
+                  _mistakeCategoryRow(
+                    icon: Icons.circle,
+                    color: AppColors.error,
+                    label: 'Knowledge Gaps',
+                    description: 'Completely wrong answers',
+                    count: knowledgeGaps,
+                  ),
+                if (closeCalls > 0)
+                  Padding(
+                    padding: EdgeInsets.only(
+                        top: knowledgeGaps > 0 ? AppSpacing.sm : 0),
+                    child: _mistakeCategoryRow(
+                      icon: Icons.circle,
+                      color: AppColors.warning,
+                      label: 'Close Calls',
+                      description: 'Partially right answers',
+                      count: closeCalls,
+                    ),
+                  ),
+                if (skipped > 0)
+                  Padding(
+                    padding: EdgeInsets.only(
+                        top: (knowledgeGaps > 0 || closeCalls > 0)
+                            ? AppSpacing.sm
+                            : 0),
+                    child: _mistakeCategoryRow(
+                      icon: Icons.circle,
+                      color: Colors.white38,
+                      label: 'Skipped',
+                      description: 'Questions not answered',
+                      count: skipped,
+                    ),
+                  ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _mistakeCategoryRow({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required String description,
+    required int count,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 10),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: AppTypography.bodySmall.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+              Text(
+                description,
+                style: AppTypography.caption.copyWith(
+                  color: Colors.white38,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(100),
+          ),
+          child: Text(
+            '$count',
+            style: AppTypography.caption.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── #79: Test Analytics Dashboard ────────────────────────────────
+
+  Widget _buildTestHistory(String courseId) {
+    final historyAsync = ref.watch(courseTestsProvider(courseId));
+
+    return historyAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (tests) {
+        // Only show completed tests with scores
+        final completed = tests
+            .where((t) => t.status == 'completed' && t.score != null)
+            .toList();
+
+        if (completed.length < 2) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.lg),
+          child: GestureDetector(
+            onTap: () => setState(
+                () => _testHistoryExpanded = !_testHistoryExpanded),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header row
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.timeline_rounded,
+                        color: AppColors.primary.withValues(alpha: 0.8),
+                        size: 18,
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                      Expanded(
+                        child: Text(
+                          'Your Test History',
+                          style: AppTypography.h4.copyWith(
+                            color: Colors.white,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        _testHistoryExpanded
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
+                        color: Colors.white38,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+
+                  // Expanded content
+                  if (_testHistoryExpanded) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    _buildTestHistoryContent(completed),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTestHistoryContent(List<TestModel> completed) {
+    final dateFormat = DateFormat('MMM d');
+
+    // Compute statistics
+    final allScores = completed
+        .map((t) => (t.score! * 100).round())
+        .toList();
+    final average = allScores.isNotEmpty
+        ? (allScores.reduce((a, b) => a + b) / allScores.length).round()
+        : 0;
+    final best = allScores.isNotEmpty
+        ? allScores.reduce((a, b) => a > b ? a : b)
+        : 0;
+
+    // Trend: compare average of last 3 vs overall average
+    final recentCount = completed.length >= 3 ? 3 : completed.length;
+    final recentScores = allScores.sublist(0, recentCount);
+    final recentAvg = recentScores.isNotEmpty
+        ? recentScores.reduce((a, b) => a + b) / recentScores.length
+        : 0.0;
+    final trendUp = recentAvg > average;
+
+    // Last 5 scores as text list
+    final last5 = completed.take(5).toList();
+    final scoreEntries = last5.map((t) {
+      final dateStr = t.createdAt != null
+          ? dateFormat.format(t.createdAt!)
+          : '?';
+      final pct = (t.score! * 100).round();
+      return '$dateStr: $pct%';
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Recent scores list
+        Text(
+          scoreEntries.join('  \u00B7  '),
+          style: AppTypography.bodySmall.copyWith(
+            color: Colors.white60,
+            fontSize: 12,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+
+        // Stats row
+        Row(
+          children: [
+            // Average
+            Expanded(
+              child: _testStatChip(
+                label: 'Average',
+                value: '$average%',
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            // Best
+            Expanded(
+              child: _testStatChip(
+                label: 'Best',
+                value: '$best%',
+                color: AppColors.success,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            // Trend
+            Expanded(
+              child: _testStatChip(
+                label: 'Trend',
+                value: trendUp ? '\u2191 Up' : '\u2193 Down',
+                color: trendUp ? AppColors.success : AppColors.warning,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _testStatChip({
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(
+          color: color.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: AppTypography.labelLarge.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: AppTypography.caption.copyWith(
+              color: Colors.white38,
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

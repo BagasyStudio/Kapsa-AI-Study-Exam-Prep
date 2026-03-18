@@ -9,6 +9,15 @@ const corsHeaders = {
 
 const LLAMA_MODEL = "meta/meta-llama-3-8b-instruct";
 
+// ── Deadline protection — Supabase kills at 60s ─────────────────
+const HARD_DEADLINE_MS = 50_000; // 50s (10s buffer)
+const MAX_POLL_ATTEMPTS = 50;
+let REQUEST_START = 0;
+
+function isDeadlineClose(): boolean {
+  return Date.now() - REQUEST_START > HARD_DEADLINE_MS;
+}
+
 function buildLlamaPrompt(systemPrompt: string, userPrompt: string): string {
   return `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemPrompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n${userPrompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`;
 }
@@ -46,8 +55,11 @@ async function callReplicate(
   while (
     result.status !== "succeeded" &&
     result.status !== "failed" &&
-    attempts < 120
+    attempts < MAX_POLL_ATTEMPTS
   ) {
+    if (isDeadlineClose()) {
+      throw new Error("Request timeout: AI processing took too long. Please try again.");
+    }
     await new Promise((resolve) => setTimeout(resolve, 1000));
     const pollRes = await fetch(result.urls.get, {
       headers: { Authorization: `Bearer ${apiKey}` },
@@ -76,6 +88,8 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  REQUEST_START = Date.now();
 
   // Early check: is the AI service configured?
   const replicateKey = Deno.env.get("REPLICATE_API_KEY");
@@ -220,6 +234,28 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Check deadline before starting TTS — if we're close, save text-only
+    if (isDeadlineClose()) {
+      console.log("Deadline close after LLM step, saving text-only summary");
+      const { data: record } = await adminClient
+        .from("audio_summaries")
+        .insert({
+          user_id: user.id,
+          material_id: materialId,
+          course_id: courseId,
+          title: `Summary: ${material.title}`,
+          audio_url: "",
+          summary_text: summaryText,
+          status: "text_only",
+        })
+        .select()
+        .single();
+
+      return new Response(JSON.stringify(record), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Step 2: Generate TTS audio via Replicate
     const ttsResponse = await fetch(
       "https://api.replicate.com/v1/predictions",
@@ -360,8 +396,14 @@ Deno.serve(async (req: Request) => {
     });
   } catch (error) {
     console.error("generate-audio-summary error:", error);
+    const message = error instanceof Error && (
+      error.message.includes("timeout") ||
+      error.message.includes("timed out") ||
+      error.message.includes("unavailable") ||
+      error.message.includes("failed")
+    ) ? error.message : "An internal error occurred. Please try again.";
     return new Response(
-      JSON.stringify({ error: "An internal error occurred" }),
+      JSON.stringify({ error: message }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

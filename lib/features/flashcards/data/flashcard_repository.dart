@@ -56,6 +56,24 @@ class FlashcardRepository {
     return DeckModel.fromJson(responseData);
   }
 
+  /// Update card content fields (question, answer, topic).
+  Future<void> updateCard({
+    required String cardId,
+    required String questionBefore,
+    required String keyword,
+    required String questionAfter,
+    required String answer,
+    required String topic,
+  }) async {
+    await _client.from('flashcards').update({
+      'question_before': questionBefore,
+      'keyword': keyword,
+      'question_after': questionAfter,
+      'answer': answer,
+      'topic': topic,
+    }).eq('id', cardId);
+  }
+
   /// Update mastery level for a card (legacy — still works for swipe sessions).
   Future<void> updateMastery(String cardId, String mastery) async {
     await _client
@@ -309,7 +327,7 @@ class FlashcardRepository {
     // Priority: due cards first, then new cards, then first child
     if (bestDueCount > 0) return bestDue;
     if (bestNewCount > 0) return bestNew;
-    return children.first;
+    return children.firstOrNull;
   }
 
   /// Get the course ID for a deck.
@@ -371,6 +389,89 @@ class FlashcardRepository {
   Future<void> insertCards(List<Map<String, dynamic>> cards) async {
     if (cards.isEmpty) return;
     await _client.from('flashcards').insert(cards);
+  }
+
+  /// Delete multiple flashcards by their IDs.
+  Future<void> deleteCardsByIds(List<String> cardIds) async {
+    if (cardIds.isEmpty) return;
+    await _client.from('flashcards').delete().inFilter('id', cardIds);
+  }
+
+  /// Delete a deck and all its flashcards (including child subdecks).
+  Future<void> deleteDeck(String deckId) async {
+    // Delete child subdecks' cards first
+    final children = await _client
+        .from('flashcard_decks')
+        .select('id')
+        .eq('parent_deck_id', deckId);
+    for (final child in (children as List)) {
+      await _client
+          .from('flashcards')
+          .delete()
+          .eq('deck_id', child['id'] as String);
+    }
+    // Delete child subdecks
+    await _client
+        .from('flashcard_decks')
+        .delete()
+        .eq('parent_deck_id', deckId);
+    // Delete this deck's cards
+    await _client.from('flashcards').delete().eq('deck_id', deckId);
+    // Delete the deck itself
+    await _client.from('flashcard_decks').delete().eq('id', deckId);
+  }
+
+  // ── Bookmark operations ──────────────────────────────────────────
+
+  /// Toggle bookmark state for a card.
+  Future<void> toggleBookmark(String cardId, bool isBookmarked) async {
+    await _client
+        .from('flashcards')
+        .update({'is_bookmarked': isBookmarked})
+        .eq('id', cardId);
+  }
+
+  /// Fetch bookmarked cards for a deck.
+  Future<List<FlashcardModel>> getBookmarkedCards(String deckId) async {
+    final data = await _client
+        .from('flashcards')
+        .select()
+        .eq('deck_id', deckId)
+        .eq('is_bookmarked', true)
+        .order('created_at', ascending: true)
+        .limit(100);
+    return (data as List).map((e) => FlashcardModel.fromJson(e)).toList();
+  }
+
+  /// Count bookmarked cards for a deck.
+  Future<int> getBookmarkedCardsCount(String deckId) async {
+    final data = await _client
+        .from('flashcards')
+        .select('id')
+        .eq('deck_id', deckId)
+        .eq('is_bookmarked', true);
+    return (data as List).length;
+  }
+
+  /// Count bookmarked cards across all children of a parent deck.
+  Future<int> getBookmarkedCardsCountForParentDeck(String parentDeckId) async {
+    final childDecks = await _client
+        .from('flashcard_decks')
+        .select('id')
+        .eq('parent_deck_id', parentDeckId);
+
+    if ((childDecks as List).isEmpty) {
+      // Legacy flat deck — check the deck itself
+      return getBookmarkedCardsCount(parentDeckId);
+    }
+
+    final childIds = childDecks.map((d) => d['id'] as String).toList();
+    final data = await _client
+        .from('flashcards')
+        .select('id')
+        .inFilter('deck_id', childIds)
+        .eq('is_bookmarked', true);
+    return (data as List).length;
   }
 
   /// Import a shared deck by code into a target course.

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/services/sound_service.dart';
 import '../../../profile/data/models/profile_model.dart';
@@ -16,6 +19,8 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../gamification/presentation/providers/xp_provider.dart';
 import '../../../gamification/presentation/widgets/xp_popup.dart';
 import '../../../../core/constants/xp_config.dart';
+import '../widgets/daily_digest_card.dart';
+import '../widgets/daily_quest_card.dart';
 import '../widgets/greeting_header.dart';
 import '../widgets/focus_flow_carousel.dart';
 import '../widgets/home_hero_card.dart';
@@ -30,6 +35,8 @@ import '../../../flashcards/presentation/providers/flashcard_provider.dart';
 import '../providers/flashcard_quick_access_provider.dart';
 import '../widgets/flashcard_quick_access_section.dart';
 import '../widgets/journey_hero_widget.dart';
+import '../widgets/seasonal_event_banner.dart';
+import '../widgets/seasonal_event_card.dart';
 import '../providers/journey_provider.dart';
 import '../../../gamification/data/models/achievement_model.dart';
 import '../../../gamification/presentation/providers/achievement_provider.dart';
@@ -96,9 +103,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
       ref.invalidate(xpTotalProvider);
       if (mounted) {
-        XpPopup.show(context, xp: XpConfig.streakDay, label: 'Daily Streak');
+        XpPopup.show(context, xp: XpConfig.streakDay, label: AppLocalizations.of(context)!.quizDailyStreak);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('HomeScreen: award streak XP failed: $e');
+    }
   }
 
   Future<void> _recalculateCourseProgress() async {
@@ -107,7 +116,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (user == null) return;
       await ref.read(courseRepositoryProvider).recalculateAllProgress(user.id);
       ref.invalidate(coursesProvider);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('HomeScreen: recalculate course progress failed: $e');
+    }
   }
 
   Future<void> _checkAchievements() async {
@@ -125,7 +136,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
 
       ref.invalidate(unlockedAchievementsProvider);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('HomeScreen: check achievements failed: $e');
+    }
   }
 
   Future<void> _checkStreakMilestone(int days) async {
@@ -134,7 +147,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (milestone == null || !mounted) return;
 
       final profile = ref.read(profileProvider).whenOrNull(data: (p) => p);
-      final userName = profile?.firstName ?? 'Student';
+      final userName = profile?.firstName ?? AppLocalizations.of(context)!.homeDefaultName;
       final totalXp = ref.read(xpTotalProvider).whenOrNull(data: (v) => v) ?? 0;
       final xpLevel = XpConfig.levelFromXp(totalXp);
 
@@ -151,7 +164,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         shareType: 'streak_milestone',
       );
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('HomeScreen: check streak milestone failed: $e');
+    }
   }
 
   Future<void> _checkExamDay() async {
@@ -198,7 +213,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               practiceScore =
                   ((tests[0]['score'] as num?) ?? 0) * 100;
             }
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('HomeScreen: fetch exam day stats failed: $e');
+          }
 
           if (!mounted) return;
           SharePreviewSheet.show(
@@ -207,7 +224,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               courseName: course.displayTitle,
               cardsReviewed: cardsReviewed,
               practiceScore: practiceScore,
-              userName: profile?.firstName ?? 'Student',
+              userName: profile?.firstName ?? AppLocalizations.of(context)!.homeDefaultName,
               xpLevel: xpLevel,
             ),
             shareType: 'exam_day',
@@ -216,7 +233,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           return;
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('HomeScreen: check exam day failed: $e');
+    }
   }
 
   @override
@@ -298,7 +317,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final userName = ref.watch(profileProvider.select(
           (async) => async.whenOrNull(data: (p) => p?.firstName),
         )) ??
-        'Student';
+        AppLocalizations.of(context)!.homeDefaultName;
     final streakDays = ref.watch(profileProvider.select(
           (async) => async.whenOrNull(data: (p) => p?.streakDays),
         )) ??
@@ -342,6 +361,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
 
+            // Daily Digest (shows once per day)
+            const DailyDigestCard(),
+            const SizedBox(height: AppSpacing.sm),
+
+            // Daily Quests
+            const DailyQuestCard(),
+            const SizedBox(height: AppSpacing.sm),
+
+            // Seasonal Event Banner (time-limited challenges)
+            const SeasonalEventBanner(),
+            const SizedBox(height: AppSpacing.sm),
+
+            // Seasonal Event Card (month-based themed challenges)
+            const SeasonalEventCard(),
+            const SizedBox(height: AppSpacing.sm),
+
             // 2. Journey Hero — primary study continuation surface
             const JourneyHeroWidget(),
             const SizedBox(height: AppSpacing.lg),
@@ -366,7 +401,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: Row(
                     children: [
                       Text(
-                        'Your Decks',
+                        AppLocalizations.of(context)!.homeYourDecks,
                         style: AppTypography.labelLarge.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
@@ -426,135 +461,188 @@ class _ConditionalUsageBanner extends ConsumerWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Loading State — Shimmer skeleton
+// Loading State — Section-specific shimmer skeleton
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class _HomeShimmer extends StatelessWidget {
+class _HomeShimmer extends StatefulWidget {
   const _HomeShimmer();
 
   @override
-  Widget build(BuildContext context) {
-    final shimmerBase = Colors.white.withValues(alpha: 0.06);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: AppSpacing.md),
-          // Greeting shimmer
-          _ShimmerBox(width: 180, height: 24, color: shimmerBase),
-          const SizedBox(height: 8),
-          _ShimmerBox(width: 120, height: 20, color: shimmerBase),
-          const SizedBox(height: AppSpacing.xl),
-          // Hero card shimmer
-          _ShimmerBox(
-            width: double.infinity,
-            height: 88,
-            color: shimmerBase,
-            borderRadius: 20,
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          // Quick actions shimmer
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(
-              4,
-              (_) => Column(
-                children: [
-                  _ShimmerBox(
-                    width: 58,
-                    height: 58,
-                    color: shimmerBase,
-                    borderRadius: 29,
-                  ),
-                  const SizedBox(height: 8),
-                  _ShimmerBox(width: 48, height: 10, color: shimmerBase),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          // Carousel shimmer
-          _ShimmerBox(width: 140, height: 16, color: shimmerBase),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: _ShimmerBox(
-                  width: double.infinity,
-                  height: 140,
-                  color: shimmerBase,
-                  borderRadius: 16,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: _ShimmerBox(
-                  width: double.infinity,
-                  height: 140,
-                  color: shimmerBase,
-                  borderRadius: 16,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  State<_HomeShimmer> createState() => _HomeShimmerState();
 }
 
-class _ShimmerBox extends StatefulWidget {
-  final double width;
-  final double height;
-  final Color color;
-  final double borderRadius;
-
-  const _ShimmerBox({
-    required this.width,
-    required this.height,
-    required this.color,
-    this.borderRadius = 8,
-  });
-
-  @override
-  State<_ShimmerBox> createState() => _ShimmerBoxState();
-}
-
-class _ShimmerBoxState extends State<_ShimmerBox>
+class _HomeShimmerState extends State<_HomeShimmer>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
+  late AnimationController _shimmerController;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _shimmerController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
-    _animation = Tween<double>(begin: 0.4, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    )..repeat();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _shimmerController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _animation,
-      child: Container(
-        width: widget.width,
-        height: widget.height,
-        decoration: BoxDecoration(
-          color: widget.color,
-          borderRadius: BorderRadius.circular(widget.borderRadius),
+    return AnimatedBuilder(
+      animation: _shimmerController,
+      builder: (context, child) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: AppSpacing.md),
+
+              // Greeting placeholder
+              _ShimmerRect(
+                width: 180,
+                height: 24,
+                borderRadius: 8,
+                shimmerValue: _shimmerController.value,
+              ),
+              const SizedBox(height: 8),
+              _ShimmerRect(
+                width: 120,
+                height: 20,
+                borderRadius: 8,
+                shimmerValue: _shimmerController.value,
+              ),
+              const SizedBox(height: AppSpacing.xl),
+
+              // Hero card area: rounded rectangle (200px tall)
+              _ShimmerRect(
+                width: double.infinity,
+                height: 200,
+                borderRadius: 20,
+                shimmerValue: _shimmerController.value,
+              ),
+              const SizedBox(height: AppSpacing.xl),
+
+              // Quick actions: row of 4 circles (48px)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: List.generate(
+                  4,
+                  (_) => Column(
+                    children: [
+                      _ShimmerRect(
+                        width: 48,
+                        height: 48,
+                        borderRadius: 24,
+                        shimmerValue: _shimmerController.value,
+                      ),
+                      const SizedBox(height: 8),
+                      _ShimmerRect(
+                        width: 40,
+                        height: 10,
+                        borderRadius: 5,
+                        shimmerValue: _shimmerController.value,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+
+              // Section header placeholder
+              _ShimmerRect(
+                width: 140,
+                height: 16,
+                borderRadius: 8,
+                shimmerValue: _shimmerController.value,
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              // Flashcard carousel area: row of 3 card-shaped rectangles (160x100)
+              SizedBox(
+                height: 100,
+                child: Row(
+                  children: [
+                    _ShimmerRect(
+                      width: 160,
+                      height: 100,
+                      borderRadius: 16,
+                      shimmerValue: _shimmerController.value,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    _ShimmerRect(
+                      width: 160,
+                      height: 100,
+                      borderRadius: 16,
+                      shimmerValue: _shimmerController.value,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: _ShimmerRect(
+                        width: double.infinity,
+                        height: 100,
+                        borderRadius: 16,
+                        shimmerValue: _shimmerController.value,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// A single shimmer placeholder that uses a [LinearGradient] sweep
+/// for its shimmer effect rather than a simple opacity fade.
+class _ShimmerRect extends StatelessWidget {
+  final double width;
+  final double height;
+  final double borderRadius;
+  final double shimmerValue;
+
+  const _ShimmerRect({
+    required this.width,
+    required this.height,
+    required this.borderRadius,
+    required this.shimmerValue,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // The gradient slides from left to right across the box.
+    // shimmerValue goes from 0..1 repeatedly via the controller.
+    final baseColor = Colors.white.withValues(alpha: 0.06);
+    final highlightColor = Colors.white.withValues(alpha: 0.12);
+
+    // Shift the gradient center from -1 to +2 so it sweeps across
+    final center = -1.0 + (shimmerValue * 3.0);
+
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(borderRadius),
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            baseColor,
+            highlightColor,
+            baseColor,
+          ],
+          stops: [
+            (center - 0.3).clamp(0.0, 1.0),
+            center.clamp(0.0, 1.0),
+            (center + 0.3).clamp(0.0, 1.0),
+          ],
         ),
       ),
     );
@@ -565,14 +653,90 @@ class _ShimmerBoxState extends State<_ShimmerBox>
 // Error State — Compact retry card
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class _HomeErrorRetry extends StatelessWidget {
+class _HomeErrorRetry extends StatefulWidget {
   final Object error;
   final VoidCallback onRetry;
 
   const _HomeErrorRetry({required this.error, required this.onRetry});
 
   @override
+  State<_HomeErrorRetry> createState() => _HomeErrorRetryState();
+}
+
+class _HomeErrorRetryState extends State<_HomeErrorRetry> {
+  static const _maxAutoRetries = 2;
+  static const _countdownStart = 3;
+
+  int _autoRetryCount = 0;
+  int _countdown = _countdownStart;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startCountdown();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startCountdown() {
+    if (_autoRetryCount >= _maxAutoRetries) return;
+
+    _countdown = _countdownStart;
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _countdown--;
+      });
+      if (_countdown <= 0) {
+        timer.cancel();
+        _autoRetryCount++;
+        widget.onRetry();
+      }
+    });
+  }
+
+  bool get _isNetworkError {
+    final msg = widget.error.toString().toLowerCase();
+    return msg.contains('socket') ||
+        msg.contains('timeout') ||
+        msg.contains('network') ||
+        msg.contains('connection') ||
+        msg.contains('host lookup');
+  }
+
+  bool get _isServerError {
+    final msg = widget.error.toString().toLowerCase();
+    return msg.contains('500') ||
+        msg.contains('502') ||
+        msg.contains('503') ||
+        msg.contains('504') ||
+        msg.contains('server') ||
+        msg.contains('internal error') ||
+        msg.contains('bad gateway') ||
+        msg.contains('service unavailable');
+  }
+
+  IconData get _errorIcon {
+    if (_isNetworkError) return Icons.wifi_off_rounded;
+    if (_isServerError) return Icons.cloud_off_rounded;
+    return Icons.error_outline_rounded;
+  }
+
+  bool get _isAutoRetryExhausted => _autoRetryCount >= _maxAutoRetries;
+
+  @override
   Widget build(BuildContext context) {
+    final icon = _errorIcon;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -594,47 +758,84 @@ class _HomeErrorRetry extends StatelessWidget {
                   color: AppColors.error.withValues(alpha: 0.12),
                 ),
                 child: Icon(
-                  Icons.wifi_off_rounded,
+                  icon,
                   color: AppColors.error,
                   size: 28,
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
-                'Something went wrong',
+                AppLocalizations.of(context)!.homeSomethingWrong,
                 style: AppTypography.h4.copyWith(
                   color: Colors.white,
                 ),
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Check your connection and try again',
+                AppLocalizations.of(context)!.homeCheckConnection,
                 style: AppTypography.bodySmall.copyWith(
                   color: Colors.white60,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.lg),
-              TapScale(
-                onTap: onRetry,
-                child: Container(
+              if (!_isAutoRetryExhausted)
+                // Auto-retry countdown
+                Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.xl,
                     vertical: AppSpacing.sm,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    color: Colors.white.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    'Retry',
-                    style: AppTypography.labelLarge.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          value: _countdown / _countdownStart,
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                          backgroundColor: Colors.white12,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(
+                        'Retrying in $_countdown...',
+                        style: AppTypography.labelLarge.copyWith(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                // Manual retry button after max auto-retries
+                TapScale(
+                  onTap: widget.onRetry,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xl,
+                      vertical: AppSpacing.sm,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      AppLocalizations.of(context)!.homeRetry,
+                      style: AppTypography.labelLarge.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         ),

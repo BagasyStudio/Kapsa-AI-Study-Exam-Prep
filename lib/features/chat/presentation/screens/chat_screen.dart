@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/providers/generation_provider.dart';
+import '../../../../core/widgets/tap_scale.dart';
 import '../widgets/oracle_header.dart';
 import '../widgets/ai_message_bubble.dart';
 import '../widgets/user_message_bubble.dart';
@@ -14,6 +18,7 @@ import '../widgets/chat_input_bar.dart';
 import '../widgets/action_card_parser.dart';
 import '../widgets/animated_orb_avatar.dart';
 import '../widgets/inline_quiz_widget.dart';
+import '../widgets/chat_preferences_sheet.dart';
 import '../../../../core/widgets/staggered_list.dart';
 import '../../../../core/widgets/typing_indicator.dart';
 import '../../../../core/widgets/message_bubble_entrance.dart';
@@ -21,13 +26,15 @@ import '../../../../core/widgets/floating_orbs.dart';
 import '../providers/chat_provider.dart';
 import '../providers/inline_quiz_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
+import '../../../courses/presentation/providers/course_provider.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 
-const _defaultSuggestions = [
-  SuggestionItem(icon: Icons.menu_book, label: 'What should I study today?'),
-  SuggestionItem(icon: Icons.bar_chart, label: 'How am I doing overall?'),
-  SuggestionItem(icon: Icons.psychology, label: 'Explain my weakest topic'),
-  SuggestionItem(icon: Icons.quiz, label: 'Quiz me on this'),
-  SuggestionItem(icon: Icons.summarize, label: 'Summarize the material'),
+List<SuggestionItem> _defaultSuggestions(AppLocalizations l) => [
+  SuggestionItem(icon: Icons.menu_book, label: l.chatSuggestStudyToday),
+  SuggestionItem(icon: Icons.bar_chart, label: l.chatSuggestProgress),
+  SuggestionItem(icon: Icons.psychology, label: l.chatSuggestWeakest),
+  SuggestionItem(icon: Icons.quiz, label: l.chatSuggestQuiz),
+  SuggestionItem(icon: Icons.summarize, label: l.chatSuggestSummarize),
 ];
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -102,6 +109,370 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  // ── Chat-to-Exercise Bridge Handlers (#84) ──────────────────────────────
+
+  /// Trigger background flashcard generation for this course.
+  void _bridgeAddToFlashcards() {
+    HapticFeedback.mediumImpact();
+    final course = ref.read(courseProvider(widget.courseId)).valueOrNull;
+    final courseName = course?.displayTitle ?? 'Course';
+    final started = ref
+        .read(generationProvider.notifier)
+        .generateFlashcards(widget.courseId, courseName);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          started
+              ? 'Generating flashcards...'
+              : 'Flashcard generation already in progress',
+        ),
+      ),
+    );
+  }
+
+  /// Navigate to exercises for this course.
+  void _bridgePracticeExercise(BuildContext context) {
+    HapticFeedback.mediumImpact();
+    context.push(Routes.exercisePath(widget.courseId, 'fillBlanks'));
+  }
+
+  /// Trigger background quiz generation for this course.
+  void _bridgeGenerateQuiz() {
+    HapticFeedback.mediumImpact();
+    final course = ref.read(courseProvider(widget.courseId)).valueOrNull;
+    final courseName = course?.displayTitle ?? 'Course';
+    final started = ref
+        .read(generationProvider.notifier)
+        .generateQuiz(widget.courseId, courseName);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          started
+              ? 'Generating quiz...'
+              : 'Quiz generation already in progress',
+        ),
+      ),
+    );
+  }
+
+  void _showChatHistorySheet() {
+    HapticFeedback.mediumImpact();
+    final chatState = ref.read(chatMessagesProvider(widget.courseId));
+    final messages = chatState.messages;
+    final pinnedIds = chatState.pinnedMessageIds;
+    final pinnedMessages = messages.where((m) => pinnedIds.contains(m.id)).toList();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.immersiveCard,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadius.borderRadiusSheet,
+      ),
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xl,
+            AppSpacing.md,
+            AppSpacing.xl,
+            AppSpacing.xl,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+
+              // Title row
+              Row(
+                children: [
+                  Icon(
+                    Icons.history_rounded,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    'Chat History',
+                    style: AppTypography.h3.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+
+              // Message count info
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.immersiveSurface,
+                  borderRadius: AppRadius.borderRadiusMd,
+                  border: Border.all(color: AppColors.immersiveBorder),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.primary.withValues(alpha: 0.12),
+                      ),
+                      child: Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        color: AppColors.primary,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${messages.length} messages',
+                            style: AppTypography.labelLarge.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            'in this conversation',
+                            style: AppTypography.caption.copyWith(
+                              color: Colors.white38,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (pinnedMessages.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.star_rounded,
+                              size: 14,
+                              color: Color(0xFFF59E0B),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${pinnedMessages.length}',
+                              style: AppTypography.labelSmall.copyWith(
+                                color: const Color(0xFFF59E0B),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.md),
+
+              // Pinned messages section
+              if (pinnedMessages.isNotEmpty) ...[
+                Text(
+                  'PINNED MESSAGES',
+                  style: AppTypography.sectionHeader.copyWith(
+                    color: Colors.white38,
+                    fontSize: 11,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                ...pinnedMessages.take(5).map((msg) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.06),
+                      borderRadius: AppRadius.borderRadiusMd,
+                      border: Border.all(
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          msg.isUser
+                              ? Icons.person_outline_rounded
+                              : Icons.auto_awesome_rounded,
+                          size: 16,
+                          color: const Color(0xFFF59E0B).withValues(alpha: 0.7),
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Expanded(
+                          child: Text(
+                            msg.content,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.caption.copyWith(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        if (msg.timestamp != null)
+                          Text(
+                            msg.timestamp!,
+                            style: AppTypography.caption.copyWith(
+                              color: Colors.white24,
+                              fontSize: 10,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                )),
+                const SizedBox(height: AppSpacing.md),
+              ],
+
+              // Clear chat button
+              TapScale(
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _showClearChatConfirmation();
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444).withValues(alpha: 0.08),
+                    borderRadius: AppRadius.borderRadiusMd,
+                    border: Border.all(
+                      color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.delete_outline_rounded,
+                        size: 18,
+                        color: const Color(0xFFEF4444).withValues(alpha: 0.8),
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(
+                        'Clear Chat',
+                        style: AppTypography.labelLarge.copyWith(
+                          color: const Color(0xFFEF4444).withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+
+              // Tip about pinning
+              Center(
+                child: Text(
+                  'Long-press any message to pin it',
+                  style: AppTypography.caption.copyWith(
+                    color: Colors.white24,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showClearChatConfirmation() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.immersiveCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Text(
+          'Clear Chat',
+          style: AppTypography.h3.copyWith(color: Colors.white),
+        ),
+        content: Text(
+          'This will permanently delete all messages in this conversation. Are you sure?',
+          style: AppTypography.bodyMedium.copyWith(color: Colors.white60),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              'Cancel',
+              style: AppTypography.labelLarge.copyWith(color: Colors.white60),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              ref
+                  .read(chatMessagesProvider(widget.courseId).notifier)
+                  .clearMessages();
+              HapticFeedback.mediumImpact();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Chat cleared')),
+                );
+              }
+            },
+            child: Text(
+              'Clear',
+              style: AppTypography.labelLarge.copyWith(
+                color: const Color(0xFFEF4444),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleMessageLongPress(String messageId) {
+    HapticFeedback.mediumImpact();
+    final chatState = ref.read(chatMessagesProvider(widget.courseId));
+    final isPinned = chatState.pinnedMessageIds.contains(messageId);
+    ref.read(chatMessagesProvider(widget.courseId).notifier).togglePin(messageId);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(isPinned ? 'Message unpinned' : 'Message pinned'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final chatState = ref.watch(chatMessagesProvider(widget.courseId));
@@ -130,13 +501,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               children: [
                 // Oracle header
                 OracleHeader(
-                  courseLabel: 'AI Oracle',
+                  courseLabel: AppLocalizations.of(context)!.chatAiOracle,
                   onBack: () => Navigator.of(context).pop(),
+                  onHistory: () => _showChatHistorySheet(),
                   onSettings: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Chat settings coming soon')),
-                    );
+                    showChatPreferencesSheet(context);
                   },
                 ),
 
@@ -184,7 +553,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                           ),
                                         ),
                                         child: Text(
-                                          'Today',
+                                          AppLocalizations.of(context)!.chatToday,
                                           style:
                                               AppTypography.caption.copyWith(
                                             fontSize: 11,
@@ -211,7 +580,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     (quizActive ? 1 : 0);
                                 if (chatState.isLoading &&
                                     index == typingIndex) {
-                                  return const _TypingIndicator();
+                                  return const _ThinkingIndicator();
                                 }
 
                                 // Message grouping logic
@@ -242,19 +611,32 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   bottomSpacing = AppSpacing.xs;
                                 }
 
+                                final isPinned = chatState
+                                    .pinnedMessageIds
+                                    .contains(msg.id);
+
                                 return MessageBubbleEntrance(
                                   fromLeft: !msg.isUser,
-                                  child: Padding(
-                                    padding: EdgeInsets.only(
-                                      bottom: bottomSpacing,
-                                    ),
-                                    child: msg.isUser
-                                        ? UserMessageBubble(
-                                            text: msg.content,
-                                            timestamp: msg.timestamp,
-                                            isLastInGroup: isLastInGroup,
-                                          )
-                                        : AiMessageBubble(
+                                  child: GestureDetector(
+                                    onLongPress: () =>
+                                        _handleMessageLongPress(
+                                            msg.id),
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                        bottom: bottomSpacing,
+                                      ),
+                                      child: Stack(
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          msg.isUser
+                                              ? UserMessageBubble(
+                                                  text: msg.content,
+                                                  timestamp:
+                                                      msg.timestamp,
+                                                  isLastInGroup:
+                                                      isLastInGroup,
+                                                )
+                                              : AiMessageBubble(
                                             text: msg.content,
                                             timestamp: msg.timestamp,
                                             showAvatar: isFirstInGroup,
@@ -266,6 +648,36 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                   _handleActionTap(
                                                       context, actionType),
                                             ),
+                                            // ── Chat-to-Exercise Bridge (#84) ──
+                                            // Show action chips only on the very last AI message
+                                            showActionBridge: !msg.isUser &&
+                                                realIndex ==
+                                                    messages.length - 1 &&
+                                                !chatState.isLoading,
+                                            onAddToFlashcards: () =>
+                                                _bridgeAddToFlashcards(),
+                                            onPracticeExercise: () =>
+                                                _bridgePracticeExercise(
+                                                    context),
+                                            onGenerateQuiz: () =>
+                                                _bridgeGenerateQuiz(),
+                                            // Show follow-up suggestions on the very last AI message
+                                            followUpSuggestions:
+                                                (!msg.isUser &&
+                                                        realIndex ==
+                                                            messages.length -
+                                                                1 &&
+                                                        !chatState.isLoading)
+                                                    ? [
+                                                        AppLocalizations.of(context)!.chatFollowUpExample,
+                                                        AppLocalizations.of(context)!.chatFollowUpSimpler,
+                                                        AppLocalizations.of(context)!.chatFollowUpRelated,
+                                                      ]
+                                                    : null,
+                                            onFollowUpTap: (suggestion) {
+                                              _textController.text = suggestion;
+                                              _sendMessage();
+                                            },
                                             trailing:
                                                 msg.citations.isNotEmpty
                                                     ? Wrap(
@@ -280,6 +692,46 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                       )
                                                     : null,
                                           ),
+                                          // Pin indicator
+                                          if (isPinned)
+                                            Positioned(
+                                              top: -4,
+                                              right: msg.isUser
+                                                  ? null
+                                                  : -4,
+                                              left: msg.isUser
+                                                  ? -4
+                                                  : null,
+                                              child: Container(
+                                                width: 20,
+                                                height: 20,
+                                                decoration:
+                                                    BoxDecoration(
+                                                  shape:
+                                                      BoxShape.circle,
+                                                  color: const Color(
+                                                      0xFFF59E0B),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: const Color(
+                                                              0xFFF59E0B)
+                                                          .withValues(
+                                                              alpha:
+                                                                  0.4),
+                                                      blurRadius: 6,
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: const Icon(
+                                                  Icons.star_rounded,
+                                                  size: 12,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 );
                               },
@@ -302,7 +754,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 // Suggestion chips: only show inline row when messages exist
                 if (messages.isNotEmpty)
                   SuggestionChipsRow(
-                    items: _defaultSuggestions,
+                    items: _defaultSuggestions(AppLocalizations.of(context)!),
                     onTap: (suggestion) {
                       _textController.text = suggestion;
                     },
@@ -315,6 +767,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   controller: _textController,
                   onSend: quizActive ? null : _sendMessage,
                   isLoading: chatState.isLoading || quizActive,
+                  autoFocus: true,
                   onStop: quizActive
                       ? () => ref
                           .read(inlineQuizProvider(widget.courseId).notifier)
@@ -350,7 +803,7 @@ class _EmptyChatState extends StatelessWidget {
             const AnimatedOrbAvatar(size: 72),
             const SizedBox(height: 20),
             Text(
-              'Your AI study companion',
+              AppLocalizations.of(context)!.chatStudyCompanion,
               style: AppTypography.h3.copyWith(
                 color: Colors.white60,
               ),
@@ -358,7 +811,7 @@ class _EmptyChatState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Ask questions, get explanations, and ace your exams.',
+              AppLocalizations.of(context)!.chatStudyCompanionSub,
               style: AppTypography.bodyMedium.copyWith(
                 color: Colors.white38,
               ),
@@ -366,7 +819,7 @@ class _EmptyChatState extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             SuggestionChipsRow(
-              items: _defaultSuggestions,
+              items: _defaultSuggestions(AppLocalizations.of(context)!),
               showAsGrid: true,
               onTap: (suggestion) {
                 textController.text = suggestion;
@@ -379,9 +832,36 @@ class _EmptyChatState extends StatelessWidget {
   }
 }
 
-/// Typing indicator bubble with forced dark styling.
-class _TypingIndicator extends StatelessWidget {
-  const _TypingIndicator();
+/// Enhanced thinking indicator with pulsing glow animation.
+class _ThinkingIndicator extends StatefulWidget {
+  const _ThinkingIndicator();
+
+  @override
+  State<_ThinkingIndicator> createState() => _ThinkingIndicatorState();
+}
+
+class _ThinkingIndicatorState extends State<_ThinkingIndicator>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 0.08, end: 0.25).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -391,24 +871,38 @@ class _TypingIndicator extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
         child: Align(
           alignment: Alignment.centerLeft,
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.md,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.immersiveCard,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-                bottomLeft: Radius.circular(6),
-                bottomRight: Radius.circular(20),
-              ),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.15),
-              ),
-            ),
-            child: const TypingIndicator(),
+          child: AnimatedBuilder(
+            animation: _pulseAnimation,
+            builder: (context, child) {
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.immersiveCard,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                    bottomLeft: Radius.circular(6),
+                    bottomRight: Radius.circular(20),
+                  ),
+                  border: Border.all(
+                    color: AppColors.primary
+                        .withValues(alpha: _pulseAnimation.value),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary
+                          .withValues(alpha: _pulseAnimation.value * 0.3),
+                      blurRadius: 12,
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
+                child: const TypingIndicator(),
+              );
+            },
           ),
         ),
       ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../services/sound_service.dart';
 import '../theme/app_colors.dart';
 
 class KapsaRefreshIndicator extends StatelessWidget {
@@ -11,10 +13,17 @@ class KapsaRefreshIndicator extends StatelessWidget {
     required this.onRefresh,
   });
 
+  Future<void> _onRefreshWithHaptic() async {
+    HapticFeedback.lightImpact();
+    await onRefresh();
+    HapticFeedback.mediumImpact();
+    SoundService.playProcessingComplete();
+  }
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: onRefresh,
+      onRefresh: _onRefreshWithHaptic,
       color: AppColors.primary,
       backgroundColor: const Color(0xFF1E1F3B),
       strokeWidth: 2.5,

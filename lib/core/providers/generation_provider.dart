@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,6 +13,37 @@ import '../../features/glossary/presentation/providers/glossary_provider.dart';
 import '../../features/summaries/presentation/providers/summary_provider.dart';
 import '../../features/subscription/presentation/providers/subscription_provider.dart';
 import '../../features/test_results/presentation/providers/test_provider.dart';
+
+/// Retry helper with exponential backoff for AI generation calls.
+Future<T> _retryWithBackoff<T>(
+  Future<T> Function() action, {
+  int maxAttempts = 3,
+  Duration initialDelay = const Duration(seconds: 2),
+}) async {
+  for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await action();
+    } catch (e) {
+      if (attempt == maxAttempts) rethrow;
+      // Only retry on timeout/network errors, not on validation errors
+      final msg = e.toString().toLowerCase();
+      final isRetryable = msg.contains('timeout') ||
+          msg.contains('unavailable') ||
+          msg.contains('socket') ||
+          msg.contains('connection') ||
+          msg.contains('network') ||
+          msg.contains('500') ||
+          msg.contains('502') ||
+          msg.contains('503') ||
+          msg.contains('429');
+      if (!isRetryable) rethrow;
+      final delay = initialDelay * (1 << (attempt - 1)); // 2s, 4s
+      debugPrint('Generation retry $attempt/$maxAttempts after ${delay.inSeconds}s: $e');
+      await Future.delayed(delay);
+    }
+  }
+  throw StateError('Unreachable');
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Background Generation Provider
@@ -54,9 +86,9 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
       }
 
       try {
-        final deck = await _ref
+        final deck = await _retryWithBackoff(() => _ref
             .read(flashcardRepositoryProvider)
-            .generateFlashcards(courseId: courseId, materialId: materialId, count: effectiveCount);
+            .generateFlashcards(courseId: courseId, materialId: materialId, count: effectiveCount));
         _recordUsage('flashcards');
         _ref.invalidate(flashcardDecksProvider(courseId));
         _ref.invalidate(parentDecksProvider(courseId));
@@ -70,14 +102,14 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
   }
 
   /// Start generating a quiz in background. Returns false if already running.
-  bool generateQuiz(String courseId, String courseName) {
+  bool generateQuiz(String courseId, String courseName, {List<String>? focusTopics}) {
     if (isRunning(GenerationType.quiz, courseId)) return false;
 
     final task = _createTask(GenerationType.quiz, courseId, courseName);
 
-    _ref
+    _retryWithBackoff(() => _ref
         .read(testRepositoryProvider)
-        .generateQuiz(courseId: courseId)
+        .generateQuiz(courseId: courseId, focusTopics: focusTopics))
         .then((result) {
       _recordUsage('quiz');
       _completeTask(task.id, Routes.quizSessionPath(result.test.id));
@@ -94,9 +126,9 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
 
     final task = _createTask(GenerationType.summary, courseId, courseName);
 
-    _ref
+    _retryWithBackoff(() => _ref
         .read(summaryRepositoryProvider)
-        .generateSummary(courseId: courseId)
+        .generateSummary(courseId: courseId))
         .then((summary) {
       _recordUsage('summary');
       _ref.invalidate(courseSummariesProvider(courseId));
@@ -114,9 +146,9 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
 
     final task = _createTask(GenerationType.glossary, courseId, courseName);
 
-    _ref
+    _retryWithBackoff(() => _ref
         .read(glossaryRepositoryProvider)
-        .generateGlossary(courseId: courseId)
+        .generateGlossary(courseId: courseId))
         .then((terms) {
       _recordUsage('glossary');
       _ref.invalidate(glossaryTermsProvider(courseId));
@@ -164,6 +196,8 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
 
   void _completeTask(String taskId, String resultRoute) {
     if (!mounted) return;
+    // Guard: task may have been cancelled/dismissed while running
+    if (!state.any((t) => t.id == taskId)) return;
     state = state.map((t) {
       if (t.id != taskId) return t;
       return t.copyWith(
@@ -180,6 +214,8 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
 
   void _failTask(String taskId, Object error) {
     if (!mounted) return;
+    // Guard: task may have been cancelled/dismissed while running
+    if (!state.any((t) => t.id == taskId)) return;
     final friendly = AppErrorHandler.friendlyMessage(error);
     state = state.map((t) {
       if (t.id != taskId) return t;

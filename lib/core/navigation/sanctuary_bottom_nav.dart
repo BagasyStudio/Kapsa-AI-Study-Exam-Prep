@@ -15,12 +15,16 @@ class KapsaBottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
   final VoidCallback onCaptureTap;
+  final VoidCallback? onCaptureLongPress;
+  final bool showPulseGlow;
 
   const KapsaBottomNav({
     super.key,
     required this.currentIndex,
     required this.onTap,
     required this.onCaptureTap,
+    this.onCaptureLongPress,
+    this.showPulseGlow = true,
   });
 
   @override
@@ -64,39 +68,70 @@ class KapsaBottomNav extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // Home icon
-                  _NavIcon(
-                    icon: Icons.home,
-                    isSelected: currentIndex == 0,
-                    onTap: () => onTap(0),
+                  Semantics(
+                    label: 'Home tab',
+                    button: true,
+                    selected: currentIndex == 0,
+                    child: _NavIcon(
+                      icon: Icons.home,
+                      isSelected: currentIndex == 0,
+                      onTap: () => onTap(0),
+                    ),
                   ),
 
                   // Courses icon
-                  _NavIcon(
-                    icon: Icons.menu_book,
-                    isSelected: currentIndex == 1,
-                    onTap: () => onTap(1),
+                  Semantics(
+                    label: 'Courses tab',
+                    button: true,
+                    selected: currentIndex == 1,
+                    child: _NavIcon(
+                      icon: Icons.menu_book,
+                      isSelected: currentIndex == 1,
+                      onTap: () => onTap(1),
+                    ),
                   ),
 
                   // Center: Capture pill with pulse glow
-                  PulseGlow(
-                    glowColor: AppColors.primary,
-                    maxBlurRadius: 20,
-                    duration: const Duration(milliseconds: 2500),
-                    child: _CapturePill(onTap: onCaptureTap),
+                  Tooltip(
+                    message: 'Upload study materials',
+                    child: Semantics(
+                      label: 'Upload study materials',
+                      button: true,
+                      child: GestureDetector(
+                        onLongPress: onCaptureLongPress,
+                        child: PulseGlow(
+                          glowColor: AppColors.primary,
+                          maxBlurRadius: 20,
+                          duration: const Duration(milliseconds: 1500),
+                          enabled: showPulseGlow,
+                          child: _CapturePill(onTap: onCaptureTap),
+                        ),
+                      ),
+                    ),
                   ),
 
                   // Calendar icon
-                  _NavIcon(
-                    icon: Icons.calendar_today,
-                    isSelected: currentIndex == 2,
-                    onTap: () => onTap(2),
+                  Semantics(
+                    label: 'Calendar tab',
+                    button: true,
+                    selected: currentIndex == 2,
+                    child: _NavIcon(
+                      icon: Icons.calendar_today,
+                      isSelected: currentIndex == 2,
+                      onTap: () => onTap(2),
+                    ),
                   ),
 
                   // Profile icon
-                  _NavIcon(
-                    icon: Icons.person,
-                    isSelected: currentIndex == 3,
-                    onTap: () => onTap(3),
+                  Semantics(
+                    label: 'Profile tab',
+                    button: true,
+                    selected: currentIndex == 3,
+                    child: _NavIcon(
+                      icon: Icons.person,
+                      isSelected: currentIndex == 3,
+                      onTap: () => onTap(3),
+                    ),
                   ),
                 ],
               ),
@@ -127,24 +162,53 @@ class _NavIcon extends StatelessWidget {
       scaleDown: 0.88,
       child: SizedBox(
         width: 48,
-        height: 48,
-        child: Center(
-          child: AnimatedScale(
-            scale: isSelected ? 1.08 : 1.0,
-            duration: AppAnimations.durationMedium,
-            curve: AppAnimations.curveBounce,
-            child: AnimatedOpacity(
-              opacity: isSelected ? 1.0 : 0.55,
-              duration: AppAnimations.durationMedium,
-              child: Icon(
-                icon,
-                size: 26,
-                color: isSelected
-                    ? AppColors.primary
-                    : Colors.white38,
+        height: 56,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedScale(
+              scale: isSelected ? 1.1 : 1.0,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutBack,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.ease,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                          ),
+                        ]
+                      : [],
+                ),
+                child: AnimatedOpacity(
+                  opacity: isSelected ? 1.0 : 0.55,
+                  duration: AppAnimations.durationMedium,
+                  child: Icon(
+                    icon,
+                    size: 26,
+                    color: isSelected
+                        ? AppColors.primary
+                        : Colors.white38,
+                  ),
+                ),
               ),
             ),
-          ),
+            const SizedBox(height: 4),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.ease,
+              width: isSelected ? 4 : 0,
+              height: isSelected ? 4 : 0,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
         ),
       ),
     );

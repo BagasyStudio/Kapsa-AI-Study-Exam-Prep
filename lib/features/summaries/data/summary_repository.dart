@@ -51,6 +51,28 @@ class SummaryRepository {
     return SummaryModel.fromJson(data);
   }
 
+  /// Rename a summary.
+  Future<void> renameSummary(String id, String newTitle) async {
+    await _client
+        .from('summaries')
+        .update({'title': newTitle})
+        .eq('id', id);
+  }
+
+  /// Update bullet points and content of a summary.
+  Future<void> updateSummaryContent(
+    String id, {
+    required List<String> bulletPoints,
+    required String content,
+  }) async {
+    final wordCount = content.trim().split(RegExp(r'\s+')).length;
+    await _client.from('summaries').update({
+      'bullet_points': bulletPoints,
+      'content': content,
+      'word_count': wordCount,
+    }).eq('id', id);
+  }
+
   /// Delete a summary.
   Future<void> deleteSummary(String id) async {
     await _client.from('summaries').delete().eq('id', id);

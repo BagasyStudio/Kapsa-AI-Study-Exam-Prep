@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Checks and tracks milestone achievements to trigger share prompts.
@@ -40,7 +41,9 @@ class MilestoneService {
         'milestone_type': type,
         'milestone_value': value,
       });
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('MilestoneService: mark milestone shown failed: $e');
+    }
   }
 
   /// Generic milestone check: returns the value if not yet shown, null otherwise.

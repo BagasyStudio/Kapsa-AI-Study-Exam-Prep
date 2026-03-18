@@ -11,6 +11,7 @@ import '../../../../core/widgets/gradient_text.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/tap_scale.dart';
 import '../../../../core/widgets/staggered_list.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_text_field.dart';
 
@@ -46,8 +47,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     if (!_acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please accept the Terms of Service and Privacy Policy'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.authAcceptTerms),
         ),
       );
       return;
@@ -64,9 +65,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       // Auth state change will trigger router redirect to /home
     } catch (e) {
       if (!mounted) return;
+      final l = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_parseError(e.toString())),
+          content: Text(_parseError(e.toString(), l)),
           backgroundColor: AppColors.error,
         ),
       );
@@ -75,21 +77,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
-  String _parseError(String error) {
+  String _parseError(String error, AppLocalizations l) {
     if (error.contains('already registered')) {
-      return 'This email is already registered';
+      return l.authAlreadyRegistered;
     }
     if (error.contains('weak password') || error.contains('at least')) {
-      return 'Password must be at least 6 characters';
+      return l.authWeakPassword;
     }
     if (error.contains('network')) {
-      return 'No internet connection';
+      return l.authNoInternet;
     }
-    return 'Something went wrong. Please try again.';
+    return l.authSomethingWrong;
   }
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: AuroraBackground(
@@ -130,7 +133,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                     // Title
                     GradientText(
-                      'Create Account',
+                      l.authCreateAccount,
                       style: AppTypography.h1.copyWith(fontSize: 28),
                       gradient: AppGradients.textLight,
                     ),
@@ -138,7 +141,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     const SizedBox(height: AppSpacing.xs),
 
                     Text(
-                      'Begin your journey to academic excellence',
+                      l.authBeginJourney,
                       style: AppTypography.bodyMedium.copyWith(
                         color: Colors.white60,
                       ),
@@ -150,15 +153,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     // Full Name field
                     AuthTextField(
                       controller: _nameController,
-                      hintText: 'Full Name',
+                      hintText: l.authFullName,
                       prefixIcon: Icons.person_outline,
                       textInputAction: TextInputAction.next,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Name is required';
+                          return l.authNameRequired;
                         }
                         if (value.trim().length < 2) {
-                          return 'Name must be at least 2 characters';
+                          return l.authNameMinLength;
                         }
                         return null;
                       },
@@ -169,16 +172,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     // Email field
                     AuthTextField(
                       controller: _emailController,
-                      hintText: 'Email',
+                      hintText: l.authEmail,
                       prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Email is required';
+                          return l.authEmailRequired;
                         }
                         if (!value.contains('@') || !value.contains('.')) {
-                          return 'Enter a valid email';
+                          return l.authValidEmail;
                         }
                         return null;
                       },
@@ -189,7 +192,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     // Password field
                     AuthTextField(
                       controller: _passwordController,
-                      hintText: 'Password',
+                      hintText: l.authPassword,
                       prefixIcon: Icons.lock_outline,
                       obscureText: _obscurePassword,
                       textInputAction: TextInputAction.next,
@@ -206,10 +209,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Password is required';
+                          return l.authPasswordRequired;
                         }
                         if (value.length < 6) {
-                          return 'Password must be at least 6 characters';
+                          return l.authPasswordMinLength;
                         }
                         return null;
                       },
@@ -220,7 +223,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     // Confirm Password field
                     AuthTextField(
                       controller: _confirmPasswordController,
-                      hintText: 'Confirm Password',
+                      hintText: l.authConfirmPassword,
                       prefixIcon: Icons.lock_outline,
                       obscureText: _obscureConfirm,
                       textInputAction: TextInputAction.done,
@@ -238,10 +241,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please confirm your password';
+                          return l.authConfirmRequired;
                         }
                         if (value != _passwordController.text) {
-                          return 'Passwords do not match';
+                          return l.authPasswordMismatch;
                         }
                         return null;
                       },
@@ -271,7 +274,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           child: Wrap(
                             children: [
                               Text(
-                                'I agree to the ',
+                                l.authAgreeToTerms,
                                 style: AppTypography.caption.copyWith(
                                   color: Colors.white60,
                                 ),
@@ -279,7 +282,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               TapScale(
                                 onTap: () => context.push(Routes.terms),
                                 child: Text(
-                                  'Terms of Service',
+                                  l.authTermsOfService,
                                   style: AppTypography.caption.copyWith(
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.w600,
@@ -287,7 +290,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 ),
                               ),
                               Text(
-                                ' and ',
+                                l.authAnd,
                                 style: AppTypography.caption.copyWith(
                                   color: Colors.white60,
                                 ),
@@ -295,7 +298,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               TapScale(
                                 onTap: () => context.push(Routes.privacy),
                                 child: Text(
-                                  'Privacy Policy',
+                                  l.authPrivacyPolicy,
                                   style: AppTypography.caption.copyWith(
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.w600,
@@ -322,7 +325,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             ),
                           )
                         : PrimaryButton(
-                            label: 'Create Account',
+                            label: l.authCreateAccount,
                             onPressed: _handleSignUp,
                           ),
 
@@ -333,7 +336,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Already have an account? ',
+                          l.authHaveAccount,
                           style: AppTypography.bodySmall.copyWith(
                             color: Colors.white60,
                           ),
@@ -341,7 +344,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         TapScale(
                           onTap: () => context.go(Routes.login),
                           child: Text(
-                            'Sign In',
+                            l.authSignIn,
                             style: AppTypography.bodySmall.copyWith(
                               color: AppColors.primary,
                               fontWeight: FontWeight.w600,

@@ -52,6 +52,14 @@ class ChatRepository {
         .toList();
   }
 
+  /// Delete all messages in a session.
+  Future<void> clearSession(String sessionId) async {
+    await _client
+        .from('chat_messages')
+        .delete()
+        .eq('session_id', sessionId);
+  }
+
   /// Send a message and get AI response via Edge Function.
   Future<ChatMessageModel> sendMessage({
     required String courseId,

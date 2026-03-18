@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -23,23 +25,94 @@ class FocusFlowCarousel extends ConsumerStatefulWidget {
   ConsumerState<FocusFlowCarousel> createState() => _FocusFlowCarouselState();
 }
 
-class _FocusFlowCarouselState extends ConsumerState<FocusFlowCarousel> {
+class _FocusFlowCarouselState extends ConsumerState<FocusFlowCarousel>
+    with SingleTickerProviderStateMixin {
   late final PageController _controller;
   double _currentPage = 0;
+
+  /// Peek animation: hints there's more content off-screen.
+  Timer? _peekTimer;
+  AnimationController? _peekAnimController;
+  bool _hasPeeked = false;
+  bool _userHasScrolled = false;
+  bool _isPeekScrolling = false;
 
   @override
   void initState() {
     super.initState();
     _controller = PageController(viewportFraction: 0.85);
-    _controller.addListener(() {
-      setState(() {
-        _currentPage = _controller.page ?? 0;
-      });
+    _controller.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    setState(() {
+      _currentPage = _controller.page ?? 0;
+    });
+
+    // If user manually scrolls (not the peek animation), cancel peek.
+    if (!_hasPeeked && !_userHasScrolled && !_isPeekScrolling) {
+      _userHasScrolled = true;
+      _cancelPeek();
+    }
+  }
+
+  /// Schedule the peek animation after data loads. Only runs once.
+  void _schedulePeek() {
+    if (_hasPeeked || _userHasScrolled) return;
+    _peekTimer?.cancel();
+    _peekTimer = Timer(const Duration(seconds: 4), _playPeek);
+  }
+
+  void _cancelPeek() {
+    _peekTimer?.cancel();
+    _peekTimer = null;
+    _peekAnimController?.stop();
+  }
+
+  /// Auto-scroll 20px left and back to hint at more content.
+  void _playPeek() {
+    if (!mounted || _hasPeeked || _userHasScrolled) return;
+    if (!_controller.hasClients) return;
+
+    _hasPeeked = true;
+    _isPeekScrolling = true;
+    final startOffset = _controller.offset;
+    final peekOffset = startOffset + 20.0;
+
+    _peekAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    final animation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: startOffset, end: peekOffset)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 1,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: peekOffset, end: startOffset)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 1,
+      ),
+    ]).animate(_peekAnimController!);
+
+    animation.addListener(() {
+      if (_controller.hasClients) {
+        _controller.jumpTo(animation.value);
+      }
+    });
+
+    _peekAnimController!.forward().then((_) {
+      _isPeekScrolling = false;
     });
   }
 
   @override
   void dispose() {
+    _peekTimer?.cancel();
+    _peekAnimController?.dispose();
+    _controller.removeListener(_onScroll);
     _controller.dispose();
     super.dispose();
   }
@@ -134,6 +207,14 @@ class _FocusFlowCarouselState extends ConsumerState<FocusFlowCarousel> {
 
               // Show up to 5 courses in carousel
               final displayCourses = courses.take(5).toList();
+
+              // Schedule peek hint if more than 1 card
+              if (displayCourses.length > 1) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _schedulePeek();
+                });
+              }
+
               return PageView.builder(
                 controller: _controller,
                 clipBehavior: Clip.none,

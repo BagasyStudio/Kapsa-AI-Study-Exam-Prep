@@ -525,4 +525,1078 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get captureOcrReady => 'Ready!';
+
+  @override
+  String get authWelcomeBack => 'Welcome back, scholar';
+
+  @override
+  String get authSignIn => 'Sign In';
+
+  @override
+  String get authEmail => 'Email';
+
+  @override
+  String get authPassword => 'Password';
+
+  @override
+  String get authForgotPassword => 'Forgot Password?';
+
+  @override
+  String get authContinueWithApple => 'Continue with Apple';
+
+  @override
+  String get authOr => 'or';
+
+  @override
+  String get authNoAccount => 'Don\'t have an account? ';
+
+  @override
+  String get authCreateAccount => 'Create Account';
+
+  @override
+  String get authHaveAccount => 'Already have an account? ';
+
+  @override
+  String get authTermsOfService => 'Terms of Service';
+
+  @override
+  String get authPrivacyPolicy => 'Privacy Policy';
+
+  @override
+  String get authBeginJourney => 'Begin your journey to academic excellence';
+
+  @override
+  String get authFullName => 'Full Name';
+
+  @override
+  String get authConfirmPassword => 'Confirm Password';
+
+  @override
+  String get authAgreeToTerms => 'I agree to the ';
+
+  @override
+  String get authAnd => ' and ';
+
+  @override
+  String get authEmailRequired => 'Email is required';
+
+  @override
+  String get authValidEmail => 'Enter a valid email';
+
+  @override
+  String get authPasswordRequired => 'Password is required';
+
+  @override
+  String get authPasswordMinLength => 'Password must be at least 6 characters';
+
+  @override
+  String get authNameRequired => 'Name is required';
+
+  @override
+  String get authNameMinLength => 'Name must be at least 2 characters';
+
+  @override
+  String get authConfirmRequired => 'Please confirm your password';
+
+  @override
+  String get authPasswordMismatch => 'Passwords do not match';
+
+  @override
+  String get authAcceptTerms =>
+      'Please accept the Terms of Service and Privacy Policy';
+
+  @override
+  String get authEnterEmailFirst => 'Enter your email first';
+
+  @override
+  String get authResetSent => 'Password reset email sent!';
+
+  @override
+  String get authAlreadyRegistered => 'This email is already registered';
+
+  @override
+  String get authWeakPassword => 'Password must be at least 6 characters';
+
+  @override
+  String get authNoInternet => 'No internet connection';
+
+  @override
+  String get authSomethingWrong => 'Something went wrong. Please try again.';
+
+  @override
+  String get practiceExamTitle => 'Practice Exam';
+
+  @override
+  String get practiceExamSelectCourse => 'SELECT COURSE';
+
+  @override
+  String get practiceExamQuestionCount => 'NUMBER OF QUESTIONS';
+
+  @override
+  String get practiceExamQuestions => 'questions';
+
+  @override
+  String get practiceExamTimeLimit => 'TIME LIMIT';
+
+  @override
+  String get practiceExamTime15 => '15 min';
+
+  @override
+  String get practiceExamTime30 => '30 min';
+
+  @override
+  String get practiceExamTime60 => '60 min';
+
+  @override
+  String get practiceExamNoLimit => 'No Limit';
+
+  @override
+  String get practiceExamStartExam => 'Start Exam';
+
+  @override
+  String get practiceExamSelectCourseFirst => 'Please select a course';
+
+  @override
+  String get practiceExamNoCourses =>
+      'Create a course first to take a practice exam.';
+
+  @override
+  String get practiceExamSelectToStart => 'Select a course to start';
+
+  @override
+  String get practiceExamLoadingHistory => 'Loading history...';
+
+  @override
+  String get practiceExamFirstAttempt => 'First attempt — Good luck! 🍀';
+
+  @override
+  String get practiceExamKeepItUp => 'Keep it up!';
+
+  @override
+  String get practiceExamCanDoBetter => 'You can do better!';
+
+  @override
+  String get practiceExamPracticeMakesPerfect => 'Practice makes perfect!';
+
+  @override
+  String practiceExamLastScore(int pct, String encouragement) {
+    return 'Last score: $pct% — $encouragement';
+  }
+
+  @override
+  String get practiceExamEstimatedDifficulty => 'Estimated difficulty';
+
+  @override
+  String get practiceExamMedium => 'Medium';
+
+  @override
+  String quizQuestion(String current) {
+    return 'Question $current';
+  }
+
+  @override
+  String get quizTypeAnswer => 'Type your answer here...';
+
+  @override
+  String get quizAnswerHint =>
+      'Answer in your own words. The AI will evaluate your understanding.';
+
+  @override
+  String get quizPrevious => 'Previous';
+
+  @override
+  String get quizNext => 'Next';
+
+  @override
+  String get quizSubmitExam => 'Submit Exam';
+
+  @override
+  String get quizSubmitQuiz => 'Submit Quiz';
+
+  @override
+  String get quizPerfectScore => 'Perfect Score! 🎉';
+
+  @override
+  String get quizPerfectSub => 'You nailed every question!';
+
+  @override
+  String get quizComplete => 'Quiz Complete';
+
+  @override
+  String get quizPerfect => '🏆 Perfect!';
+
+  @override
+  String get quizLeaveTitle => 'Leave quiz?';
+
+  @override
+  String get quizLeaveExamTitle => 'Leave Exam?';
+
+  @override
+  String get quizLeaveSaved =>
+      'Your progress is saved! You can continue this quiz later from the home screen.';
+
+  @override
+  String get quizStay => 'Stay';
+
+  @override
+  String get quizContinueQuiz => 'Continue Quiz';
+
+  @override
+  String get quizLeaveForNow => 'Leave for now';
+
+  @override
+  String get quizCouldNotLoad => 'Could not load quiz';
+
+  @override
+  String get quizGoBack => 'Go Back';
+
+  @override
+  String get quizNoQuestions => 'No questions found';
+
+  @override
+  String quizAnswerQuestion(String number) {
+    return 'Please answer question $number';
+  }
+
+  @override
+  String quizAnswerQuestions(String numbers) {
+    return 'Please answer questions $numbers';
+  }
+
+  @override
+  String get quizDailyStreak => 'Daily Streak';
+
+  @override
+  String get chatSuggestStudyToday => 'What should I study today?';
+
+  @override
+  String get chatSuggestProgress => 'How am I doing overall?';
+
+  @override
+  String get chatSuggestWeakest => 'Explain my weakest topic';
+
+  @override
+  String get chatSuggestQuiz => 'Quiz me on this';
+
+  @override
+  String get chatSuggestSummarize => 'Summarize the material';
+
+  @override
+  String get chatFollowUpExample => 'Can you give an example?';
+
+  @override
+  String get chatFollowUpSimpler => 'Explain it more simply';
+
+  @override
+  String get chatFollowUpRelated => 'How does this relate to other topics?';
+
+  @override
+  String get homeFlashcards => 'FLASHCARDS';
+
+  @override
+  String homeDue(int count) {
+    return '$count due';
+  }
+
+  @override
+  String get homeSomethingWrong => 'Something went wrong';
+
+  @override
+  String get homeCheckConnection => 'Check your connection and try again';
+
+  @override
+  String get homeRetry => 'Retry';
+
+  @override
+  String get homeYourDecks => 'Your Decks';
+
+  @override
+  String get flashcardCreateNew => 'Create New';
+
+  @override
+  String get flashcardCreateDeck => 'Create Flashcard Deck';
+
+  @override
+  String get flashcardSelectCourse => 'Select a course';
+
+  @override
+  String get flashcardCardCount => 'Number of cards';
+
+  @override
+  String get flashcardCards => 'cards';
+
+  @override
+  String get flashcardGenerate => 'Generate Flashcards';
+
+  @override
+  String get flashcardUploadDoc => 'Upload notes (optional)';
+
+  @override
+  String get flashcardUploadHint => 'PDF or photo of your notes';
+
+  @override
+  String get flashcardUploadPdf => 'Upload PDF';
+
+  @override
+  String get flashcardUploadPhoto => 'Scan photo';
+
+  @override
+  String get flashcardUploadChange => 'Change';
+
+  @override
+  String get flashcardUploadProcessing => 'Processing document...';
+
+  @override
+  String get flashcardBookmarked => 'Card bookmarked';
+
+  @override
+  String get flashcardReshuffled => 'Cards reshuffled';
+
+  @override
+  String get quickActionSnapSolve => 'Snap Solve';
+
+  @override
+  String get quickActionOracle => 'Oracle';
+
+  @override
+  String get quickActionGroups => 'Groups';
+
+  @override
+  String get quickActionExam => 'Exam';
+
+  @override
+  String get greetingMorning => 'Good Morning';
+
+  @override
+  String get greetingAfternoon => 'Good Afternoon';
+
+  @override
+  String get greetingEvening => 'Good Evening';
+
+  @override
+  String streakDaysStreak(int count) {
+    return '$count Days Streak';
+  }
+
+  @override
+  String get streakOneDayStreak => '1 Day Streak';
+
+  @override
+  String streakLongest(int days) {
+    return 'Longest streak: $days days';
+  }
+
+  @override
+  String get streakStartToday => 'Start studying today to begin your streak!';
+
+  @override
+  String streakKeepGoing(int remaining, String dayWord, String milestone) {
+    return 'Keep going! $remaining more $dayWord to your $milestone badge!';
+  }
+
+  @override
+  String get streakCheckHeatmap =>
+      'Check your Study Heatmap on the home screen';
+
+  @override
+  String get streakGotIt => 'Got it';
+
+  @override
+  String get streakDay => 'day';
+
+  @override
+  String get streakDays => 'days';
+
+  @override
+  String get journeyLearningJourney => 'Learning Journey';
+
+  @override
+  String journeyProgress(int percent) {
+    return '$percent% JOURNEY';
+  }
+
+  @override
+  String journeyLevel(int level) {
+    return 'LEVEL $level';
+  }
+
+  @override
+  String get journeyTodaysChallenge => 'TODAY\'S CHALLENGE';
+
+  @override
+  String journeyCompleteAll(int xp) {
+    return 'Complete all for +$xp XP bonus';
+  }
+
+  @override
+  String get journeyUpNext => 'UP NEXT';
+
+  @override
+  String get journeyStart => 'START';
+
+  @override
+  String get journeyStartExam => 'START EXAM';
+
+  @override
+  String get journeyOpen => 'OPEN';
+
+  @override
+  String get journeyFinalExam => 'Final Exam';
+
+  @override
+  String get journeyComprehensiveTest => 'Comprehensive test';
+
+  @override
+  String get journeyRewardChest => 'Reward Chest';
+
+  @override
+  String get journeyNoContent => 'No content yet';
+
+  @override
+  String get journeyUploadMaterials =>
+      'Upload materials to generate your learning journey';
+
+  @override
+  String get journeyUploadMaterial => 'Upload Material';
+
+  @override
+  String get journeyCouldNotLoad => 'Could not load journey';
+
+  @override
+  String get journeyGenerating => 'Generating your learning journey...';
+
+  @override
+  String get journeyComplete => 'Journey Complete!';
+
+  @override
+  String get journeyReviewJourney => 'Review Journey';
+
+  @override
+  String get journeyContinue => 'Continue Journey';
+
+  @override
+  String get journeyReviewFlashcards => 'Review Flashcards';
+
+  @override
+  String get journeyTakeQuiz => 'Take Quiz';
+
+  @override
+  String get journeyReviewMaterial => 'Review Material';
+
+  @override
+  String get journeyReadSummary => 'Read Summary';
+
+  @override
+  String get journeyAskOracle => 'Ask the Oracle';
+
+  @override
+  String get journeyTakeCheckpoint => 'Take Checkpoint';
+
+  @override
+  String get journeyClaimReward => 'Claim Reward';
+
+  @override
+  String get journeyStartFinalExam => 'Start Final Exam';
+
+  @override
+  String get journeyCompletePrevious => 'Complete the previous step first';
+
+  @override
+  String get journeyExamToday => 'Exam is today!';
+
+  @override
+  String journeyDaysToExam(int days, String suffix) {
+    return '$days day$suffix to exam';
+  }
+
+  @override
+  String get journeyQuickQuestions => '5 quick questions';
+
+  @override
+  String get journeyCheckpoint => 'Checkpoint';
+
+  @override
+  String journeyReview(String title) {
+    return 'Review: $title';
+  }
+
+  @override
+  String journeyFlashcards(String title) {
+    return 'Flashcards: $title';
+  }
+
+  @override
+  String journeyCards(int count) {
+    return '$count cards';
+  }
+
+  @override
+  String get journeyPracticeQuiz => 'Practice Quiz';
+
+  @override
+  String get journeyTestKnowledge => 'Test your knowledge';
+
+  @override
+  String get journeyAiQA => 'AI-powered Q&A';
+
+  @override
+  String get journeyPdfDocument => 'PDF Document';
+
+  @override
+  String get journeyAudio => 'Audio';
+
+  @override
+  String get journeyNotes => 'Notes';
+
+  @override
+  String get journeyPastedText => 'Pasted Text';
+
+  @override
+  String get journeyMaterial => 'Material';
+
+  @override
+  String get journeyFillGaps => 'Fill the Gaps';
+
+  @override
+  String get journeyFillGapsSub => 'Complete the missing terms';
+
+  @override
+  String get journeySpeedRound => 'Speed Round';
+
+  @override
+  String get journeySpeedRoundSub => '10 true/false in 50 seconds';
+
+  @override
+  String get journeyMistakeSpotter => 'Mistake Spotter';
+
+  @override
+  String get journeyMistakeSpotterSub => 'Find the errors';
+
+  @override
+  String get journeyTeachBot => 'Teach the Bot';
+
+  @override
+  String get journeyTeachBotSub => 'Explain it in your words';
+
+  @override
+  String get journeyCompareContrast => 'Compare & Contrast';
+
+  @override
+  String get journeyCompareContrastSub => 'Sort the differences';
+
+  @override
+  String get journeyTimelineBuilder => 'Timeline Builder';
+
+  @override
+  String get journeyTimelineBuilderSub => 'Put steps in order';
+
+  @override
+  String get journeyCaseStudy => 'Case Study';
+
+  @override
+  String get journeyCaseStudySub => 'Apply your knowledge';
+
+  @override
+  String get journeyMatchBlitz => 'Match Blitz';
+
+  @override
+  String get journeyMatchBlitzSub => 'Pair concepts fast';
+
+  @override
+  String get journeyConceptMapper => 'Concept Map';
+
+  @override
+  String get journeyConceptMapperSub => 'Connect the ideas';
+
+  @override
+  String get journeyDailyChallenge => 'Daily Challenge';
+
+  @override
+  String get journeyDailyChallengeSub => 'Today\'s personalized exercise';
+
+  @override
+  String get journeyStartFillGaps => 'Start Fill the Gaps';
+
+  @override
+  String get journeyStartSpeedRound => 'Start Speed Round';
+
+  @override
+  String get journeyStartMistakeSpotter => 'Start Mistake Spotter';
+
+  @override
+  String get journeyStartTeachBot => 'Start Teaching';
+
+  @override
+  String get journeyStartCompareContrast => 'Start Comparing';
+
+  @override
+  String get journeyStartTimelineBuilder => 'Start Timeline';
+
+  @override
+  String get journeyStartCaseStudy => 'Start Case Study';
+
+  @override
+  String get journeyStartMatchBlitz => 'Start Match Blitz';
+
+  @override
+  String get journeyStartConceptMapper => 'Start Concept Map';
+
+  @override
+  String get journeyStartDailyChallenge => 'Start Challenge';
+
+  @override
+  String get journeyDifficultyEasy => 'Easy';
+
+  @override
+  String get journeyDifficultyMedium => 'Medium';
+
+  @override
+  String get journeyDifficultyHard => 'Hard';
+
+  @override
+  String journeyStreakMultiplier(int multiplier) {
+    return 'x$multiplier XP';
+  }
+
+  @override
+  String get journeyStreakBonus => 'Streak Bonus!';
+
+  @override
+  String get journeyInsights => 'Progress Insights';
+
+  @override
+  String get journeyMastered => 'Mastered';
+
+  @override
+  String get journeyNeedsWork => 'Needs Work';
+
+  @override
+  String get journeyTimeStudied => 'Time studied';
+
+  @override
+  String get journeyThisWeek => 'this week';
+
+  @override
+  String get journeyPredictedScore => 'Predicted exam score';
+
+  @override
+  String get journeyWeeklyGoal => 'Weekly goal';
+
+  @override
+  String get journeyBossPreview => 'Exam Topics';
+
+  @override
+  String get journeyConfidence => 'Confidence';
+
+  @override
+  String get journeyReviewWeak => 'Review Weak Topics';
+
+  @override
+  String get journeyRecapTitle => 'Weekly Recap';
+
+  @override
+  String journeyRecapNodesCompleted(int count) {
+    return '$count nodes completed';
+  }
+
+  @override
+  String journeyRecapXpEarned(int xp) {
+    return '$xp XP earned';
+  }
+
+  @override
+  String get journeyRecapNewTopics => 'New topics';
+
+  @override
+  String get journeyRecapReviewed => 'Reviewed';
+
+  @override
+  String get journeyMicroReviewTitle => 'Review';
+
+  @override
+  String journeyMicroReviewCompleted(String date) {
+    return 'Completed $date';
+  }
+
+  @override
+  String journeyMicroReviewScore(int score) {
+    return 'Score: $score%';
+  }
+
+  @override
+  String get journeyMicroReviewRedo => 'Redo Exercise';
+
+  @override
+  String get journeyMicroReviewNoScore => 'No score recorded';
+
+  @override
+  String get journeyFabContinue => 'Continue';
+
+  @override
+  String get journeyFabReview => 'Review';
+
+  @override
+  String get journeyFabQuickChallenge => 'Quick Challenge';
+
+  @override
+  String get exerciseCorrect => 'Correct!';
+
+  @override
+  String get exerciseIncorrect => 'Incorrect';
+
+  @override
+  String exerciseScore(int score) {
+    return 'Score: $score%';
+  }
+
+  @override
+  String get exerciseComplete => 'Exercise Complete!';
+
+  @override
+  String exerciseImproved(int percent) {
+    return 'You improved $percent% vs last time!';
+  }
+
+  @override
+  String exerciseMastered(int count, int total) {
+    return 'Mastered $count/$total concepts';
+  }
+
+  @override
+  String get exerciseTimeUp => 'Time\'s up!';
+
+  @override
+  String get exerciseSubmit => 'Submit';
+
+  @override
+  String get exerciseNext => 'Next';
+
+  @override
+  String get exerciseFinish => 'Finish';
+
+  @override
+  String get exerciseTryAgain => 'Try Again';
+
+  @override
+  String get exerciseCheckAnswer => 'Check Answer';
+
+  @override
+  String get exerciseTrue => 'True';
+
+  @override
+  String get exerciseFalse => 'False';
+
+  @override
+  String get exerciseGoodJob => 'Good job!';
+
+  @override
+  String get exerciseKeepPracticing => 'Keep practicing!';
+
+  @override
+  String get exerciseExcellent => 'Excellent!';
+
+  @override
+  String get exerciseNeedsImprovement => 'Needs improvement';
+
+  @override
+  String get exerciseLoading => 'Generating exercise...';
+
+  @override
+  String get exerciseCouldNotLoad => 'Could not load exercise';
+
+  @override
+  String get fillGapsInstruction => 'Fill in the blanks with the correct terms';
+
+  @override
+  String get fillGapsHint => 'Type the missing word';
+
+  @override
+  String fillGapsOf(int current, int total) {
+    return '$current of $total';
+  }
+
+  @override
+  String get speedRoundInstruction =>
+      'True or False? You have 5 seconds per question!';
+
+  @override
+  String get speedRoundReady => 'Ready?';
+
+  @override
+  String get speedRoundGo => 'GO!';
+
+  @override
+  String speedRoundResult(int correct, int total) {
+    return '$correct/$total correct';
+  }
+
+  @override
+  String speedRoundAvgTime(String seconds) {
+    return 'Avg. ${seconds}s per question';
+  }
+
+  @override
+  String mistakeSpotterInstruction(int count) {
+    return 'Find $count mistakes in the text below';
+  }
+
+  @override
+  String mistakeSpotterFound(int found, int total) {
+    return '$found/$total mistakes found';
+  }
+
+  @override
+  String get mistakeSpotterTapToMark => 'Tap on sentences to mark mistakes';
+
+  @override
+  String get mistakeSpotterCorrection => 'Correction';
+
+  @override
+  String get mistakeSpotterWrongSelection =>
+      'This sentence is actually correct';
+
+  @override
+  String get teachBotInstruction =>
+      'Explain this concept to the bot as if teaching a confused student';
+
+  @override
+  String get teachBotBotMessage =>
+      'I\'m confused about this topic. Can you explain it to me?';
+
+  @override
+  String get teachBotSendExplanation => 'Send explanation';
+
+  @override
+  String get teachBotFeedback => 'The bot analyzed your explanation';
+
+  @override
+  String teachBotCoveredPoints(int count, int total) {
+    return '$count/$total key points covered';
+  }
+
+  @override
+  String teachBotMissedPoint(String point) {
+    return 'You didn\'t mention: $point';
+  }
+
+  @override
+  String get compareContrastInstruction =>
+      'Sort these traits into the correct category';
+
+  @override
+  String get compareContrastDragHint => 'Drag items to the correct column';
+
+  @override
+  String get timelineInstruction => 'Arrange these steps in the correct order';
+
+  @override
+  String get timelineDragHint => 'Drag to reorder';
+
+  @override
+  String get timelineCheckOrder => 'Check Order';
+
+  @override
+  String get timelineCorrectOrder => 'Correct order!';
+
+  @override
+  String get timelineWrongOrder => 'Not quite right. Try again!';
+
+  @override
+  String get caseStudyScenario => 'Scenario';
+
+  @override
+  String caseStudyQuestion(int num) {
+    return 'Question $num';
+  }
+
+  @override
+  String get caseStudyAnswer => 'Your answer';
+
+  @override
+  String get matchBlitzInstruction => 'Match concepts with their definitions';
+
+  @override
+  String matchBlitzPairsLeft(int count) {
+    return '$count pairs left';
+  }
+
+  @override
+  String matchBlitzTimeBonus(int xp) {
+    return 'Time bonus: +$xp XP';
+  }
+
+  @override
+  String get conceptMapInstruction =>
+      'Connect the missing links in the concept map';
+
+  @override
+  String get conceptMapDragToConnect => 'Drag to connect nodes';
+
+  @override
+  String get chatAiOracle => 'AI Oracle';
+
+  @override
+  String get chatTheOracle => 'The Oracle';
+
+  @override
+  String get chatSettingsComingSoon => 'Chat settings coming soon';
+
+  @override
+  String get chatToday => 'Today';
+
+  @override
+  String get chatStudyCompanion => 'Your AI study companion';
+
+  @override
+  String get chatStudyCompanionSub =>
+      'Ask questions, get explanations, and ace your exams.';
+
+  @override
+  String get chatOracleKnows => 'The Oracle knows everything';
+
+  @override
+  String get chatOracleKnowsSub =>
+      'Ask about your courses, scores, weak areas, and upcoming exams.';
+
+  @override
+  String get flashcardLoadError => 'Could not load flashcards';
+
+  @override
+  String get flashcardNoCards => 'No flashcards yet';
+
+  @override
+  String get flashcardNoCardsHint =>
+      'Generate flashcards from your course materials first.';
+
+  @override
+  String get flashcardLeaveTitle => 'Leave session?';
+
+  @override
+  String get flashcardLeaveMessage =>
+      'Your progress in this session will be lost.';
+
+  @override
+  String get flashcardStay => 'Stay';
+
+  @override
+  String get flashcardLeave => 'Leave';
+
+  @override
+  String get flashcardEditComingSoon => 'Edit cards coming soon';
+
+  @override
+  String get flashcardSessionComplete => 'Session Complete!';
+
+  @override
+  String flashcardCardsReviewed(int count) {
+    return '$count cards reviewed';
+  }
+
+  @override
+  String get flashcardMastered => 'Mastered';
+
+  @override
+  String get flashcardAgain => 'Again';
+
+  @override
+  String get flashcardMasteryLabel => 'Mastery';
+
+  @override
+  String get flashcardShareResults => 'Share Results';
+
+  @override
+  String get flashcardContinueReviewing => 'Continue Reviewing';
+
+  @override
+  String get flashcardDone => 'Done';
+
+  @override
+  String get homeDefaultName => 'Student';
+
+  @override
+  String get exerciseDifficultyTitle => 'Choose Difficulty';
+
+  @override
+  String get exerciseDifficultyEasy => 'Easy';
+
+  @override
+  String get exerciseDifficultyEasyDesc => 'More time, hints available';
+
+  @override
+  String get exerciseDifficultyMedium => 'Medium';
+
+  @override
+  String get exerciseDifficultyMediumDesc => 'Standard challenge';
+
+  @override
+  String get exerciseDifficultyHard => 'Hard';
+
+  @override
+  String get exerciseDifficultyHardDesc => 'Less time, no hints';
+
+  @override
+  String get exerciseDifficultyStart => 'Start Exercise';
+
+  @override
+  String exerciseComboStreak(int count) {
+    return '$count in a row!';
+  }
+
+  @override
+  String exerciseComboBonusXp(int xp) {
+    return '+$xp bonus XP';
+  }
+
+  @override
+  String get exerciseRelatedTitle => 'Want to learn more?';
+
+  @override
+  String get exerciseRelatedSummary => 'View Summary';
+
+  @override
+  String get exerciseRelatedFlashcards => 'Practice Flashcards';
+
+  @override
+  String get exerciseRelatedGlossary => 'Read Glossary';
+
+  @override
+  String get chatPreferencesTitle => 'Chat Preferences';
+
+  @override
+  String get chatResponseStyle => 'Response Style';
+
+  @override
+  String get chatStyleBrief => 'Brief';
+
+  @override
+  String get chatStyleBriefDesc => 'Short, concise answers';
+
+  @override
+  String get chatStyleDetailed => 'Detailed';
+
+  @override
+  String get chatStyleDetailedDesc => 'In-depth explanations';
+
+  @override
+  String get chatStyleEli5 => 'ELI5';
+
+  @override
+  String get chatStyleEli5Desc => 'Explain like I\'m 5';
+
+  @override
+  String get chatIncludeExamples => 'Include Examples';
+
+  @override
+  String get chatIncludeExamplesDesc => 'Add practical examples to responses';
+
+  @override
+  String get chatPreferencesSaved => 'Preferences saved';
+
+  @override
+  String get chatLongPressToClear => 'Long-press to clear';
+
+  @override
+  String chatCharCount(String count, String max) {
+    return '$count/$max';
+  }
 }
