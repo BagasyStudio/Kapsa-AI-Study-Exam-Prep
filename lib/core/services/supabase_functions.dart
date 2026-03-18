@@ -51,15 +51,24 @@ class SupabaseFunctions {
     }
 
     // Pre-emptive token refresh if close to expiry (within 2 min).
-    // Prevents "invalid JWT" from the Supabase gateway rejecting
-    // expired tokens before the edge function even runs.
     await _ensureFreshToken();
+
+    // Ensure the access token is explicitly set in headers.
+    // The Supabase SDK should do this automatically, but in some edge
+    // cases (fresh signup, rapid token refresh) the internal token
+    // may not be in sync. Explicitly passing it guarantees the gateway
+    // receives a valid JWT.
+    final accessToken = _client.auth.currentSession?.accessToken;
+    final mergedHeaders = <String, String>{
+      if (headers != null) ...headers,
+      if (accessToken != null) 'Authorization': 'Bearer $accessToken',
+    };
 
     try {
       return await _client.functions
           .invoke(
             functionName,
-            headers: headers,
+            headers: mergedHeaders,
             body: body,
             method: method,
           )
