@@ -476,19 +476,14 @@ Deno.serve(async (req: Request) => {
 
       if (count <= 0) continue;
 
-      chunkCards.push({
-        chunk: chunks[i],
-        count: Math.min(count, CARDS_PER_CHUNK),
-      });
-      cardsAssigned += chunkCards[chunkCards.length - 1].count;
-
-      // Sub-batches for large counts
-      let remaining = count - CARDS_PER_CHUNK;
+      // Split into sub-batches of CARDS_PER_CHUNK each
+      let remaining = count;
       while (remaining > 0) {
         const batchCount = Math.min(remaining, CARDS_PER_CHUNK);
         chunkCards.push({ chunk: chunks[i], count: batchCount });
         remaining -= batchCount;
       }
+      cardsAssigned += count;
     }
 
     console.log(`Planned ${chunkCards.length} batch(es): ${chunkCards.map(c => c.count).join(", ")} cards`);
@@ -522,6 +517,12 @@ Deno.serve(async (req: Request) => {
 
     if (failedBatches > 0) {
       console.warn(`${failedBatches}/${chunkCards.length} batches failed, got ${allCards.length} cards`);
+    }
+
+    // Cap to requested count — AI may generate more per batch than requested
+    if (allCards.length > totalCards) {
+      console.log(`Trimming ${allCards.length} → ${totalCards} cards (requested)`);
+      allCards.length = totalCards;
     }
 
     // ── Group cards by topic for subdeck creation ──────────────────
