@@ -225,9 +225,14 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
       }
       return true;
     } catch (e) {
-      // If credit check fails, allow generation (fail open for Pro users)
-      debugPrint('GenerationNotifier: credit check failed, allowing: $e');
-      return true;
+      debugPrint('GenerationNotifier: credit check failed: $e');
+      // Fail-open only for Pro users; free users must pass the check
+      try {
+        final isPro = await _ref.read(isProProvider.future);
+        if (isPro) return true;
+      } catch (_) {}
+      _failTask(taskId, Exception('Could not verify credits. Please try again.'));
+      return false;
     }
   }
 

@@ -50,6 +50,11 @@ class SupabaseFunctions {
       throw const SessionExpiredException();
     }
 
+    // Pre-emptive token refresh if close to expiry (within 2 min).
+    // Prevents "invalid JWT" from the Supabase gateway rejecting
+    // expired tokens before the edge function even runs.
+    await _ensureFreshToken();
+
     try {
       return await _client.functions
           .invoke(
@@ -119,6 +124,27 @@ class SupabaseFunctions {
         }
       }
       rethrow;
+    }
+  }
+
+  /// Refresh the JWT if it expires within 2 minutes.
+  Future<void> _ensureFreshToken() async {
+    try {
+      final session = _client.auth.currentSession;
+      if (session == null) return;
+      final expiresAt = session.expiresAt;
+      if (expiresAt != null) {
+        final expiresIn = DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000)
+            .difference(DateTime.now())
+            .inSeconds;
+        if (expiresIn < 120) {
+          debugPrint('[SupabaseFunctions] Refreshing JWT (expires in ${expiresIn}s)');
+          await _client.auth.refreshSession();
+        }
+      }
+    } catch (e) {
+      debugPrint('[SupabaseFunctions] Token refresh failed: $e');
+      // Continue anyway — the 401 retry logic will handle it
     }
   }
 }
