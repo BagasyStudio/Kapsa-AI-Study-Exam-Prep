@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../core/navigation/app_router.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/theme/app_animations.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -195,19 +194,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       final inAppReview = InAppReview.instance;
       if (await inAppReview.isAvailable()) {
         await inAppReview.requestReview();
+        // iOS review dialog takes ~3s to appear. requestReview() returns
+        // immediately without waiting for the dialog to close. We delay
+        // before navigating to the paywall so the user can finish rating
+        // without being abruptly interrupted.
+        await Future.delayed(const Duration(seconds: 4));
       }
     } catch (e) {
       debugPrint('OnboardingScreen: handleRate failed: $e');
     }
-    // After rating → go to login (NOT paywall).
-    // Showing a paywall immediately after asking for a review makes
-    // users feel tricked → 1-star reviews. The paywall will trigger
-    // naturally when they try to use a premium feature.
-    await _saveOnboardingData();
-    if (mounted) {
-      ref.read(hasSeenOnboardingProvider.notifier).state = true;
-      context.go(Routes.login);
-    }
+    // After rating → paywall (user hasn't created account yet)
+    _goToPaywall();
   }
 
   void _onPageChanged(int index) {
