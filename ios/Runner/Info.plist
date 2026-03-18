@@ -51,5 +51,7 @@
 	<string>Kapsa needs access to your camera to let you take photos of notes and study materials.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Kapsa needs access to your microphone to record audio for transcription and study notes.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Kapsa uses speech recognition to transcribe your audio recordings into study notes.</string>
 </dict>
 </plist>
