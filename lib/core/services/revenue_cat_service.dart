@@ -49,15 +49,29 @@ class RevenueCatService {
 
   /// Log in to RevenueCat with the Supabase user ID.
   ///
-  /// Call this after Supabase auth sign-in.
-  /// Silently fails on platforms without RevenueCat support (e.g. web).
+  /// Call this after Supabase auth sign-in/sign-up.
+  /// If the user purchased while anonymous (e.g. during onboarding before
+  /// creating an account), `Purchases.logIn()` transfers the anonymous
+  /// purchases to the identified user. We also call `restorePurchases()`
+  /// to ensure Apple/Google receipts are fully synced.
   Future<void> login(String userId) async {
     try {
-      await Purchases.logIn(userId);
+      final result = await Purchases.logIn(userId);
+      // Check if the anonymous user had an active subscription
+      final hadPro =
+          result.customerInfo.entitlements.active.containsKey(_entitlementId);
+      if (hadPro) {
+        debugPrint('RevenueCatService: transferred anonymous Pro to user $userId');
+      }
+      // Always restore to catch any App Store/Play Store receipts
+      await Purchases.restorePurchases();
       await _syncProStatus();
     } on MissingPluginException catch (e) {
-      // RevenueCat not available on this platform (web)
-      debugPrint('RevenueCatService: login failed: $e');
+      debugPrint('RevenueCatService: login failed (no plugin): $e');
+    } catch (e) {
+      debugPrint('RevenueCatService: login/restore failed: $e');
+      // Still try to sync whatever state we have
+      try { await _syncProStatus(); } catch (_) {}
     }
   }
 
@@ -153,7 +167,12 @@ class RevenueCatService {
   /// Update `profiles.is_pro` in Supabase.
   Future<void> _setSupabasePro(bool isPro) async {
     final user = _supabase.auth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      if (isPro) {
+        debugPrint('RevenueCatService: user has Pro but no Supabase account yet — will sync on login');
+      }
+      return;
+    }
 
     try {
       await _supabase.from('profiles').update({
