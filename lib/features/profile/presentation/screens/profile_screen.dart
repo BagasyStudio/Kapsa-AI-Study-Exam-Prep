@@ -25,6 +25,9 @@ import '../../../subscription/presentation/providers/subscription_provider.dart'
 import '../../../subscription/presentation/widgets/ai_consent_dialog.dart';
 import '../providers/profile_provider.dart';
 import '../../../gamification/presentation/providers/xp_provider.dart';
+import '../../../flashcards/presentation/providers/flashcard_provider.dart';
+import '../../../home/presentation/providers/study_plan_provider.dart';
+import '../../../home/presentation/providers/flashcard_quick_access_provider.dart';
 import '../../../../core/constants/xp_config.dart';
 import '../../../gamification/presentation/widgets/achievement_collection.dart';
 import '../../../gamification/presentation/widgets/study_heatmap.dart';
@@ -75,9 +78,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             onPressed: () async {
               Navigator.of(ctx).pop();
               await ref.read(authRepositoryProvider).signOut();
-              // Clear cached data from previous user session
+              // Clear ALL cached data from previous user session
+              // to prevent data leaking to the next logged-in user.
               ref.invalidate(coursesProvider);
               ref.invalidate(recentMaterialsProvider);
+              ref.invalidate(profileProvider);
+              ref.invalidate(studyPlanProvider);
+              ref.invalidate(flashcardQuickAccessProvider);
+              ref.invalidate(totalDueCardsProvider);
+              ref.invalidate(isProProvider);
+              ref.invalidate(dailyUsageProvider);
+              ref.invalidate(remainingCreditsProvider);
+              ref.invalidate(xpTotalProvider);
             },
             child: Text(
               'Sign Out',
