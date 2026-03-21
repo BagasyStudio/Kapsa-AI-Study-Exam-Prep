@@ -404,6 +404,106 @@ class NotificationService {
       ),
     );
   }
+
+  // ────────────────────────────────────────────────
+  // TRIAL ENGAGEMENT NOTIFICATIONS
+  // ────────────────────────────────────────────────
+
+  /// Schedule trial-specific engagement notifications.
+  ///
+  /// Called once after a user starts a trial subscription.
+  /// Uses notification IDs 100+ to avoid collision with smart reminders (0-99).
+  static Future<void> scheduleTrialNotifications({
+    required int trialDays,
+    required TrialNotifStrings strings,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('trial_notifications_scheduled') ?? false) return;
+
+    final granted = await requestPermission();
+    if (!granted) return;
+
+    final now = DateTime.now();
+    int id = 100;
+
+    // Day 0: 2 hours after sign-up
+    await _scheduleAt(
+      id: id++,
+      title: strings.day0Title,
+      body: strings.day0Body,
+      date: now.add(const Duration(hours: 2)),
+    );
+
+    // Day 1: Feature discovery
+    await _scheduleAt(
+      id: id++,
+      title: strings.day1Title,
+      body: strings.day1Body,
+      date: DateTime(now.year, now.month, now.day + 1, 10, 0),
+    );
+
+    // Day 2: Snap & Solve discovery
+    await _scheduleAt(
+      id: id++,
+      title: strings.day2Title,
+      body: strings.day2Body,
+      date: DateTime(now.year, now.month, now.day + 2, 11, 0),
+    );
+
+    // Last day of trial
+    final lastDay = trialDays - 1;
+    if (lastDay >= 1) {
+      await _scheduleAt(
+        id: id++,
+        title: strings.lastDayTitle,
+        body: strings.lastDayBody,
+        date: DateTime(now.year, now.month, now.day + lastDay, 18, 0),
+      );
+    }
+
+    // 2 days left (only if trial >= 5 days)
+    if (trialDays >= 5) {
+      await _scheduleAt(
+        id: id++,
+        title: strings.twoDaysLeftTitle ?? strings.lastDayTitle,
+        body: strings.twoDaysLeftBody ?? strings.lastDayBody,
+        date: DateTime(now.year, now.month, now.day + trialDays - 2, 10, 0),
+      );
+    }
+
+    await prefs.setBool('trial_notifications_scheduled', true);
+
+    if (kDebugMode) {
+      debugPrint('📬 Scheduled ${id - 100} trial notifications (trial: $trialDays days)');
+    }
+  }
+}
+
+/// Localized strings for trial notifications.
+class TrialNotifStrings {
+  final String day0Title;
+  final String day0Body;
+  final String day1Title;
+  final String day1Body;
+  final String day2Title;
+  final String day2Body;
+  final String lastDayTitle;
+  final String lastDayBody;
+  final String? twoDaysLeftTitle;
+  final String? twoDaysLeftBody;
+
+  const TrialNotifStrings({
+    required this.day0Title,
+    required this.day0Body,
+    required this.day1Title,
+    required this.day1Body,
+    required this.day2Title,
+    required this.day2Body,
+    required this.lastDayTitle,
+    required this.lastDayBody,
+    this.twoDaysLeftTitle,
+    this.twoDaysLeftBody,
+  });
 }
 
 /// Simple data class for notification content.

@@ -24,14 +24,13 @@ async function callReplicate(prompt: string, maxTokens = 2048): Promise<string> 
   const REPLICATE_API_TOKEN = Deno.env.get("REPLICATE_API_KEY");
   if (!REPLICATE_API_TOKEN) throw new Error("Missing REPLICATE_API_KEY");
 
-  const createRes = await fetch("https://api.replicate.com/v1/predictions", {
+  const createRes = await fetch(`https://api.replicate.com/v1/models/${LLAMA_MODEL}/predictions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: LLAMA_MODEL,
       input: {
         prompt,
         max_tokens: maxTokens,
@@ -74,10 +73,16 @@ async function callReplicate(prompt: string, maxTokens = 2048): Promise<string> 
 
 // ── JSON parser ──────────────────────────────────────────────────
 function parseJson(raw: string): any {
-  // Try to extract JSON object or array
+  // Try to extract JSON object or array — pick whichever appears first
   const objMatch = raw.match(/\{[\s\S]*\}/);
   const arrMatch = raw.match(/\[[\s\S]*\]/);
-  const jsonStr = objMatch ? objMatch[0] : arrMatch ? arrMatch[0] : raw.trim();
+  let jsonStr: string;
+  if (objMatch && arrMatch) {
+    // Use whichever starts first in the string (array wraps objects)
+    jsonStr = (raw.indexOf("[") < raw.indexOf("{")) ? arrMatch[0] : objMatch[0];
+  } else {
+    jsonStr = objMatch ? objMatch[0] : arrMatch ? arrMatch[0] : raw.trim();
+  }
 
   try {
     return JSON.parse(jsonStr);
@@ -358,12 +363,12 @@ Deno.serve(async (req: Request) => {
     );
   } catch (error) {
     console.error("ai-generate-exercise error:", error);
-    const message = error instanceof Error && (
-      error.message.includes("timeout") ||
-      error.message.includes("timed out") ||
-      error.message.includes("unavailable") ||
-      error.message.includes("failed")
-    ) ? error.message : "Failed to generate exercise. Please try again.";
+    const rawMsg = error instanceof Error ? error.message : String(error);
+    const message = rawMsg.includes("timeout") ||
+      rawMsg.includes("timed out") ||
+      rawMsg.includes("unavailable") ||
+      rawMsg.includes("failed")
+      ? rawMsg : "Failed to generate exercise. Please try again.";
     return new Response(
       JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

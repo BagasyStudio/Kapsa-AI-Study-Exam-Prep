@@ -171,7 +171,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { courseId } = await req.json();
+    const { courseId, materialId } = await req.json();
     if (!isValidUUID(courseId)) {
       return new Response(JSON.stringify({ error: "Invalid course ID" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -186,9 +186,13 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { data: materials } = await supabase.from("course_materials")
+    let materialsQuery = supabase.from("course_materials")
       .select("id, title, content").eq("course_id", courseId).eq("user_id", user.id)
       .not("content", "is", null);
+    if (materialId && isValidUUID(materialId)) {
+      materialsQuery = materialsQuery.eq("id", materialId);
+    }
+    const { data: materials } = await materialsQuery;
 
     const valid = (materials || []).filter((m: any) => m.content?.trim().length > 0);
     if (valid.length === 0) {

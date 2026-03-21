@@ -106,7 +106,7 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
   }
 
   /// Start generating a quiz in background. Returns false if already running.
-  bool generateQuiz(String courseId, String courseName, {List<String>? focusTopics}) {
+  bool generateQuiz(String courseId, String courseName, {List<String>? focusTopics, String? materialId}) {
     if (isRunning(GenerationType.quiz, courseId)) return false;
 
     final task = _createTask(GenerationType.quiz, courseId, courseName);
@@ -116,7 +116,7 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
       try {
         final result = await _retryWithBackoff(() => _ref
             .read(testRepositoryProvider)
-            .generateQuiz(courseId: courseId, focusTopics: focusTopics));
+            .generateQuiz(courseId: courseId, focusTopics: focusTopics, materialId: materialId));
         _recordUsage('quiz');
         _completeTask(task.id, Routes.quizSessionPath(result.test.id));
       } catch (e) {
@@ -128,7 +128,7 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
   }
 
   /// Start generating a summary in background. Returns false if already running.
-  bool generateSummary(String courseId, String courseName) {
+  bool generateSummary(String courseId, String courseName, {String? materialId}) {
     if (isRunning(GenerationType.summary, courseId)) return false;
 
     final task = _createTask(GenerationType.summary, courseId, courseName);
@@ -138,7 +138,7 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
       try {
         final summary = await _retryWithBackoff(() => _ref
             .read(summaryRepositoryProvider)
-            .generateSummary(courseId: courseId));
+            .generateSummary(courseId: courseId, materialId: materialId));
         _recordUsage('summary');
         _ref.invalidate(courseSummariesProvider(courseId));
         _completeTask(task.id, Routes.summaryPath(summary.id));
@@ -151,7 +151,7 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
   }
 
   /// Start generating a glossary in background. Returns false if already running.
-  bool generateGlossary(String courseId, String courseName) {
+  bool generateGlossary(String courseId, String courseName, {String? materialId}) {
     if (isRunning(GenerationType.glossary, courseId)) return false;
 
     final task = _createTask(GenerationType.glossary, courseId, courseName);
@@ -161,7 +161,7 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
       try {
         await _retryWithBackoff(() => _ref
             .read(glossaryRepositoryProvider)
-            .generateGlossary(courseId: courseId));
+            .generateGlossary(courseId: courseId, materialId: materialId));
         _recordUsage('glossary');
         _ref.invalidate(glossaryTermsProvider(courseId));
         _completeTask(task.id, Routes.glossaryPath(courseId));

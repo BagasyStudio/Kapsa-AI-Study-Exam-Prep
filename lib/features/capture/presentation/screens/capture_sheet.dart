@@ -24,6 +24,7 @@ import '../../../subscription/presentation/providers/subscription_provider.dart'
 import '../../../../core/utils/error_handler.dart';
 import '../../../../core/widgets/animated_counter.dart';
 import '../../../../l10n/generated/app_localizations.dart';
+import '../../data/models/capture_result.dart';
 
 /// Bottom sheet modal for capturing new study materials.
 ///
@@ -44,7 +45,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
   String _realPhase = 'uploading'; // 'uploading' | 'analyzing' | 'done'
   String _processingType = 'ocr'; // 'ocr' | 'pdf' | 'whisper'
   String _materialName = '';
-  String? _pendingPopMessage; // message to pop with after animation
+  CaptureResult? _pendingPopResult; // structured result to pop with after animation
   late AnimationController _pulseController;
 
   @override
@@ -169,7 +170,12 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         // Let the animation finish gracefully before popping
         setState(() {
           _realPhase = 'done';
-          _pendingPopMessage = 'Scanned and processed: ${material.displayTitle}';
+          _pendingPopResult = CaptureResult(
+            materialId: material.id,
+            courseId: courseId,
+            materialType: material.type,
+            displayTitle: material.displayTitle,
+          );
         });
       }
     } catch (e) {
@@ -265,7 +271,12 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         SoundService.playProcessingComplete();
         setState(() {
           _realPhase = 'done';
-          _pendingPopMessage = 'Transcribed: ${material.displayTitle}';
+          _pendingPopResult = CaptureResult(
+            materialId: material.id,
+            courseId: courseId,
+            materialType: material.type,
+            displayTitle: material.displayTitle,
+          );
         });
       }
     } catch (e) {
@@ -376,7 +387,12 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
         SoundService.playProcessingComplete();
         setState(() {
           _realPhase = 'done';
-          _pendingPopMessage = 'Uploaded and processed: ${material.displayTitle}';
+          _pendingPopResult = CaptureResult(
+            materialId: material.id,
+            courseId: courseId,
+            materialType: material.type,
+            displayTitle: material.displayTitle,
+          );
         });
       }
     } catch (e) {
@@ -422,8 +438,12 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
       if (mounted) {
         SoundService.playProcessingComplete();
         setState(() => _isProcessing = false);
-        Navigator.of(context)
-            .pop('Saved: ${material.displayTitle}');
+        Navigator.of(context).pop(CaptureResult(
+          materialId: material.id,
+          courseId: courseId,
+          materialType: material.type,
+          displayTitle: material.displayTitle,
+        ));
       }
     } catch (e) {
       if (mounted) {
@@ -511,7 +531,7 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
   void _cancelProcessing() {
     setState(() {
       _isProcessing = false;
-      _pendingPopMessage = null;
+      _pendingPopResult = null;
     });
     Navigator.of(context).pop();
   }
@@ -590,10 +610,10 @@ class _CaptureSheetState extends ConsumerState<CaptureSheet>
                                 pulseAnimation: _pulseController,
                                 onCancel: _cancelProcessing,
                                 onAnimationComplete: () {
-                                  if (mounted && _pendingPopMessage != null) {
-                                    final msg = _pendingPopMessage;
-                                    _pendingPopMessage = null;
-                                    Navigator.of(context).pop(msg);
+                                  if (mounted && _pendingPopResult != null) {
+                                    final result = _pendingPopResult;
+                                    _pendingPopResult = null;
+                                    Navigator.of(context).pop(result);
                                   }
                                 },
                               )

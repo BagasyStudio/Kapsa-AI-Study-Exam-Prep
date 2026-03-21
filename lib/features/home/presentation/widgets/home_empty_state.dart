@@ -10,8 +10,9 @@ import '../../../../core/widgets/pulse_glow.dart';
 import '../../../../core/widgets/shimmer_button.dart';
 import '../../../../core/widgets/staggered_list.dart';
 import '../../../../core/widgets/tap_scale.dart';
-// CreateCourseSheet is defined in courses_list_screen.dart (made public)
 import '../../../courses/presentation/screens/courses_list_screen.dart';
+import '../../../onboarding/data/onboarding_material_processor.dart';
+import '../../../capture/presentation/widgets/post_upload_tool_selector.dart';
 
 /// Beautiful empty state shown when the user has zero courses/decks.
 ///
@@ -40,9 +41,16 @@ class _HomeEmptyStateState extends ConsumerState<HomeEmptyState>
   late final AnimationController _ctaBounceController;
   late final Animation<double> _ctaBounceAnim;
 
+  bool _isProcessingOnboarding = false;
+
   @override
   void initState() {
     super.initState();
+
+    // Try to process onboarding material if available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _tryProcessOnboardingMaterial();
+    });
 
     // Icon pulse: scale 1.0 → 1.05, opacity 0.6 → 1.0, looping
     _iconPulseController = AnimationController(
@@ -90,6 +98,22 @@ class _HomeEmptyStateState extends ConsumerState<HomeEmptyState>
 
   @override
   Widget build(BuildContext context) {
+    if (_isProcessingOnboarding) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: AppColors.primary),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'Setting up your first course...',
+              style: AppTypography.bodyMedium.copyWith(color: Colors.white60),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Center(
       child: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -201,6 +225,20 @@ class _HomeEmptyStateState extends ConsumerState<HomeEmptyState>
         ),
       ),
     );
+  }
+
+  Future<void> _tryProcessOnboardingMaterial() async {
+    if (!mounted) return;
+    setState(() => _isProcessingOnboarding = true);
+
+    final result = await processOnboardingMaterial(ref);
+
+    if (!mounted) return;
+    setState(() => _isProcessingOnboarding = false);
+
+    if (result != null && mounted) {
+      showPostUploadToolSelector(context, ref, result);
+    }
   }
 
   void _showManualCreation(BuildContext context) {

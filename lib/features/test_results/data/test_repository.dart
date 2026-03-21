@@ -58,6 +58,7 @@ class TestRepository {
     int? count,
     bool isPracticeExam = false,
     List<String>? focusTopics,
+    String? materialId,
   }) async {
     final response = await _functions.invoke(
       'ai-generate-quiz',
@@ -68,6 +69,7 @@ class TestRepository {
         'isPracticeExam': isPracticeExam,
         if (focusTopics != null && focusTopics.isNotEmpty)
           'focusTopics': focusTopics,
+        if (materialId != null) 'materialId': materialId,
       },
     );
 

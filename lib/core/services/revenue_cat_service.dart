@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/env.dart';
+import 'notification_service.dart';
 
 /// Centralized service for RevenueCat in-app purchase management.
 ///
@@ -130,6 +131,8 @@ class RevenueCatService {
           result.entitlements.active.containsKey(_entitlementId);
       if (isPro) {
         await _setSupabasePro(true);
+        // Schedule trial engagement notifications if this is a trial
+        _scheduleTrialNotificationsIfNeeded(package);
       }
       return isPro;
     } catch (e) {
@@ -139,6 +142,39 @@ class RevenueCatService {
         return false;
       }
       rethrow;
+    }
+  }
+
+  /// Schedule trial notifications if the purchased package has an intro offer.
+  static void _scheduleTrialNotificationsIfNeeded(Package package) {
+    try {
+      final intro = package.storeProduct.introductoryPrice;
+      if (intro == null) return; // No trial
+
+      // Detect trial days from period
+      final trialDays = intro.periodUnit == PeriodUnit.day
+          ? intro.periodNumberOfUnits
+          : intro.periodUnit == PeriodUnit.week
+              ? intro.periodNumberOfUnits * 7
+              : 3; // fallback
+
+      NotificationService.scheduleTrialNotifications(
+        trialDays: trialDays,
+        strings: const TrialNotifStrings(
+          day0Title: 'Your study plan is ready!',
+          day0Body: 'Generate your first flashcards now',
+          day1Title: 'Did you know?',
+          day1Body: 'Students who use flashcards score 23% higher. Try generating a quiz!',
+          day2Title: 'Have you tried Snap & Solve?',
+          day2Body: 'Take a photo of any problem and get a step-by-step solution',
+          lastDayTitle: 'Last day of your trial!',
+          lastDayBody: 'Make the most of it — generate flashcards, quizzes, and summaries',
+          twoDaysLeftTitle: '2 days left on your trial',
+          twoDaysLeftBody: "Don't miss out — explore all the AI tools before it ends",
+        ),
+      );
+    } catch (e) {
+      debugPrint('RevenueCatService: trial notifications failed: $e');
     }
   }
 

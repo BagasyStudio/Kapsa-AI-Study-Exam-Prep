@@ -1607,4 +1607,119 @@ class AppLocalizationsEs extends AppLocalizations {
   String chatCharCount(String count, String max) {
     return '$count/$max';
   }
+
+  @override
+  String get postUploadMaterialUploaded => 'Material subido';
+
+  @override
+  String get postUploadWhatToCreate => '¿Qué querés crear?';
+
+  @override
+  String get postUploadFlashcards => 'Flashcards';
+
+  @override
+  String get postUploadQuiz => 'Quiz';
+
+  @override
+  String get postUploadSummary => 'Resumen';
+
+  @override
+  String get postUploadGlossary => 'Glosario';
+
+  @override
+  String get postUploadCreateCards => 'Creá tarjetas de estudio';
+
+  @override
+  String get postUploadTestKnowledge => 'Poné a prueba lo que sabés';
+
+  @override
+  String get postUploadKeyPoints => 'Resumen de puntos clave';
+
+  @override
+  String get postUploadKeyTerms => 'Definiciones de términos';
+
+  @override
+  String get postUploadMoreTools => 'Más herramientas';
+
+  @override
+  String get postUploadSrsReview => 'Repaso SRS';
+
+  @override
+  String get postUploadPracticeExam => 'Examen Práctico';
+
+  @override
+  String get postUploadAudioSummary => 'Resumen en Audio';
+
+  @override
+  String get postUploadSnapSolve => 'Snap & Solve';
+
+  @override
+  String get postUploadChat => 'Chat';
+
+  @override
+  String get postUploadSkip => 'Omitir';
+
+  @override
+  String postUploadGeneratingInBackground(String tool) {
+    return 'Generando $tool en segundo plano...';
+  }
+
+  @override
+  String get postUploadHowManyFlashcards => '¿Cuántas flashcards?';
+
+  @override
+  String get postUploadChooseCount => 'Elegí la cantidad de tarjetas a generar';
+
+  @override
+  String get postUploadPro => 'PRO';
+
+  @override
+  String postUploadGenerateFlashcards(int count) {
+    return 'Generar $count Flashcards';
+  }
+
+  @override
+  String homeDueCardsBanner(int count) {
+    return '$count tarjetas pendientes de repaso';
+  }
+
+  @override
+  String get homeDueCardsReviewNow => 'Repasar ahora';
+
+  @override
+  String get homeMyCourses => 'Mis Cursos';
+
+  @override
+  String get trialNotifDay0Title => '¡Tu plan de estudio está listo!';
+
+  @override
+  String get trialNotifDay0Body => 'Generá tus primeras flashcards ahora';
+
+  @override
+  String get trialNotifDay1Title => '¿Sabías que...?';
+
+  @override
+  String get trialNotifDay1Body =>
+      'Los estudiantes que usan flashcards rinden 23% mejor. ¡Probá generar un quiz!';
+
+  @override
+  String get trialNotifDay2Title => '¿Probaste Snap & Solve?';
+
+  @override
+  String get trialNotifDay2Body =>
+      'Sacale foto a cualquier problema y obtén la solución paso a paso';
+
+  @override
+  String get trialNotifLastDayTitle => '¡Último día de tu prueba!';
+
+  @override
+  String get trialNotifLastDayBody =>
+      'Aprovechá al máximo — generá flashcards, quizzes y resúmenes';
+
+  @override
+  String get trialNotif2DaysLeftTitle => 'Te quedan 2 días de prueba';
+
+  @override
+  String get trialNotif2DaysLeftBody =>
+      'No te lo pierdas — explorá todas las herramientas de IA';
 }

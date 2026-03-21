@@ -3043,6 +3043,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count}/{max}'**
   String chatCharCount(String count, String max);
+
+  /// No description provided for @postUploadMaterialUploaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Material uploaded'**
+  String get postUploadMaterialUploaded;
+
+  /// No description provided for @postUploadWhatToCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'What do you want to create?'**
+  String get postUploadWhatToCreate;
+
+  /// No description provided for @postUploadFlashcards.
+  ///
+  /// In en, this message translates to:
+  /// **'Flashcards'**
+  String get postUploadFlashcards;
+
+  /// No description provided for @postUploadQuiz.
+  ///
+  /// In en, this message translates to:
+  /// **'Quiz'**
+  String get postUploadQuiz;
+
+  /// No description provided for @postUploadSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary'**
+  String get postUploadSummary;
+
+  /// No description provided for @postUploadGlossary.
+  ///
+  /// In en, this message translates to:
+  /// **'Glossary'**
+  String get postUploadGlossary;
+
+  /// No description provided for @postUploadCreateCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Create study cards'**
+  String get postUploadCreateCards;
+
+  /// No description provided for @postUploadTestKnowledge.
+  ///
+  /// In en, this message translates to:
+  /// **'Test your knowledge'**
+  String get postUploadTestKnowledge;
+
+  /// No description provided for @postUploadKeyPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Key points overview'**
+  String get postUploadKeyPoints;
+
+  /// No description provided for @postUploadKeyTerms.
+  ///
+  /// In en, this message translates to:
+  /// **'Key terms defined'**
+  String get postUploadKeyTerms;
+
+  /// No description provided for @postUploadMoreTools.
+  ///
+  /// In en, this message translates to:
+  /// **'More tools'**
+  String get postUploadMoreTools;
+
+  /// No description provided for @postUploadSrsReview.
+  ///
+  /// In en, this message translates to:
+  /// **'SRS Review'**
+  String get postUploadSrsReview;
+
+  /// No description provided for @postUploadPracticeExam.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice Exam'**
+  String get postUploadPracticeExam;
+
+  /// No description provided for @postUploadAudioSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio Summary'**
+  String get postUploadAudioSummary;
+
+  /// No description provided for @postUploadSnapSolve.
+  ///
+  /// In en, this message translates to:
+  /// **'Snap & Solve'**
+  String get postUploadSnapSolve;
+
+  /// No description provided for @postUploadChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get postUploadChat;
+
+  /// No description provided for @postUploadSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get postUploadSkip;
+
+  /// No description provided for @postUploadGeneratingInBackground.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating {tool} in background...'**
+  String postUploadGeneratingInBackground(String tool);
+
+  /// No description provided for @postUploadHowManyFlashcards.
+  ///
+  /// In en, this message translates to:
+  /// **'How many flashcards?'**
+  String get postUploadHowManyFlashcards;
+
+  /// No description provided for @postUploadChooseCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the number of cards to generate'**
+  String get postUploadChooseCount;
+
+  /// No description provided for @postUploadPro.
+  ///
+  /// In en, this message translates to:
+  /// **'PRO'**
+  String get postUploadPro;
+
+  /// No description provided for @postUploadGenerateFlashcards.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate {count} Flashcards'**
+  String postUploadGenerateFlashcards(int count);
+
+  /// No description provided for @homeDueCardsBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} cards due for review'**
+  String homeDueCardsBanner(int count);
+
+  /// No description provided for @homeDueCardsReviewNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Review now'**
+  String get homeDueCardsReviewNow;
+
+  /// No description provided for @homeMyCourses.
+  ///
+  /// In en, this message translates to:
+  /// **'My Courses'**
+  String get homeMyCourses;
+
+  /// No description provided for @trialNotifDay0Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Your study plan is ready!'**
+  String get trialNotifDay0Title;
+
+  /// No description provided for @trialNotifDay0Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate your first flashcards now'**
+  String get trialNotifDay0Body;
+
+  /// No description provided for @trialNotifDay1Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Did you know?'**
+  String get trialNotifDay1Title;
+
+  /// No description provided for @trialNotifDay1Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Students who use flashcards score 23% higher. Try generating a quiz!'**
+  String get trialNotifDay1Body;
+
+  /// No description provided for @trialNotifDay2Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Have you tried Snap & Solve?'**
+  String get trialNotifDay2Title;
+
+  /// No description provided for @trialNotifDay2Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo of any problem and get a step-by-step solution'**
+  String get trialNotifDay2Body;
+
+  /// No description provided for @trialNotifLastDayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Last day of your trial!'**
+  String get trialNotifLastDayTitle;
+
+  /// No description provided for @trialNotifLastDayBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Make the most of it — generate flashcards, quizzes, and summaries'**
+  String get trialNotifLastDayBody;
+
+  /// No description provided for @trialNotif2DaysLeftTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'2 days left on your trial'**
+  String get trialNotif2DaysLeftTitle;
+
+  /// No description provided for @trialNotif2DaysLeftBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t miss out — explore all the AI tools before it ends'**
+  String get trialNotif2DaysLeftBody;
 }
 
 class _AppLocalizationsDelegate

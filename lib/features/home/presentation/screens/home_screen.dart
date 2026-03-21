@@ -19,24 +19,14 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../gamification/presentation/providers/xp_provider.dart';
 import '../../../gamification/presentation/widgets/xp_popup.dart';
 import '../../../../core/constants/xp_config.dart';
-import '../widgets/daily_digest_card.dart';
-import '../widgets/daily_quest_card.dart';
 import '../widgets/greeting_header.dart';
-import '../widgets/focus_flow_carousel.dart';
-import '../widgets/home_hero_card.dart';
+import '../widgets/due_cards_banner.dart';
 import '../widgets/home_empty_state.dart';
 import '../../../subscription/presentation/widgets/usage_limit_banner.dart';
 import '../../../courses/presentation/providers/course_provider.dart';
-import '../providers/study_plan_provider.dart';
-import '../widgets/quick_actions_row.dart';
-import '../providers/resume_quiz_provider.dart';
+import '../../../courses/data/models/course_model.dart';
 import '../../../../core/providers/generation_provider.dart';
 import '../../../flashcards/presentation/providers/flashcard_provider.dart';
-import '../providers/flashcard_quick_access_provider.dart';
-import '../widgets/flashcard_quick_access_section.dart';
-import '../widgets/journey_hero_widget.dart';
-import '../widgets/seasonal_event_banner.dart';
-import '../providers/journey_provider.dart';
 import '../../../gamification/data/models/achievement_model.dart';
 import '../../../gamification/presentation/providers/achievement_provider.dart';
 import '../../../gamification/presentation/widgets/achievement_popup.dart';
@@ -47,6 +37,7 @@ import '../../../sharing/presentation/widgets/micro_cards/exam_day_card.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
 import '../../../../core/constants/app_limits.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/services/notification_service.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -86,6 +77,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _awardStreakXp();
         _checkAchievements();
         _recalculateCourseProgress();
+        _autoScheduleNotifications();
       });
     }
   }
@@ -117,6 +109,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ref.invalidate(coursesProvider);
     } catch (e) {
       debugPrint('HomeScreen: recalculate course progress failed: $e');
+    }
+  }
+
+  Future<void> _autoScheduleNotifications() async {
+    try {
+      final enabled = await NotificationService.isEnabled();
+      if (!enabled) return;
+
+      final profile = ref.read(profileProvider).valueOrNull;
+      if (profile == null) return;
+
+      await NotificationService.scheduleSmartReminders(
+        streakDays: profile.streakDays,
+        upcomingExams: [],
+        userName: profile.firstName,
+      );
+    } catch (e) {
+      debugPrint('HomeScreen: auto-schedule notifications failed: $e');
     }
   }
 
@@ -310,33 +320,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // ── Simplified Home: 4 sections ────────────────────────────────────────────
+  // ── Simplified Home: 3 sections ────────────────────────────────────────────
 
   Widget _buildNormalHome(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final userName = ref.watch(profileProvider.select(
           (async) => async.whenOrNull(data: (p) => p?.firstName),
         )) ??
-        AppLocalizations.of(context)!.homeDefaultName;
+        l.homeDefaultName;
     final streakDays = ref.watch(profileProvider.select(
           (async) => async.whenOrNull(data: (p) => p?.streakDays),
         )) ??
         0;
-
-    final generationTasks = ref.watch(generationProvider);
-    final hasRunningGeneration = generationTasks.any((t) => t.isRunning);
+    final courses = ref.watch(coursesProvider).valueOrNull ?? [];
 
     return KapsaRefreshIndicator(
       onRefresh: () async {
         ref.invalidate(coursesProvider);
         ref.invalidate(profileProvider);
-        ref.invalidate(studyPlanProvider);
-        ref.invalidate(inProgressQuizzesProvider);
         ref.invalidate(totalDueCardsProvider);
-        ref.invalidate(flashcardQuickAccessProvider);
-        final activeCourse = ref.read(activeJourneyCourseProvider);
-        if (activeCourse != null) {
-          ref.invalidate(journeyNodesProvider(activeCourse));
-        }
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(
@@ -360,65 +362,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
 
-            // 2. Quick Actions Row (moved up for quick access)
-            Opacity(
-              opacity: hasRunningGeneration ? 0.6 : 1.0,
-              child: const QuickActionsRow(),
+            // 2. Due Cards Banner
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+              child: DueCardsBanner(),
             ),
-            const SizedBox(height: AppSpacing.md),
 
-            // 3. Daily Digest (shows once per day)
-            const DailyDigestCard(),
-            const SizedBox(height: AppSpacing.md),
-
-            // 4. Daily Quests
-            const DailyQuestCard(),
-            const SizedBox(height: AppSpacing.md),
-
-            // 5. Seasonal Event (consolidated — shows banner OR card, not both)
-            const SeasonalEventBanner(),
-            const SizedBox(height: AppSpacing.md),
-
-            // 6. Journey Hero — primary study continuation surface
-            const JourneyHeroWidget(),
-            const SizedBox(height: AppSpacing.md),
-
-            // 7. Hero Card (contextual: generation/quiz/due cards)
-            const HomeHeroCard(),
-            const SizedBox(height: AppSpacing.md),
-
-            // 8. Focus Flow Carousel or compact link during generation
-            if (hasRunningGeneration)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                child: GestureDetector(
-                  onTap: () => context.go(Routes.courses),
-                  child: Row(
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.homeYourDecks,
-                        style: AppTypography.labelLarge.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        size: 20,
-                        color: Colors.white60,
-                      ),
-                    ],
-                  ),
+            // 3. My Courses
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, AppSpacing.sm,
+              ),
+              child: Text(
+                l.homeMyCourses,
+                style: AppTypography.h4.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
                 ),
-              )
-            else
-              const FocusFlowCarousel(),
-
-            const SizedBox(height: AppSpacing.md),
-
-            // 9. Flashcard Quick Access (auto-hides if no decks)
-            const FlashcardQuickAccessSection(),
+              ),
+            ),
+            ...courses.map((course) => _HomeCourseCard(course: course)),
 
             // Usage Limit Banner — only when credits < 20%
             const SizedBox(height: AppSpacing.md),
@@ -427,6 +390,136 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
     );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Course Card for simplified home
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _HomeCourseCard extends StatelessWidget {
+  final CourseModel course;
+  const _HomeCourseCard({required this.course});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _courseColor(course.colorHex);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xl,
+        vertical: AppSpacing.xs,
+      ),
+      child: TapScale(
+        onTap: () => context.push(Routes.courseDetailPath(course.id)),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: AppColors.immersiveCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.immersiveBorder),
+          ),
+          child: Row(
+            children: [
+              // Course icon
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  _courseIcon(course.iconName),
+                  color: color,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              // Title + subtitle
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      course.title,
+                      style: AppTypography.labelLarge.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (course.subtitle != null && course.subtitle!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        course.subtitle!,
+                        style: AppTypography.caption.copyWith(
+                          color: Colors.white38,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              // Progress indicator
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      value: course.progress.clamp(0.0, 1.0),
+                      strokeWidth: 3,
+                      backgroundColor: Colors.white.withValues(alpha: 0.08),
+                      valueColor: AlwaysStoppedAnimation(color),
+                    ),
+                    Text(
+                      '${(course.progress * 100).round()}',
+                      style: AppTypography.caption.copyWith(
+                        color: Colors.white54,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Color _courseColor(String hex) {
+    try {
+      return Color(int.parse(hex.replaceFirst('#', '0xFF')));
+    } catch (_) {
+      return AppColors.primary;
+    }
+  }
+
+  static IconData _courseIcon(String name) {
+    const icons = {
+      'book': Icons.menu_book_rounded,
+      'science': Icons.science_rounded,
+      'math': Icons.calculate_rounded,
+      'code': Icons.code_rounded,
+      'law': Icons.gavel_rounded,
+      'medicine': Icons.medical_services_rounded,
+      'art': Icons.palette_rounded,
+      'language': Icons.translate_rounded,
+      'music': Icons.music_note_rounded,
+      'history': Icons.history_edu_rounded,
+      'economics': Icons.trending_up_rounded,
+      'psychology': Icons.psychology_rounded,
+    };
+    return icons[name] ?? Icons.menu_book_rounded;
   }
 }
 

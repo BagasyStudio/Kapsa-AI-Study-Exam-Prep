@@ -6,7 +6,6 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/global_search_sheet.dart';
-import '../../../gamification/presentation/widgets/xp_level_badge.dart';
 import 'streak_pill.dart';
 
 /// Header row with greeting text, streak counter pill, and XP badge.
@@ -75,19 +74,11 @@ class GreetingHeader extends StatelessWidget {
             ),
           ),
         const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (streakDays > 0) ...[
-              StreakPill(
-                days: streakDays,
-                onTap: () => _showStreakModal(context),
-              ),
-              const SizedBox(height: 6),
-            ],
-            const XpLevelBadge(),
-          ],
-        ),
+        if (streakDays > 0)
+          StreakPill(
+            days: streakDays,
+            onTap: () => _showStreakModal(context),
+          ),
       ],
     );
   }

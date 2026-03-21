@@ -19,6 +19,8 @@ import '../providers/course_provider.dart';
 import '../../../flashcards/presentation/providers/flashcard_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
 import '../../../capture/presentation/screens/capture_sheet.dart';
+import '../../../capture/data/models/capture_result.dart';
+import '../../../capture/presentation/widgets/post_upload_tool_selector.dart';
 import '../../../flashcards/presentation/widgets/parent_deck_card.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/utils/error_handler.dart';
@@ -614,15 +616,25 @@ class _MaterialsTabState extends ConsumerState<_MaterialsTab> {
     return filtered;
   }
 
-  void _openCapture(BuildContext context) {
-    showModalBottomSheet(
+  void _openCapture(BuildContext context) async {
+    final result = await showModalBottomSheet<CaptureResult>(
       context: context,
       isScrollControlled: true,
       useRootNavigator: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.3),
-      builder: (_) => CaptureSheet(courseId: widget.courseId),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.92,
+        minChildSize: 0.4,
+        maxChildSize: 0.92,
+        expand: false,
+        builder: (_, __) => CaptureSheet(courseId: widget.courseId),
+      ),
     );
+
+    if (result != null && context.mounted) {
+      showPostUploadToolSelector(context, ref, result);
+    }
   }
 
   Widget _buildSortChips() {
@@ -1291,11 +1303,13 @@ class _StudyToolsTab extends ConsumerWidget {
             },
           ),
 
-          // Study Tools Grid (2x4)
+          // ── Generate section ──
+          _SectionHeader(title: 'Generate'),
+          const SizedBox(height: AppSpacing.sm),
           GridView.count(
             crossAxisCount: 2,
-            mainAxisSpacing: AppSpacing.md,
-            crossAxisSpacing: AppSpacing.md,
+            mainAxisSpacing: AppSpacing.sm,
+            crossAxisSpacing: AppSpacing.sm,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             childAspectRatio: 1.6,
@@ -1313,37 +1327,6 @@ class _StudyToolsTab extends ConsumerWidget {
                 onTap: () => _generateQuiz(context, ref),
               ),
               _StudyToolGridItem(
-                icon: Icons.timer,
-                label: 'Practice Exam',
-                color: const Color(0xFFF97316),
-                onTap: () => context.push(Routes.practiceExam),
-              ),
-              _StudyToolGridItem(
-                icon: Icons.replay_rounded,
-                label: 'SRS Review',
-                color: const Color(0xFF8B5CF6),
-                badge: dueCount > 0 ? '$dueCount due' : null,
-                onTap: () => context.push(Routes.srsReviewPath(courseId)),
-              ),
-              _StudyToolGridItem(
-                icon: Icons.headphones,
-                label: 'Audio Summary',
-                color: const Color(0xFF14B8A6),
-                onTap: () => _openAudioSummary(context, ref),
-              ),
-              _StudyToolGridItem(
-                icon: Icons.grid_view_rounded,
-                label: 'Occlusion',
-                color: const Color(0xFFEC4899),
-                onTap: () => context.push(Routes.occlusionEditorPath(courseId)),
-              ),
-              _StudyToolGridItem(
-                icon: Icons.camera_alt_rounded,
-                label: 'Snap & Solve',
-                color: const Color(0xFFF59E0B),
-                onTap: () => context.push(Routes.snapSolve),
-              ),
-              _StudyToolGridItem(
                 icon: Icons.auto_stories,
                 label: 'Summary',
                 color: const Color(0xFF06B6D4),
@@ -1355,11 +1338,78 @@ class _StudyToolsTab extends ConsumerWidget {
                 color: const Color(0xFF8B5CF6),
                 onTap: () => _generateGlossary(context, ref),
               ),
-              _StudyToolGridItem(
-                icon: Icons.share_rounded,
-                label: 'Share Deck',
-                color: const Color(0xFF6366F1),
-                onTap: () => context.push(Routes.deckListPath(courseId)),
+            ],
+          ),
+
+          const SizedBox(height: AppSpacing.lg),
+
+          // ── Study section ──
+          _SectionHeader(title: 'Study'),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              Expanded(
+                child: _StudyToolGridItem(
+                  icon: Icons.replay_rounded,
+                  label: 'SRS Review',
+                  color: const Color(0xFF8B5CF6),
+                  badge: dueCount > 0 ? '$dueCount due' : null,
+                  onTap: () => context.push(Routes.srsReviewPath(courseId)),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: _StudyToolGridItem(
+                  icon: Icons.timer,
+                  label: 'Practice Exam',
+                  color: const Color(0xFFF97316),
+                  onTap: () => context.push(Routes.practiceExam),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: _StudyToolGridItem(
+                  icon: Icons.headphones,
+                  label: 'Audio',
+                  color: const Color(0xFF14B8A6),
+                  onTap: () => _openAudioSummary(context, ref),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: AppSpacing.lg),
+
+          // ── Tools section ──
+          _SectionHeader(title: 'Tools'),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              Expanded(
+                child: _StudyToolGridItem(
+                  icon: Icons.camera_alt_rounded,
+                  label: 'Snap & Solve',
+                  color: const Color(0xFFF59E0B),
+                  onTap: () => context.push(Routes.snapSolve),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: _StudyToolGridItem(
+                  icon: Icons.grid_view_rounded,
+                  label: 'Occlusion',
+                  color: const Color(0xFFEC4899),
+                  onTap: () => context.push(Routes.occlusionEditorPath(courseId)),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: _StudyToolGridItem(
+                  icon: Icons.share_rounded,
+                  label: 'Share Deck',
+                  color: const Color(0xFF6366F1),
+                  onTap: () => context.push(Routes.deckListPath(courseId)),
+                ),
               ),
             ],
           ),
@@ -1646,6 +1696,25 @@ class _StudyToolGridItem extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Section header for the Study Tools tab.
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: AppTypography.labelLarge.copyWith(
+        color: Colors.white54,
+        fontWeight: FontWeight.w600,
+        fontSize: 13,
+        letterSpacing: 0.5,
       ),
     );
   }

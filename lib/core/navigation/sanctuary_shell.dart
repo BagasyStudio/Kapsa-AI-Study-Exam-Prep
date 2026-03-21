@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/capture/presentation/screens/capture_sheet.dart';
+import '../../features/capture/data/models/capture_result.dart';
+import '../../features/capture/presentation/widgets/post_upload_tool_selector.dart';
 import '../../features/profile/presentation/providers/profile_provider.dart';
 import '../services/sound_service.dart';
 import '../theme/app_colors.dart';
@@ -209,7 +211,7 @@ class _KapsaShellState extends ConsumerState<KapsaShell>
   void _showCaptureSheet(BuildContext context) async {
     SoundService.playCaptureStart();
 
-    final result = await showModalBottomSheet<String>(
+    final result = await showModalBottomSheet<CaptureResult>(
       context: context,
       isScrollControlled: true,
       useRootNavigator: true,
@@ -225,9 +227,7 @@ class _KapsaShellState extends ConsumerState<KapsaShell>
     );
 
     if (result != null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result)),
-      );
+      showPostUploadToolSelector(context, ref, result);
     }
   }
 }

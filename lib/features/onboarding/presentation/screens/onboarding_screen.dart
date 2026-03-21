@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import '../../../../l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:in_app_review/in_app_review.dart';
+import 'package:path_provider/path_provider.dart' show getApplicationDocumentsDirectory;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/navigation/routes.dart';
 import '../../../../core/theme/app_animations.dart';
@@ -125,6 +127,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     await prefs.setBool('has_seen_onboarding', true);
     await prefs.setInt(
         'onboarding_exam_urgency', _selectedExamUrgency ?? -1);
+    if (_selectedArea != null) {
+      await prefs.setInt('onboarding_study_area', _selectedArea!);
+    }
     if (_materialPath != null) {
       await prefs.setString('onboarding_material_path', _materialPath!);
       await prefs.setString('onboarding_material_type', _materialType!);
@@ -163,21 +168,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
-  void _handleMaterialPicked(String path, String type, int fileSize) {
+  void _handleMaterialPicked(String path, String type, int fileSize) async {
+    // Copy file to persistent directory (tmp files may be deleted on iOS restart)
+    String persistentPath = path;
+    try {
+      final docsDir = await getApplicationDocumentsDirectory();
+      final ext = type == 'pdf' ? 'pdf' : 'jpg';
+      persistentPath = '${docsDir.path}/onboarding_material.$ext';
+      await File(path).copy(persistentPath);
+    } catch (_) {
+      // Fall back to original path if copy fails
+    }
+
     setState(() {
-      _materialPath = path;
+      _materialPath = persistentPath;
       _materialType = type;
-      // Estimate counts based on file type and size
       if (type == 'pdf') {
         _estimatedFlashcards = (fileSize / 50000).round().clamp(5, 50);
         _estimatedQuizzes = (fileSize / 80000).round().clamp(3, 30);
       } else {
-        // Camera/OCR — fixed estimates
         _estimatedFlashcards = 8;
         _estimatedQuizzes = 5;
       }
     });
-    _nextPage(); // Go to Processing page
+    _nextPage();
   }
 
   void _handleMaterialSkip() {

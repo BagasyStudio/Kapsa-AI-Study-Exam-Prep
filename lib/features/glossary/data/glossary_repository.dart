@@ -11,10 +11,14 @@ class GlossaryRepository {
   /// Generate glossary terms for a course via Edge Function.
   Future<List<GlossaryTermModel>> generateGlossary({
     required String courseId,
+    String? materialId,
   }) async {
     final response = await _functions.invoke(
       'ai-generate-glossary',
-      body: {'courseId': courseId},
+      body: {
+        'courseId': courseId,
+        if (materialId != null) 'materialId': materialId,
+      },
     );
 
     final data = response.data;

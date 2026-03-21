@@ -1,7 +1,7 @@
 name: kapsa_app
 description: "Kapsa - AI-powered study companion"
 publish_to: 'none'
-version: 2.4.0+75
+version: 2.5.0+76
 
 environment:
   sdk: ^3.6.0

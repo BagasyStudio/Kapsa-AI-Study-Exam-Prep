@@ -324,7 +324,7 @@ Deno.serve(async (req: Request) => {
     // ACTION: GENERATE QUIZ (batch-parallel)
     // ═══════════════════════════════════════════
     if (action === "generate") {
-      const { courseId, count: rawCount, isPracticeExam } = body;
+      const { courseId, count: rawCount, isPracticeExam, materialId } = body;
 
       if (!isValidUUID(courseId)) {
         return new Response(JSON.stringify({ error: "Invalid course ID" }), {
@@ -348,13 +348,17 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      // ── Fetch ALL materials (no limit) ─────────────────────────
-      const { data: materials } = await supabase
+      // ── Fetch materials (filtered by materialId if provided) ───
+      let materialsQuery = supabase
         .from("course_materials")
         .select("title, content, type")
         .eq("course_id", courseId)
         .eq("user_id", user.id)
         .not("content", "is", null);
+      if (materialId && isValidUUID(materialId)) {
+        materialsQuery = materialsQuery.eq("id", materialId);
+      }
+      const { data: materials } = await materialsQuery;
 
       const validMaterials = (materials || []).filter(
         (m: any) => m.content && m.content.trim().length > 0,
