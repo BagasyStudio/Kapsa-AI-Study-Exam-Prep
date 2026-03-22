@@ -23,7 +23,7 @@ class HomeDeckGrid extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context)!;
-    final decksAsync = ref.watch(parentDecksProvider(courseId));
+    final decksAsync = ref.watch(childDecksForCourseProvider(courseId));
 
     return decksAsync.when(
       loading: () => const _DeckGridShimmer(),
@@ -146,7 +146,7 @@ class _HomeDeckCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dueAsync = ref.watch(dueCardsCountForParentDeckProvider(deck.id));
+    final dueAsync = ref.watch(dueCardsCountForDeckProvider(deck.id));
     final dueCount = dueAsync.whenOrNull(data: (c) => c) ?? 0;
     final gradient = DeckCoverGradient.forIndex(deck.coverGradientIndex);
     final primaryColor = gradient.colors.first;

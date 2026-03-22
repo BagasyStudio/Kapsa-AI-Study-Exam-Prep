@@ -62,6 +62,12 @@ final parentDecksProvider = FutureProvider.autoDispose
   return ref.watch(flashcardRepositoryProvider).getParentDecks(courseId);
 });
 
+/// Fetches all child (topic-level) decks for a course.
+final childDecksForCourseProvider = FutureProvider.autoDispose
+    .family<List<DeckModel>, String>((ref, courseId) async {
+  return ref.watch(flashcardRepositoryProvider).getChildDecksForCourse(courseId);
+});
+
 /// Fetches a single deck by ID.
 final deckProvider = FutureProvider.autoDispose
     .family<DeckModel?, String>((ref, deckId) async {

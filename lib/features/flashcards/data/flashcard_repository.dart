@@ -244,6 +244,18 @@ class FlashcardRepository {
     return (data as List).map((e) => DeckModel.fromJson(e)).toList();
   }
 
+  /// Fetch all child (topic-level) decks for a course.
+  Future<List<DeckModel>> getChildDecksForCourse(String courseId) async {
+    final data = await _client
+        .from('flashcard_decks')
+        .select()
+        .eq('course_id', courseId)
+        .not('parent_deck_id', 'is', null)
+        .order('created_at', ascending: true)
+        .limit(50);
+    return (data as List).map((e) => DeckModel.fromJson(e)).toList();
+  }
+
   /// Fetch a single deck by ID.
   Future<DeckModel?> getDeck(String deckId) async {
     final data = await _client
