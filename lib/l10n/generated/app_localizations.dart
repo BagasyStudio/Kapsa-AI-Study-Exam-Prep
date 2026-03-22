@@ -3194,6 +3194,54 @@ abstract class AppLocalizations {
   /// **'My Courses'**
   String get homeMyCourses;
 
+  /// No description provided for @homeYourJourney.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Journey'**
+  String get homeYourJourney;
+
+  /// No description provided for @homeContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get homeContinue;
+
+  /// No description provided for @homeFlashcardDecks.
+  ///
+  /// In en, this message translates to:
+  /// **'Flashcard Decks'**
+  String get homeFlashcardDecks;
+
+  /// No description provided for @homeSeeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get homeSeeAll;
+
+  /// No description provided for @homeViewAllDecks.
+  ///
+  /// In en, this message translates to:
+  /// **'View all {count} decks'**
+  String homeViewAllDecks(int count);
+
+  /// No description provided for @homeNoDecksYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No flashcard decks yet'**
+  String get homeNoDecksYet;
+
+  /// No description provided for @homeStartJourney.
+  ///
+  /// In en, this message translates to:
+  /// **'Start your journey'**
+  String get homeStartJourney;
+
+  /// No description provided for @homeComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'complete'**
+  String get homeComplete;
+
   /// No description provided for @trialNotifDay0Title.
   ///
   /// In en, this message translates to:

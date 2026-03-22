@@ -1690,6 +1690,32 @@ class AppLocalizationsEs extends AppLocalizations {
   String get homeMyCourses => 'Mis Cursos';
 
   @override
+  String get homeYourJourney => 'Tu Camino';
+
+  @override
+  String get homeContinue => 'Continuar';
+
+  @override
+  String get homeFlashcardDecks => 'Mazos de Flashcards';
+
+  @override
+  String get homeSeeAll => 'Ver todo';
+
+  @override
+  String homeViewAllDecks(int count) {
+    return 'Ver los $count mazos';
+  }
+
+  @override
+  String get homeNoDecksYet => 'Aún no tienes mazos';
+
+  @override
+  String get homeStartJourney => 'Comienza tu camino';
+
+  @override
+  String get homeComplete => 'completo';
+
+  @override
   String get trialNotifDay0Title => '¡Tu plan de estudio está listo!';
 
   @override

@@ -2,9 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../l10n/generated/app_localizations.dart';
-import '../../../../core/navigation/routes.dart';
 import '../../../../core/services/sound_service.dart';
 import '../../../profile/data/models/profile_model.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -24,8 +22,6 @@ import '../widgets/due_cards_banner.dart';
 import '../widgets/home_empty_state.dart';
 import '../../../subscription/presentation/widgets/usage_limit_banner.dart';
 import '../../../courses/presentation/providers/course_provider.dart';
-import '../../../courses/data/models/course_model.dart';
-import '../../../../core/providers/generation_provider.dart';
 import '../../../flashcards/presentation/providers/flashcard_provider.dart';
 import '../../../gamification/data/models/achievement_model.dart';
 import '../../../gamification/presentation/providers/achievement_provider.dart';
@@ -38,6 +34,12 @@ import '../../../subscription/presentation/providers/subscription_provider.dart'
 import '../../../../core/constants/app_limits.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/services/notification_service.dart';
+import '../providers/home_state_provider.dart';
+import '../providers/journey_provider.dart';
+import '../widgets/home_course_selector.dart';
+import '../widgets/home_journey_preview.dart';
+import '../widgets/home_deck_grid.dart';
+import '../widgets/quick_actions_row.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -320,7 +322,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // ── Simplified Home: 3 sections ────────────────────────────────────────────
+  // ── Rich Home: greeting + due + course selector + journey + decks + actions
 
   Widget _buildNormalHome(BuildContext context) {
     final l = AppLocalizations.of(context)!;
@@ -332,13 +334,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           (async) => async.whenOrNull(data: (p) => p?.streakDays),
         )) ??
         0;
-    final courses = ref.watch(coursesProvider).valueOrNull ?? [];
+    final activeCourseId = ref.watch(activeHomeCourseIdProvider);
 
     return KapsaRefreshIndicator(
       onRefresh: () async {
         ref.invalidate(coursesProvider);
         ref.invalidate(profileProvider);
         ref.invalidate(totalDueCardsProvider);
+        if (activeCourseId != null) {
+          ref.invalidate(parentDecksProvider(activeCourseId));
+          ref.invalidate(journeyNodesProvider(activeCourseId));
+        }
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(
@@ -368,158 +374,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: DueCardsBanner(),
             ),
 
-            // 3. My Courses
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, AppSpacing.sm,
-              ),
-              child: Text(
-                l.homeMyCourses,
-                style: AppTypography.h4.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+            // 3. Course Selector (hidden if only 1 course)
+            const Padding(
+              padding: EdgeInsets.only(top: AppSpacing.sm),
+              child: HomeCourseSelector(),
             ),
-            ...courses.map((course) => _HomeCourseCard(course: course)),
 
-            // Usage Limit Banner — only when credits < 20%
+            // 4. Journey Preview
+            if (activeCourseId != null) ...[
+              const SizedBox(height: AppSpacing.md),
+              HomeJourneyPreview(courseId: activeCourseId),
+            ],
+
+            // 5. Flashcard Decks Grid
+            if (activeCourseId != null) ...[
+              const SizedBox(height: AppSpacing.xl),
+              HomeDeckGrid(courseId: activeCourseId),
+            ],
+
+            // 6. Quick Actions
+            const SizedBox(height: AppSpacing.xl),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+              child: QuickActionsRow(),
+            ),
+
+            // 7. Usage Limit Banner — only when credits < 20%
             const SizedBox(height: AppSpacing.md),
             const _ConditionalUsageBanner(),
           ],
         ),
       ),
     );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// Course Card for simplified home
-// ═══════════════════════════════════════════════════════════════════════════════
-
-class _HomeCourseCard extends StatelessWidget {
-  final CourseModel course;
-  const _HomeCourseCard({required this.course});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _courseColor(course.colorHex);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xl,
-        vertical: AppSpacing.xs,
-      ),
-      child: TapScale(
-        onTap: () => context.push(Routes.courseDetailPath(course.id)),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: AppColors.immersiveCard,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.immersiveBorder),
-          ),
-          child: Row(
-            children: [
-              // Course icon
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  _courseIcon(course.iconName),
-                  color: color,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              // Title + subtitle
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      course.title,
-                      style: AppTypography.labelLarge.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (course.subtitle != null && course.subtitle!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        course.subtitle!,
-                        style: AppTypography.caption.copyWith(
-                          color: Colors.white38,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              // Progress indicator
-              SizedBox(
-                width: 36,
-                height: 36,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    CircularProgressIndicator(
-                      value: course.progress.clamp(0.0, 1.0),
-                      strokeWidth: 3,
-                      backgroundColor: Colors.white.withValues(alpha: 0.08),
-                      valueColor: AlwaysStoppedAnimation(color),
-                    ),
-                    Text(
-                      '${(course.progress * 100).round()}',
-                      style: AppTypography.caption.copyWith(
-                        color: Colors.white54,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  static Color _courseColor(String hex) {
-    try {
-      return Color(int.parse(hex.replaceFirst('#', '0xFF')));
-    } catch (_) {
-      return AppColors.primary;
-    }
-  }
-
-  static IconData _courseIcon(String name) {
-    const icons = {
-      'book': Icons.menu_book_rounded,
-      'science': Icons.science_rounded,
-      'math': Icons.calculate_rounded,
-      'code': Icons.code_rounded,
-      'law': Icons.gavel_rounded,
-      'medicine': Icons.medical_services_rounded,
-      'art': Icons.palette_rounded,
-      'language': Icons.translate_rounded,
-      'music': Icons.music_note_rounded,
-      'history': Icons.history_edu_rounded,
-      'economics': Icons.trending_up_rounded,
-      'psychology': Icons.psychology_rounded,
-    };
-    return icons[name] ?? Icons.menu_book_rounded;
   }
 }
 
@@ -606,7 +492,80 @@ class _HomeShimmerState extends State<_HomeShimmer>
               ),
               const SizedBox(height: AppSpacing.md),
 
-              // 2. Quick actions: row of 4 circles
+              // 2. Due banner placeholder
+              _ShimmerRect(
+                width: double.infinity,
+                height: 48,
+                borderRadius: 12,
+                shimmerValue: _shimmerController.value,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+
+              // 3. Journey preview placeholder
+              _ShimmerRect(
+                width: double.infinity,
+                height: 180,
+                borderRadius: 20,
+                shimmerValue: _shimmerController.value,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+
+              // 4. Deck grid header
+              _ShimmerRect(
+                width: 140,
+                height: 20,
+                borderRadius: 8,
+                shimmerValue: _shimmerController.value,
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              // 5. Deck grid 2x2
+              Row(
+                children: [
+                  Expanded(
+                    child: _ShimmerRect(
+                      width: double.infinity,
+                      height: 140,
+                      borderRadius: 16,
+                      shimmerValue: _shimmerController.value,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: _ShimmerRect(
+                      width: double.infinity,
+                      height: 140,
+                      borderRadius: 16,
+                      shimmerValue: _shimmerController.value,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  Expanded(
+                    child: _ShimmerRect(
+                      width: double.infinity,
+                      height: 140,
+                      borderRadius: 16,
+                      shimmerValue: _shimmerController.value,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: _ShimmerRect(
+                      width: double.infinity,
+                      height: 140,
+                      borderRadius: 16,
+                      shimmerValue: _shimmerController.value,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+
+              // 6. Quick actions: row of 4 circles
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: List.generate(
@@ -628,65 +587,6 @@ class _HomeShimmerState extends State<_HomeShimmer>
                       ),
                     ],
                   ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-
-              // 3. Compact digest strip
-              _ShimmerRect(
-                width: double.infinity,
-                height: 40,
-                borderRadius: 10,
-                shimmerValue: _shimmerController.value,
-              ),
-              const SizedBox(height: AppSpacing.md),
-
-              // 4. Hero card area
-              _ShimmerRect(
-                width: double.infinity,
-                height: 200,
-                borderRadius: 20,
-                shimmerValue: _shimmerController.value,
-              ),
-              const SizedBox(height: AppSpacing.md),
-
-              // 5. Section header
-              _ShimmerRect(
-                width: 140,
-                height: 16,
-                borderRadius: 8,
-                shimmerValue: _shimmerController.value,
-              ),
-              const SizedBox(height: AppSpacing.md),
-
-              // 6. Flashcard carousel
-              SizedBox(
-                height: 100,
-                child: Row(
-                  children: [
-                    _ShimmerRect(
-                      width: 160,
-                      height: 100,
-                      borderRadius: 16,
-                      shimmerValue: _shimmerController.value,
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    _ShimmerRect(
-                      width: 160,
-                      height: 100,
-                      borderRadius: 16,
-                      shimmerValue: _shimmerController.value,
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: _ShimmerRect(
-                        width: double.infinity,
-                        height: 100,
-                        borderRadius: 16,
-                        shimmerValue: _shimmerController.value,
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ],

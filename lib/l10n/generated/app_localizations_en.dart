@@ -1682,6 +1682,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeMyCourses => 'My Courses';
 
   @override
+  String get homeYourJourney => 'Your Journey';
+
+  @override
+  String get homeContinue => 'Continue';
+
+  @override
+  String get homeFlashcardDecks => 'Flashcard Decks';
+
+  @override
+  String get homeSeeAll => 'See all';
+
+  @override
+  String homeViewAllDecks(int count) {
+    return 'View all $count decks';
+  }
+
+  @override
+  String get homeNoDecksYet => 'No flashcard decks yet';
+
+  @override
+  String get homeStartJourney => 'Start your journey';
+
+  @override
+  String get homeComplete => 'complete';
+
+  @override
   String get trialNotifDay0Title => 'Your study plan is ready!';
 
   @override
