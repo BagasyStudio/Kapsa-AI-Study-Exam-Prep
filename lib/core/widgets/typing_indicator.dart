@@ -45,7 +45,7 @@ class _TypingIndicatorState extends State<TypingIndicator>
     _startAnimation();
   }
 
-  void _startAnimation() async {
+  Future<void> _startAnimation() async {
     while (mounted) {
       for (int i = 0; i < 3; i++) {
         if (!mounted) return;

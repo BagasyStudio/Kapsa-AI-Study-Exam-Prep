@@ -178,7 +178,7 @@ class _OcclusionEditorScreenState
   }
 
   void _deleteSelected() {
-    if (_selectedIndex == null) return;
+    if (_selectedIndex == null || _selectedIndex! >= _rects.length) return;
     HapticFeedback.mediumImpact();
     setState(() {
       _rects.removeAt(_selectedIndex!);

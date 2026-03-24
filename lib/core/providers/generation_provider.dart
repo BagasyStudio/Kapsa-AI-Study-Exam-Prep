@@ -74,22 +74,22 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
 
     // Fire-and-forget — check credits, resolve pro status, generate
     () async {
-      // Check credits before starting (prevents bypass via concurrent requests)
-      if (!await _checkCredits('flashcards', task.id)) return;
-
-      // Cap free users to 30 cards regardless of requested count
-      var effectiveCount = count;
       try {
-        final isPro = await _ref.read(isProProvider.future);
-        if (!isPro) {
+        // Check credits before starting (prevents bypass via concurrent requests)
+        if (!await _checkCredits('flashcards', task.id)) return;
+
+        // Cap free users to 30 cards regardless of requested count
+        var effectiveCount = count;
+        try {
+          final isPro = await _ref.read(isProProvider.future);
+          if (!isPro) {
+            effectiveCount = (effectiveCount ?? 30).clamp(1, 30);
+          }
+        } catch (e) {
+          debugPrint('GenerationNotifier: pro status check failed: $e');
           effectiveCount = (effectiveCount ?? 30).clamp(1, 30);
         }
-      } catch (e) {
-        debugPrint('GenerationNotifier: pro status check failed: $e');
-        effectiveCount = (effectiveCount ?? 30).clamp(1, 30);
-      }
 
-      try {
         final deck = await _retryWithBackoff(() => _ref
             .read(flashcardRepositoryProvider)
             .generateFlashcards(courseId: courseId, materialId: materialId, count: effectiveCount));
@@ -112,8 +112,8 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
     final task = _createTask(GenerationType.quiz, courseId, courseName);
 
     () async {
-      if (!await _checkCredits('quiz', task.id)) return;
       try {
+        if (!await _checkCredits('quiz', task.id)) return;
         final result = await _retryWithBackoff(() => _ref
             .read(testRepositoryProvider)
             .generateQuiz(courseId: courseId, focusTopics: focusTopics, materialId: materialId));
@@ -134,8 +134,8 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
     final task = _createTask(GenerationType.summary, courseId, courseName);
 
     () async {
-      if (!await _checkCredits('summary', task.id)) return;
       try {
+        if (!await _checkCredits('summary', task.id)) return;
         final summary = await _retryWithBackoff(() => _ref
             .read(summaryRepositoryProvider)
             .generateSummary(courseId: courseId, materialId: materialId));
@@ -157,8 +157,8 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
     final task = _createTask(GenerationType.glossary, courseId, courseName);
 
     () async {
-      if (!await _checkCredits('glossary', task.id)) return;
       try {
+        if (!await _checkCredits('glossary', task.id)) return;
         await _retryWithBackoff(() => _ref
             .read(glossaryRepositoryProvider)
             .generateGlossary(courseId: courseId, materialId: materialId));
@@ -230,7 +230,7 @@ class GenerationNotifier extends StateNotifier<List<GenerationTask>> {
       try {
         final isPro = await _ref.read(isProProvider.future);
         if (isPro) return true;
-      } catch (_) {}
+      } catch (e) { debugPrint('GenerationNotifier: pro fallback check failed: $e'); }
       _failTask(taskId, Exception('Could not verify credits. Please try again.'));
       return false;
     }

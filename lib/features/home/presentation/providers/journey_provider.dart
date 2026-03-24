@@ -507,7 +507,7 @@ final activeJourneyCourseProvider = Provider<String?>((ref) {
   // Then lowest progress
   final byProgress = [...courses]
     ..sort((a, b) => a.progress.compareTo(b.progress));
-  return byProgress.first.id;
+  return byProgress.isNotEmpty ? byProgress.first.id : null;
 });
 
 /// Index of the first checkpoint node (used for paywall gating).

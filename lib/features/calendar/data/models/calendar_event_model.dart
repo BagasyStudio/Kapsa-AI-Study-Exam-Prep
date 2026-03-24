@@ -33,15 +33,16 @@ class CalendarEventModel {
       courseId: json['course_id'] as String?,
       title: json['title'] as String,
       type: json['type'] as String,
-      startTime: DateTime.parse(json['start_time'] as String),
+      startTime: DateTime.tryParse(json['start_time'] as String? ?? '') ??
+          DateTime.now(),
       endTime: json['end_time'] != null
-          ? DateTime.parse(json['end_time'] as String)
+          ? DateTime.tryParse(json['end_time'] as String)
           : null,
       description: json['description'] as String?,
       isCompleted: json['is_completed'] as bool? ?? false,
       aiSuggestion: json['ai_suggestion'] as String?,
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
+          ? DateTime.tryParse(json['created_at'] as String)
           : null,
     );
   }

@@ -80,7 +80,7 @@ class RevenueCatService {
     } catch (e) {
       debugPrint('RevenueCatService: login/restore failed: $e');
       // Still try to sync whatever state we have
-      try { await _syncProStatus(); } catch (_) {}
+      try { await _syncProStatus(); } catch (e) { debugPrint('RevenueCatService: sync fallback failed: $e'); }
     }
   }
 

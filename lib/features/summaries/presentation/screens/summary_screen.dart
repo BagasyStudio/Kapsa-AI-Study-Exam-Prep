@@ -230,15 +230,17 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
     }
   }
 
-  void _toggleTts(String summaryText) async {
+  Future<void> _toggleTts(String summaryText) async {
     if (_isPlaying) {
       await TtsService.instance.stop();
     } else {
       await TtsService.instance.speak(summaryText);
     }
-    setState(() {
-      _isPlaying = !_isPlaying;
-    });
+    if (mounted) {
+      setState(() {
+        _isPlaying = !_isPlaying;
+      });
+    }
   }
 
   void _generateQuiz(String courseId) {

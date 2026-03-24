@@ -82,7 +82,7 @@ Future<CaptureResult?> processOnboardingMaterial(WidgetRef ref) async {
     // Clean up
     await _clearOnboardingKeys(prefs);
     // Delete the persistent copy
-    try { await file.delete(); } catch (_) {}
+    try { await file.delete(); } catch (e) { debugPrint('OnboardingMaterialProcessor: file delete failed: $e'); }
 
     // Refresh courses list
     ref.invalidate(coursesProvider);

@@ -133,6 +133,7 @@ class _FirstDeckWizardState extends ConsumerState<FirstDeckWizard> {
       }
 
       final bytes = await image.readAsBytes();
+      if (!mounted) return;
       setState(() {
         _fileBytes = bytes;
         _fileName = 'Scanned Page';

@@ -357,6 +357,7 @@ class _CreateDeckBottomSheetState
         return;
       }
       final bytes = await image.readAsBytes();
+      if (!mounted) return;
       setState(() {
         _fileBytes = bytes;
         _fileName = 'Scanned Page';
@@ -430,7 +431,7 @@ class _CreateDeckBottomSheetState
             _selectedCourseName ?? '',
             count: _cardCount.round(),
           );
-      Navigator.of(context).pop();
+      if (mounted) Navigator.of(context).pop();
       return;
     }
 
@@ -441,13 +442,14 @@ class _CreateDeckBottomSheetState
       if (user == null) throw Exception('Not authenticated');
 
       // Check OCR feature access
+      if (!mounted) return;
       final canUse = await checkFeatureAccess(
         ref: ref,
         feature: 'ocr',
         context: context,
       );
       if (!canUse) {
-        setState(() => _isProcessing = false);
+        if (mounted) setState(() => _isProcessing = false);
         return;
       }
 

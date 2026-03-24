@@ -48,7 +48,8 @@ class SnapSolveRepository {
         throw Exception(data['error'] as String);
       }
 
-      final userId = _client.auth.currentUser?.id ?? '';
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) throw Exception('Not authenticated');
       return SnapSolutionModel.fromJson({
         ...data,
         'user_id': userId,

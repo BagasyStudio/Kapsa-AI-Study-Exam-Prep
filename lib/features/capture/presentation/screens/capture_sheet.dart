@@ -1808,6 +1808,7 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
         path: _filePath!,
       );
 
+      if (!mounted) return;
       setState(() {
         _isRecording = true;
         _isPreview = false;
@@ -1866,10 +1867,10 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
     try {
       if (_isPlaying) {
         await _player.pause();
-        setState(() => _isPlaying = false);
+        if (mounted) setState(() => _isPlaying = false);
       } else {
         await _player.play(DeviceFileSource(_filePath!));
-        setState(() => _isPlaying = true);
+        if (mounted) setState(() => _isPlaying = true);
       }
     } catch (e) {
       if (kDebugMode) debugPrint('[AudioPlayer] Playback error: $e');
@@ -1879,6 +1880,7 @@ class _AudioRecorderDialogState extends State<_AudioRecorderDialog> {
   Future<void> _reRecord() async {
     // Stop playback if playing
     await _player.stop();
+    if (!mounted) return;
     setState(() {
       _isPlaying = false;
       _isPreview = false;

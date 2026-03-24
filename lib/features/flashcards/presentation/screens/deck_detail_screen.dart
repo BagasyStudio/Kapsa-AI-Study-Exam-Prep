@@ -2339,13 +2339,13 @@ class _DeckCustomizeSheetState extends State<_DeckCustomizeSheet> {
   Future<void> _saveFontSize(double size) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('deck_font_size_${widget.deckId}', size);
-    setState(() => _currentFontSize = size);
+    if (mounted) setState(() => _currentFontSize = size);
   }
 
   Future<void> _saveColor(int index) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('deck_color_${widget.deckId}', index);
-    setState(() => _selectedColorIndex = index);
+    if (mounted) setState(() => _selectedColorIndex = index);
   }
 
   @override

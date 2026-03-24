@@ -77,6 +77,9 @@ class TestRepository {
     if (data == null || data is! Map<String, dynamic>) {
       throw Exception('Invalid response from quiz generation');
     }
+    if (data['test'] == null || data['questions'] == null) {
+      throw Exception('Missing test or questions in quiz response');
+    }
     final test = TestModel.fromJson(data['test'] as Map<String, dynamic>);
     final questions = (data['questions'] as List)
         .map((e) => TestQuestionModel.fromJson(e as Map<String, dynamic>))

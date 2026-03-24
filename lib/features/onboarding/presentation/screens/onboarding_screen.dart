@@ -168,7 +168,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
-  void _handleMaterialPicked(String path, String type, int fileSize) async {
+  Future<void> _handleMaterialPicked(String path, String type, int fileSize) async {
     // Copy file to persistent directory (tmp files may be deleted on iOS restart)
     String persistentPath = path;
     try {

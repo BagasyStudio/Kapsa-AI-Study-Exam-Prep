@@ -133,10 +133,10 @@ class _SrsReviewScreenState extends ConsumerState<SrsReviewScreen> {
     }
   }
 
-  void _speakText(String text) async {
+  Future<void> _speakText(String text) async {
     if (TtsService.instance.isSpeaking) {
       await TtsService.instance.stop();
-      setState(() => _isSpeaking = false);
+      if (mounted) setState(() => _isSpeaking = false);
     } else {
       setState(() => _isSpeaking = true);
       await TtsService.instance.speak(text);

@@ -616,7 +616,7 @@ class _MaterialsTabState extends ConsumerState<_MaterialsTab> {
     return filtered;
   }
 
-  void _openCapture(BuildContext context) async {
+  Future<void> _openCapture(BuildContext context) async {
     final result = await showModalBottomSheet<CaptureResult>(
       context: context,
       isScrollControlled: true,
@@ -743,7 +743,7 @@ class _MaterialsTabState extends ConsumerState<_MaterialsTab> {
     );
   }
 
-  void _generateFromBanner(BuildContext context, WidgetRef ref) async {
+  Future<void> _generateFromBanner(BuildContext context, WidgetRef ref) async {
     final canUse = await checkFeatureAccess(
       ref: ref,
       feature: 'flashcards',

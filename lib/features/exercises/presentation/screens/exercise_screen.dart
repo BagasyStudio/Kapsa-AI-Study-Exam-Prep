@@ -141,7 +141,7 @@ class _ExerciseBody extends ConsumerWidget {
       exerciseData = rawExerciseData;
     }
 
-    final onComplete = (int score) {
+    void onComplete(int score) {
       // Save score
       ref
           .read(exerciseScoreProvider(courseId).notifier)
@@ -160,7 +160,7 @@ class _ExerciseBody extends ConsumerWidget {
 
       // Return result to journey
       Navigator.of(context).pop(JourneyResult.completed);
-    };
+    }
 
     switch (exerciseType) {
       case 'fillGaps':
@@ -240,7 +240,9 @@ class _ExerciseBody extends ConsumerWidget {
       if (raw != null) {
         final decoded = jsonDecode(raw);
         if (decoded is List) {
-          history = decoded.cast<Map<String, dynamic>>();
+          history = decoded
+              .whereType<Map<String, dynamic>>()
+              .toList();
         }
       }
       history.add({

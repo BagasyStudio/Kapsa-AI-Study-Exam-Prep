@@ -208,7 +208,7 @@ class _KapsaShellState extends ConsumerState<KapsaShell>
     );
   }
 
-  void _showCaptureSheet(BuildContext context) async {
+  Future<void> _showCaptureSheet(BuildContext context) async {
     SoundService.playCaptureStart();
 
     final result = await showModalBottomSheet<CaptureResult>(

@@ -1766,7 +1766,7 @@ class _SoundToggleTileState extends State<_SoundToggleTile> {
 
   Future<void> _toggle(bool value) async {
     await SoundService.setEnabled(value);
-    setState(() => _enabled = value);
+    if (mounted) setState(() => _enabled = value);
   }
 
   @override
@@ -1839,7 +1839,7 @@ class _TtsToggleTileState extends State<_TtsToggleTile> {
 
   Future<void> _toggle(bool value) async {
     await TtsService.instance.setEnabled(value);
-    setState(() => _enabled = value);
+    if (mounted) setState(() => _enabled = value);
   }
 
   @override
@@ -1912,7 +1912,7 @@ class _TtsAutoReadToggleTileState extends State<_TtsAutoReadToggleTile> {
 
   Future<void> _toggle(bool value) async {
     await TtsService.instance.setAutoRead(value);
-    setState(() => _enabled = value);
+    if (mounted) setState(() => _enabled = value);
   }
 
   @override
@@ -2377,7 +2377,7 @@ class _ReduceMotionToggleTileState extends State<_ReduceMotionToggleTile> {
   Future<void> _toggle(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_prefsKey, value);
-    setState(() => _enabled = value);
+    if (mounted) setState(() => _enabled = value);
   }
 
   @override
@@ -2554,7 +2554,7 @@ class _OledModeToggleTileState extends State<_OledModeToggleTile> {
   Future<void> _toggle(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_prefsKey, value);
-    setState(() => _enabled = value);
+    if (mounted) setState(() => _enabled = value);
   }
 
   @override
