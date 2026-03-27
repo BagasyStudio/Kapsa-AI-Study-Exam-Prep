@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { checkAndRecordUsage, checkIsPro } from "../_shared/usage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -362,6 +363,15 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // ── Usage enforcement ─────────────────────────────────────────
+    const usage = await checkAndRecordUsage(supabase, user.id, "flashcards");
+    if (!usage.allowed) {
+      return new Response(JSON.stringify({ error: usage.reason }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { courseId, count: rawCount, materialId, topic } = await req.json();
 
     // ── Input validation ──────────────────────────────────────────
@@ -424,17 +434,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Check subscription status (server-side enforcement) ───────
-    let isPro = false;
-    try {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("is_pro")
-        .eq("id", user.id)
-        .single();
-      isPro = profile?.is_pro === true;
-    } catch (_) {
-      // Default to free on error
-    }
+    const isPro = await checkIsPro(supabase, user.id);
     const maxCards = isPro ? MAX_TOTAL_CARDS : FREE_MAX_CARDS;
 
     // ── Build full content and auto-calculate count ───────────────

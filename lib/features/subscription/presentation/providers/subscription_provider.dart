@@ -132,18 +132,14 @@ Future<bool> checkFeatureAccess({
   return canUse;
 }
 
-/// Record feature usage after a successful action.
+/// Refresh usage caches after a successful action.
 ///
-/// Tracks usage for both free and Pro users to enforce
-/// daily limits and prevent API abuse.
+/// Usage is now recorded server-side by edge functions to prevent
+/// bypass. This only invalidates local caches so the UI updates.
 Future<void> recordFeatureUsage({
   required WidgetRef ref,
   required String feature,
 }) async {
-  final user = ref.read(currentUserProvider);
-  if (user == null) return;
-
-  await ref.read(subscriptionRepositoryProvider).recordUsage(user.id, feature);
   ref.invalidate(dailyUsageProvider);
   ref.invalidate(remainingCreditsProvider);
   ref.invalidate(creditsUsedTodayProvider);

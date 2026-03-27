@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { extractText, getDocumentProxy } from "https://esm.sh/unpdf";
+import { checkAndRecordUsage } from "../_shared/usage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -256,6 +257,17 @@ Deno.serve(async (req: Request) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // ── Usage enforcement (ocr/whisper are AI-powered; pdf is local extraction) ──
+    if (type === "ocr" || type === "whisper") {
+      const usage = await checkAndRecordUsage(supabase, user.id, type);
+      if (!usage.allowed) {
+        return new Response(JSON.stringify({ error: usage.reason }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     if (!isValidUrl(fileUrl)) {

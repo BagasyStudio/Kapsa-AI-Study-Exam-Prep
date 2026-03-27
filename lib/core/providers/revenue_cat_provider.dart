@@ -84,8 +84,11 @@ class PurchaseNotifier extends StateNotifier<PurchaseState> {
 }
 
 /// Provider for purchase actions (buy + restore) with loading state.
+///
+/// Auto-disposes when the paywall is dismissed so stale error
+/// states don't persist across paywall visits.
 final purchaseNotifierProvider =
-    StateNotifierProvider<PurchaseNotifier, PurchaseState>((ref) {
+    StateNotifierProvider.autoDispose<PurchaseNotifier, PurchaseState>((ref) {
   final service = ref.read(revenueCatServiceProvider);
   return PurchaseNotifier(service, ref);
 });

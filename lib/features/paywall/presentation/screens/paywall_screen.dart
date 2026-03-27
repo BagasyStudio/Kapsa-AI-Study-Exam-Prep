@@ -9,6 +9,7 @@ import '../../../../core/navigation/routes.dart';
 import '../../../../core/providers/revenue_cat_provider.dart';
 import '../../../../core/services/revenue_cat_service.dart';
 import '../../../../core/widgets/tap_scale.dart';
+import '../../../subscription/presentation/providers/subscription_provider.dart';
 
 /// Paywall / Subscription screen — Light theme for maximum contrast & trust.
 class PaywallScreen extends ConsumerStatefulWidget {
@@ -59,6 +60,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     }
     final success = await ref.read(purchaseNotifierProvider.notifier).purchase(package);
     if (success && mounted) {
+      // Invalidate all subscription-related providers so UI refreshes
+      ref.invalidate(isProProvider);
+      ref.invalidate(remainingCreditsProvider);
+      ref.invalidate(creditsUsedTodayProvider);
+      ref.invalidate(dailyUsageProvider);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Welcome to Kapsa Pro!'),
@@ -73,6 +79,12 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   Future<void> _onRestoreTap() async {
     final success = await ref.read(purchaseNotifierProvider.notifier).restore();
+    if (success && mounted) {
+      ref.invalidate(isProProvider);
+      ref.invalidate(remainingCreditsProvider);
+      ref.invalidate(creditsUsedTodayProvider);
+      ref.invalidate(dailyUsageProvider);
+    }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -100,6 +112,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     String yearlyPrice = '\$59.99';
     String yearlyMonthly = '\$5.00/mo';
     String weeklyPrice = '\$4.99';
+    bool yearlyHasTrial = true; // default assumption for fallback prices
 
     offeringsAsync.whenData((offerings) {
       final current = offerings?.current;
@@ -109,7 +122,10 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         if (annual != null) {
           yearlyPrice = annual.storeProduct.priceString;
           final monthlyEquiv = annual.storeProduct.price / 12;
-          yearlyMonthly = '\$${monthlyEquiv.toStringAsFixed(2)}/mo';
+          // Use currencyCode from the store product for correct symbol
+          final symbol = annual.storeProduct.currencyCode;
+          yearlyMonthly = '${_currencySymbol(symbol)}${monthlyEquiv.toStringAsFixed(2)}/mo';
+          yearlyHasTrial = annual.storeProduct.introductoryPrice != null;
         }
         if (weekly != null) {
           weeklyPrice = weekly.storeProduct.priceString;
@@ -284,7 +300,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                               ),
                             )
                           : Text(
-                              _isYearlySelected ? 'Start 3-Day Free Trial' : 'Get Kapsa Pro',
+                              _isYearlySelected && yearlyHasTrial ? 'Start 3-Day Free Trial' : 'Get Kapsa Pro',
                               style: const TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 17,
@@ -317,7 +333,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                 const SizedBox(height: 8),
                 Center(
                   child: Text(
-                    _isYearlySelected
+                    _isYearlySelected && yearlyHasTrial
                         ? '3-day free trial \u00b7 Cancel anytime'
                         : 'Cancel anytime \u00b7 No commitment',
                     style: const TextStyle(color: Color(0xFFD1D5DB), fontSize: 12),
@@ -366,6 +382,15 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         ),
       ),
     );
+  }
+
+  static String _currencySymbol(String currencyCode) {
+    const symbols = {
+      'USD': '\$', 'EUR': '€', 'GBP': '£', 'JPY': '¥',
+      'ARS': 'ARS ', 'BRL': 'R\$', 'MXN': 'MX\$', 'CLP': 'CLP ',
+      'COP': 'COP ', 'PEN': 'S/', 'CAD': 'CA\$', 'AUD': 'A\$',
+    };
+    return symbols[currencyCode.toUpperCase()] ?? '$currencyCode ';
   }
 }
 

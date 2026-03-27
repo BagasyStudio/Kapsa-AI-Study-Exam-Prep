@@ -100,6 +100,9 @@ class AppErrorHandler {
         return 'AI service authentication error. Please try again later.';
       }
       if (status == 429) {
+        if (serverMsg != null && serverMsg.isNotEmpty) {
+          return serverMsg; // Usage limit messages from our edge functions
+        }
         return 'Too many requests. Please wait a moment and try again.';
       }
       if (serverMsg != null && serverMsg.isNotEmpty) {

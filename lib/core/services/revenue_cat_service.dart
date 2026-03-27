@@ -199,7 +199,9 @@ class RevenueCatService {
   /// Triggered when subscription status changes (renewal, expiration, etc.)
   void _onCustomerInfoUpdated(CustomerInfo info) {
     final isPro = info.entitlements.active.containsKey(_entitlementId);
-    _setSupabasePro(isPro);
+    _setSupabasePro(isPro).catchError((e) {
+      debugPrint('RevenueCatService: customerInfo sync failed: $e');
+    });
   }
 
   /// Sync the subscription status with Supabase.
